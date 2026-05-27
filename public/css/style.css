@@ -1,0 +1,239 @@
+/* GERAL E LAYOUT */
+:root {
+    --primary-color: #00833D;
+    --primary-dark-color: #00642e;
+    --danger-color: #dc3545;
+    --secondary-color: #6c757d;
+    --light-gray-color: #f8f9fa;
+    --dark-text-color: #333;
+    --light-text-color: #fff;
+    --border-color: #dee2e6;
+    --border-radius: 6px;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--light-gray-color);
+    color: var(--dark-text-color);
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* CABEÇALHO */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 25px;
+    background-color: var(--light-text-color);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+}
+
+.user-info span {
+    font-weight: 600;
+    margin-right: 15px;
+}
+
+/* BOTÕES */
+.btn {
+    padding: 10px 20px;
+    font-size: 15px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    font-weight: 600;
+}
+.btn-primary { background-color: var(--primary-color); color: var(--light-text-color); }
+.btn-primary:hover { background-color: var(--primary-dark-color); }
+.btn-danger { background-color: var(--danger-color); color: var(--light-text-color); }
+.btn-danger:hover { background-color: #c82333; }
+.btn-secondary { background-color: var(--secondary-color); color: var(--light-text-color); }
+.btn-secondary:hover { background-color: #5a6268; }
+.btn-success { background-color: var(--primary-color); color: var(--light-text-color); } 
+.btn-success:hover { background-color: var(--primary-dark-color); }
+
+.action-buttons-group {
+    text-align: center;
+    margin: 30px 0;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* SEÇÕES */
+.content-section {
+    background-color: var(--light-text-color);
+    padding: 25px;
+    margin-top: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+h1, h2, h3 { color: var(--primary-dark-color); }
+h2, h3 { text-align: center; }
+
+/* MODAIS COMPATÍVEIS */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0; 
+    top: 0;
+    width: 100%; 
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.is-visible { 
+    display: flex !important; 
+}
+
+.modal-content {
+    background-color: #fefefe;
+    padding: 25px;
+    border: none;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 8px;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    margin: auto;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px; 
+    right: 20px;
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.close-btn:hover { 
+    color: #000; 
+}
+
+/* FORMULÁRIOS */
+.form-group { margin-bottom: 15px; }
+.form-row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; }
+.form-row > .form-group { flex: 1; min-width: 150px; }
+form label { font-weight: 600; margin-bottom: 5px; display: block; }
+form input[type="text"], form input[type="date"], form input[type="time"], form select, form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+/* HISTÓRICO DE CANCELAMENTOS E FILTROS */
+.cancelamentos-lista { 
+    list-style: none; 
+    padding: 0; 
+}
+.cancelamentos-lista li { 
+    background-color: #fff5f5; 
+    border-left: 5px solid var(--danger-color); 
+    padding: 15px; 
+    margin-bottom: 10px;
+    border-radius: 0 4px 4px 0;
+}
+.cancelamentos-lista strong { color: #b7791f; }
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 5px 0;
+}
+.checkbox-group label { margin-right: 15px; display: flex; align-items: center; gap: 5px; cursor: pointer; }
+
+/* ESTILOS DO FULLCALENDAR v5 */
+.fc {
+    border-radius: 8px;
+    overflow: hidden;
+}
+.fc .fc-toolbar-title { font-size: 1.5em; }
+.fc .fc-daygrid-day-number {
+    padding: 8px;
+    font-weight: 600;
+}
+.fc .fc-day-today {
+    background-color: #e6fffa !important;
+}
+.fc-event {
+    border: none !important;
+    padding: 5px 8px !important;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 4px;
+}
+
+/* Cores dos eventos - Psicóloga */
+.fc-event.evento-confirmado { background-color: var(--primary-dark-color) !important; }
+.fc-event.evento-disponivel-psicologa { background-color: var(--primary-color) !important; }
+.fc-event.evento-indisponivel-psicologa { background-color: var(--secondary-color) !important; }
+
+/* Cores dos eventos - Aluno */
+.fc-event.evento-disponivel-aluno { background-color: var(--primary-color) !important; }
+.fc-event.evento-meu-agendamento { background-color: #0056b3 !important; } 
+.fc-event.evento-indisponivel-aluno { background-color: var(--secondary-color) !important; cursor: not-allowed !important; }
+
+/* RESPONSIVIDADE */
+@media (max-width: 768px) {
+    .header { flex-direction: column; gap: 10px; padding: 15px; }
+    .container { padding: 10px; }
+    .content-section { padding: 15px; }
+    .action-buttons-group { flex-direction: column; }
+    .modal-content { margin: 20% auto; padding: 20px; }
+    .form-row { flex-direction: column; }
+}
+
+/* ALERTAS FLUTUANTES E AJUSTES DO ALUNO (COMPARTILHADO)*/
+.message-box { 
+    display: none; 
+    padding: 15px; 
+    margin: 20px auto; 
+    border-radius: 8px; 
+    width: 90%; 
+    max-width: 500px; 
+    text-align: center; 
+    color: white; 
+    font-weight: bold; 
+    position: fixed; 
+    top: 80px; 
+    left: 50%; 
+    transform: translateX(-50%); 
+    z-index: 2500;
+}
+.message-box.success { background-color: var(--primary-color); }
+.message-box.error { background-color: var(--danger-color); }
+
+/* Estilos de texto específicos do fluxo do aluno */
+.modal-content .data-hora { 
+    font-weight: bold; 
+    color: var(--primary-dark-color); 
+}
+.instrucao-texto, .instrucao-subtexto {
+    text-align: center; 
+    color: #555;
+    margin-bottom: 15px;
+}
+
+#tabela-historico-aluno th, #tabela-historico-aluno td { padding: 8px; border: 1px solid #ddd; text-align: left; }
+    .text-success { color: #00833D; }
+    .text-danger { color: #dc3545; }
