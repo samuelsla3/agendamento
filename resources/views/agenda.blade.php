@@ -29,7 +29,7 @@
 
     <div class="container">
         <div class="action-buttons-group">
-            <button type="button" class="btn btn-primary" onclick="$('#generateModal').addClass('is-visible')">Gerar Horários Padrão</button>
+            <button type="button" class="btn btn-primary" onclick="$('#generateModal').addClass('is-visible')">Gerar Horário(s)</button>
             <button type="button" class="btn btn-danger" onclick="$('#deleteModal').addClass('is-visible')">Apagar Horários Futuros</button>
         </div>
         
@@ -40,10 +40,21 @@
             @else
                 <ul class="cancelamentos-lista">
                     @foreach ($ultimosCancelamentos as $cancelamento)
+                        @php
+                            $data_atendimento = \Carbon\Carbon::parse($cancelamento->data_atendimento)->format('d/m/Y');
+                            $hora_atendimento = \Carbon\Carbon::parse($cancelamento->hora_atendimento)->format('H:i');
+                            $momento_cancelamento = \Carbon\Carbon::parse($cancelamento->data_registro)->format('d/m/Y \à\s H:i');
+                        @endphp
+                        
                         <li>
-                            <strong>Aluno:</strong> {{ $cancelamento->nome_aluno }} (Mat: {{ $cancelamento->matricula_aluno }})<br>
-                            <strong>Data:</strong> {{ \Carbon\Carbon::parse($cancelamento->data_atendimento)->format('d/m/Y') }}<br>
-                            <strong>Justificativa:</strong> "{{ $cancelamento->observacao }}"
+                            <strong>Aluno:</strong> {{ $cancelamento->nome_aluno ?? 'Não informado' }} 
+                            (Mat: {{ $cancelamento->matricula_aluno ?? 'N/A' }})<br>
+                            
+                            <strong>Horário Cancelado:</strong> Dia {{ $data_atendimento }} às {{ $hora_atendimento }}h<br>
+                            
+                            <strong>Cancelado em:</strong> {{ $momento_cancelamento }}<br>
+                            
+                            <strong>Justificativa:</strong> "{{ $cancelamento->observacao ?? 'Sem justificativa.' }}"
                         </li>
                     @endforeach
                 </ul>
@@ -123,39 +134,68 @@
         </div>
 
         <div id="generateModal" class="modal">
-            <div class="modal-content">
-                <span class="close-btn" onclick="closeModal()">&times;</span>
-                <h3>Gerar Horários Padrão</h3>
-                <form id="generate-form">
-                    <div class="form-row">
-                        <div class="form-group"><label for="data_inicio_gerar">Período de:</label><input type="date" id="data_inicio_gerar" required></div>
-                        <div class="form-group"><label for="data_fim_gerar">Até:</label><input type="date" id="data_fim_gerar" required></div>
-                    </div>
-                    <div class="form-group checkbox-group">
-                        <p><strong>Selecionar dias da semana:</strong></p>
-                        <label><input type="checkbox" name="dias_semana[]" value="1"> Seg</label>
-                        <label><input type="checkbox" name="dias_semana[]" value="2" checked> Ter</label>
-                        <label><input type="checkbox" name="dias_semana[]" value="3" checked> Qua</label>
-                        <label><input type="checkbox" name="dias_semana[]" value="4" checked> Qui</label>
-                        <label><input type="checkbox" name="dias_semana[]" value="5" checked> Sex</label>
-                        <label><input type="checkbox" name="dias_semana[]" value="6"> Sáb</label>
-                        <label><input type="checkbox" name="dias_semana[]" value="7"> Dom</label>
-                    </div>
-                    <div class="form-group" style="margin-top: 15px;">
-                        <label><strong>Selecionar Horários de Atendimento:</strong></label>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 5px;">
-                            <label><input type="checkbox" name="horas_selecionadas[]" value="09:00:00" checked> 09:00</label>
-                            <label><input type="checkbox" name="horas_selecionadas[]" value="10:00:00" checked> 10:00</label>
-                            <label><input type="checkbox" name="horas_selecionadas[]" value="11:00:00" checked> 11:00</label>
-                            <label><input type="checkbox" name="horas_selecionadas[]" value="14:00:00" checked> 14:00</label>
-                            <label><input type="checkbox" name="horas_selecionadas[]" value="15:00:00" checked> 15:00</label>
-                            <label><input type="checkbox" name="horas_selecionadas[]" value="16:00:00" checked> 16:00</label>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Gerar Horários</button>
-                </form>
-            </div>
+    <div class="modal-content" style="max-width: 500px;">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        
+        <div class="modal-tabs" style="display: flex; margin-bottom: 20px; border-bottom: 2px solid #e9ecef;">
+            <button type="button" class="tab-btn active" onclick="switchTab('bloco')" 
+            style="flex: 1; padding: 10px; border: none; background: none; font-weight: bold; 
+            border-bottom: 3px solid #00833D; color: #00833D; cursor: pointer;">Gerar em Bloco</button>
+            <button type="button" class="tab-btn" onclick="switchTab('individual')" 
+            style="flex: 1; padding: 10px; border: none; background: none; font-weight: bold; 
+            color: #6c757d; cursor: pointer;">Horário Individual</button>
         </div>
+
+        <form id="generate-form" class="tab-content">
+            <div class="form-row">
+                <div class="form-group"><label for="data_inicio_gerar">Período de:</label><input type="date" id="data_inicio_gerar" required></div>
+                <div class="form-group"><label for="data_fim_gerar">Até:</label><input type="date" id="data_fim_gerar" required></div>
+            </div>
+            
+            <div class="form-group checkbox-group">
+                <p><strong>Selecionar dias da semana:</strong></p>
+                <label><input type="checkbox" name="dias_semana[]" value="1"> Seg</label>
+                <label><input type="checkbox" name="dias_semana[]" value="2" checked> Ter</label>
+                <label><input type="checkbox" name="dias_semana[]" value="3" checked> Qua</label>
+                <label><input type="checkbox" name="dias_semana[]" value="4" checked> Qui</label>
+                <label><input type="checkbox" name="dias_semana[]" value="5" checked> Sex</label>
+                <label><input type="checkbox" name="dias_semana[]" value="6"> Sáb</label>
+                <label><input type="checkbox" name="dias_semana[]" value="7"> Dom</label>
+            </div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <label><strong>Selecionar Horários de Atendimento:</strong></label>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 5px;">
+                    <label><input type="checkbox" name="horas_selecionadas[]" value="09:00:00" checked> 09:00</label>
+                    <label><input type="checkbox" name="horas_selecionadas[]" value="10:00:00" checked> 10:00</label>
+                    <label><input type="checkbox" name="horas_selecionadas[]" value="11:00:00" checked> 11:00</label>
+                    <label><input type="checkbox" name="horas_selecionadas[]" value="14:00:00" checked> 14:00</label>
+                    <label><input type="checkbox" name="horas_selecionadas[]" value="15:00:00" checked> 15:00</label>
+                    <label><input type="checkbox" name="horas_selecionadas[]" value="16:00:00" checked> 16:00</label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top: 20px; width: 100%;">Gerar Bloco de Horários</button>
+        </form>
+
+        <form id="individual-form" class="tab-content" style="display: none;">
+            <p style="color: #6c757d; font-size: 0.9rem; margin-bottom: 15px;">Crie um único horário avulso para um dia específico na agenda.</p>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="data_individual">Data do Atendimento:</label>
+                    <input type="date" id="data_individual" required disabled>
+                </div>
+                <div class="form-group">
+                    <label for="hora_individual">Horário:</label>
+                    <input type="time" id="hora_individual" required disabled>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-success" 
+            style="margin-top: 20px; width: 100%; background-color: #00833D; border-color: #00833D;">Criar Horário Único</button>
+        </form>
+    </div>
+</div>
         
         <div id="deleteModal" class="modal">
             <div class="modal-content">

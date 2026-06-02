@@ -10,11 +10,11 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // psicóloga Eduarda
+        // psicóloga
         Usuario::create([
             'nome' => 'Eduarda Chaves',
             'email' => 'duda@gmail.com',
-            'senha' => Hash::make('sua_senha_aqui'),
+            'senha' => Hash::make('123456'),
             'tipo' => 'psicologa',
             'matricula' => '12345678',
         ]);
@@ -23,7 +23,7 @@ class DatabaseSeeder extends Seeder
         Usuario::create([
             'nome' => 'Caio Valle Moraes de Araújo',
             'email' => 'caiolvale0@gmail.com',
-            'senha' => Hash::make('sua_senha_aqui'), 
+            'senha' => Hash::make('123456'),
             'tipo' => 'estudante',
             'matricula' => '20211180047',
             'data_nascimento' => '2006-03-02',

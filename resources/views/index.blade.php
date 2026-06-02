@@ -46,40 +46,54 @@
         <section class="content-section">
             <h2>Seu Histórico de Agendamentos</h2>
             <p class="instrucao-subtexto">(Atendimentos Realizados e Cancelados)</p>
+
             @if(count($registros) > 0)
-    <h3 style="margin-top: 20px; font-size: 1.2em; color: #333;">
-        Total de Agendamentos Localizados: {{ count($registros) }}
-    </h3>
-    
-    <table id='tabela-historico-aluno' style='width: 100%; border-collapse: collapse; margin-top: 15px;'>
-        <thead style='background-color: #f2f2f2;'>
-            <tr>
-                <th>Data / Hora do Atendimento</th>
-                <th>Status do Horário</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($registros as $reg)
-                @php
-                    // Formata a data e hora vindas da tabela de Horários
-                    $data_hora = \Carbon\Carbon::parse($reg->data)->format('d/m/Y') . ' às ' . \Carbon\Carbon::parse($reg->hora)->format('H:i');
-                    
-                    // Define o status visual baseado na disponibilidade do horário
-                    $status_texto = $reg->disponivel == 0 ? 'Agendado / Reservado' : 'Disponível';
-                    $status_class = $reg->disponivel == 0 ? 'text-success' : 'text-danger';
-                @endphp
-                <tr>
-                    <td>{{ $data_hora }}</td>
-                    <td><strong class="{{ $status_class }}">{{ $status_texto }}</strong></td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
-@else
-    <p id='sem-resultados' style='text-align: center; color: #555; margin-top: 15px;'>
-        Nenhum registro de agendamento encontrado para a sua matrícula.
-    </p>
-@endif
+                <h3 style="margin-top: 20px; font-size: 1.2em; color: #333;">
+                    Total de Agendamentos Localizados: {{ count($registros) }}
+                </h3>
+                
+                <table id='tabela-historico-aluno' style='width: 100%; border-collapse: collapse; margin-top: 15px;'>
+                    <thead style='background-color: #f2f2f2;'>
+                        <tr>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Data / Hora do Atendimento</th>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Status do Horário</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($registros as $reg)
+                            @php
+                                $data_hora = \Carbon\Carbon::parse($reg->data_atendimento)->format('d/m/Y') . ' às ' . \Carbon\Carbon::parse($reg->hora_atendimento)->format('H:i');
+                                
+                                if ($reg->status === 'Agendado') {
+                                    $status_texto = 'Agendado / Reservado';
+                                    $status_class = 'text-success';
+                                } elseif ($reg->status === 'Realizado') {
+                                    $status_texto = 'Atendimento Realizado';
+                                    $status_class = 'text-success';
+                                } elseif ($reg->status === 'Cancelado pelo Aluno') {
+                                    $status_texto = 'Cancelado por Você';
+                                    $status_class = 'text-warning';
+                                } else {
+                                    $status_texto = 'Cancelado pela Psicóloga';
+                                    $status_class = 'text-danger';
+                                }
+                            @endphp
+                            <tr @if($reg->status === 'Agendado') style="background-color: #f0fdf4;" @endif>
+                                <td style="padding: 10px; border: 1px solid #ddd;">{{ $data_hora }}</td>
+                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                    <strong class="{{ $status_class }}" title="{{ $reg->observacao ?? '' }}">
+                                        {{ $status_texto }}
+                                    </strong>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @else
+                <p id='sem-resultados' style='text-align: center; color: #555; margin-top: 15px;'>
+                    Nenhum registro de agendamento encontrado para a sua matrícula.
+                </p>
+            @endif
         </section>
         @endif
     </div>

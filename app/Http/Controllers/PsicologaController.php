@@ -17,36 +17,71 @@ class PsicologaController extends Controller
             return redirect()->route('login')->with('erro', 'Acesso negado.');
         }
 
-        $ultimosCancelamentos = RegistroAtendimento::where('status', 'Cancelado pelo Aluno')
+        $ultimosCancelamentos = DB::table('registros_atendimentos')
+            ->where('status', 'Cancelado pelo Aluno')
             ->orderBy('data_registro', 'desc')
-            ->limit(5)
+            ->take(5)
             ->get();
+
+        $ultimosCancelamentos = collect($ultimosCancelamentos)->map(function ($cancelamento) {
+            $horario = Horario::find($cancelamento->id_horario_original);
+            
+            $cancelamento->nome_aluno = $cancelamento->nome ?? 'Não informado';
+            $cancelamento->matricula_aluno = $cancelamento->matricula ?? 'N/A';
+            
+            $cancelamento->data_atendimento = $horario ? $horario->data : $cancelamento->data_registro;
+            $cancelamento->hora_atendimento = $horario ? $horario->hora : $cancelamento->data_registro;
+            
+            return $cancelamento;
+        });
 
         return view('agenda', compact('ultimosCancelamentos'));
     }
 
     public function listarEventos()
-    {
-        $horarios = Horario::all();
-        $eventos = [];
+{
+    $horarios = Horario::all();
+    $eventos = [];
 
-        foreach ($horarios as $row) {
-            $eventos[] = [
-                'id' => $row->id,
-                'title' => $row->nome ?? 'Disponível',
-                'start' => $row->data . 'T' . $row->hora,
-                'extendedProps' => [
-                    'disponivel' => (int)$row->disponivel,
-                    'nome' => $row->nome,
-                    'matricula' => $row->matricula,
-                    'confirmado' => (int)$row->confirmado,
-                    'justificativa_cancelamento' => $row->justificativa_cancelamento
-                ]
-            ];
+    foreach ($horarios as $row) {
+        $nome = $row->nome;
+        $matricula = $row->matricula;
+        $statusReal = $row->confirmado ? 'Confirmado' : 'Agendado';
+
+        if ($row->disponivel == 1 && !empty($row->justificativa_cancelamento)) {
+            $historico = DB::table('registros_atendimentos')
+                ->where('id_horario_original', $row->id)
+                ->orderBy('data_registro', 'desc')
+                ->first();
+
+            if ($historico) {
+                $nome = $historico->nome;
+                $matricula = $historico->matricula;
+                $statusReal = $historico->status; 
+            } else {
+                $statusReal = 'Cancelado';
+            }
         }
 
-        return response()->json($eventos);
+        $eventos[] = [
+            'id' => $row->id,
+            'title' => $nome ?? 'Disponível',
+            'start' => $row->data . 'T' . $row->hora,
+            'extendedProps' => [
+                'id' => $row->id,
+                'id_horario' => $row->id,
+                'disponivel' => (int)$row->disponivel,
+                'nome' => $nome,
+                'matricula' => $matricula,
+                'confirmado' => (int)$row->confirmado,
+                'justificativa_cancelamento' => $row->justificativa_cancelamento,
+                'status_real' => $statusReal 
+            ]
+        ];
     }
+
+    return response()->json($eventos);
+}
 
     public function processarAcao(Request $request)
     {
@@ -60,11 +95,12 @@ class PsicologaController extends Controller
 
                 DB::transaction(function () use ($horario) {
                     RegistroAtendimento::create([
-                        'nome_aluno'       => $horario->nome ?? 'N/A',
-                        'matricula_aluno'  => $horario->matricula ?? 'N/A',
-                        'data_atendimento' => $horario->data,
-                        'status'           => 'Realizado',
-                        'observacao'       => 'Atendimento concluído com sucesso.'
+                        'id_horario_original' => $horario->id, 
+                        'nome'                => $horario->nome ?? 'N/A',
+                        'matricula'           => $horario->matricula ?? 'N/A',
+                        'status'              => 'Realizado',
+                        'observacao'          => 'Atendimento concluído com sucesso.',
+                        'data_registro'       => now()
                     ]);
                     $horario->delete();
                 });
@@ -77,15 +113,19 @@ class PsicologaController extends Controller
 
                 if (!$horario) return response()->json(['status' => 'error', 'message' => 'Horário não encontrado.']);
 
-                DB::transaction(function () use ($horario, $justificativa) {
-                    $aluno = Usuario::where('matricula', $horario->matricula)->first();
+                $nomeAlunoSalvar = $horario->nome;
+                $matriculaAlunoSalvar = $horario->matricula;
+
+                DB::transaction(function () use ($horario, $justificativa, $nomeAlunoSalvar, $matriculaAlunoSalvar) {
+                    $aluno = Usuario::where('matricula', $matriculaAlunoSalvar)->first();
 
                     RegistroAtendimento::create([
-                        'nome_aluno'       => $horario->nome ?? 'N/A',
-                        'matricula_aluno'  => $horario->matricula ?? 'N/A',
-                        'data_atendimento' => $horario->data,
-                        'status'           => 'Cancelado pela Psicóloga',
-                        'observacao'       => 'Motivo: ' . $justificativa
+                        'id_horario_original' => $horario->id, 
+                        'nome'                => $nomeAlunoSalvar ?? 'N/A',
+                        'matricula'           => $matriculaAlunoSalvar ?? 'N/A',
+                        'status'              => 'Cancelado pela Psicóloga', // Status correto!
+                        'observacao'          => 'Motivo: ' . $justificativa,
+                        'data_registro'       => now()
                     ]);
 
                     $horario->update([
@@ -93,14 +133,14 @@ class PsicologaController extends Controller
                         'nome' => null,
                         'matricula' => null,
                         'confirmado' => 0,
-                        'justificativa_cancelamento' => null
+                        'justificativa_cancelamento' => $justificativa
                     ]);
 
                     if ($aluno && !empty($aluno->email)) {
                         $dataFormato = date('d/m/Y', strtotime($horario->data));
                         $horaFormato = date('H:i', strtotime($horario->hora));
                         
-                        $corpoHtml = "Olá, <strong>{$horario->nome}</strong>!<br><br>Sua consulta em <strong>{$dataFormato}</strong> às <strong>{$horaFormato}</strong> foi cancelada.<br><strong>Motivo:</strong> {$justificativa}";
+                        $corpoHtml = "Olá, <strong>{$nomeAlunoSalvar}</strong>!<br><br>Sua consulta em <strong>{$dataFormato}</strong> às <strong>{$horaFormato}</strong> foi cancelada.<br><strong>Motivo:</strong> {$justificativa}";
 
                         Mail::html($corpoHtml, function ($message) use ($aluno) {
                             $message->to($aluno->email)->subject('Aviso Urgente: Sua consulta foi cancelada');
@@ -166,6 +206,29 @@ class PsicologaController extends Controller
 
                 return response()->json(['status' => 'success', 'message' => "{$criados} horários customizados criados com sucesso."]);
 
+            case 'generate_individual':
+                $dataIndividual = $request->input('data_individual');
+                $horaIndividual = $request->input('hora_individual');
+
+                if (empty($dataIndividual) || empty($horaIndividual)) {
+                    return response()->json(['status' => 'error', 'message' => 'Selecione a data e o horário.']);
+                }
+
+                $horaFormatada = strlen($horaIndividual) === 5 ? $horaIndividual . ':00' : $horaIndividual;
+
+                $existe = Horario::where('data', $dataIndividual)->where('hora', $horaFormatada)->exists();
+                if ($existe) {
+                    return response()->json(['status' => 'error', 'message' => 'Este horário já está cadastrado para este dia!']);
+                }
+
+                Horario::create([
+                    'data' => $dataIndividual,
+                    'hora' => $horaFormatada,
+                    'disponivel' => 1
+                ]);
+
+                return response()->json(['status' => 'success', 'message' => 'Horário avulso criado com sucesso.']);
+
             case 'edit':
                 Horario::where('id', $id)->update([
                     'data' => $request->input('data'),
@@ -177,99 +240,98 @@ class PsicologaController extends Controller
         return response()->json(['status' => 'error', 'message' => 'Ação inválida.']);
     }
 
-public function gerarRelatorio(Request $request)
-{
-    if (!auth()->check() || auth()->user()->tipo !== 'psicologa') {
-        return response('Acesso negado.', 403);
-    }
-
-    try {
-        $matricula = $request->input('aluno_matricula');
-        $dataInicio = $request->input('data_inicio');
-        $dataFim = $request->input('data_fim');
-        $ordenarPor = $request->input('ordenar_por', 'data_desc');
-
-        $query = \App\Models\Horario::query()
-            ->whereNotNull('matricula') 
-            ->when($matricula, function ($query, $matricula) {
-                return $query->where('matricula', 'like', "%{$matricula}%");
-            })
-            ->when($dataInicio, function ($query, $dataInicio) {
-                return $query->where('data', '>=', $dataInicio);
-            })
-            ->when($dataFim, function ($query, $dataFim) {
-                return $query->where('data', '<=', $dataFim);
-            });
-
-        switch ($ordenarPor) {
-            case 'data_asc':
-                $query->orderBy('data', 'asc')->orderBy('hora', 'asc');
-                break;
-            case 'nome_asc':
-                $query->orderBy('nome', 'asc');
-                break;
-            case 'situacao_asc':
-                $query->orderBy('confirmado', 'desc')->orderBy('data', 'desc');
-                break;
-            case 'data_desc':
-            default:
-                $query->orderBy('data', 'desc')->orderBy('hora', 'desc');
-                break;
+    public function gerarRelatorio(Request $request)
+    {
+        if (!auth()->check() || auth()->user()->tipo !== 'psicologa') {
+            return response('Acesso negado.', 403);
         }
 
-        $registros = $query->get();
+        try {
+            $matricula = $request->input('aluno_matricula');
+            $dataInicio = $request->input('data_inicio');
+            $dataFim = $request->input('data_fim');
+            $ordenarPor = $request->input('ordenar_por', 'data_desc');
 
-        $dataInicioFormatada = $dataInicio ? \Carbon\Carbon::parse($dataInicio)->format('d/m/Y') : 'N/A';
-        $dataFimFormatada = $dataFim ? \Carbon\Carbon::parse($dataFim)->format('d/m/Y') : 'N/A';
-        $periodoStr = "Período da consulta: {$dataInicioFormatada} a {$dataFimFormatada}";
+            $query = \App\Models\Horario::query()
+                ->whereNotNull('matricula') 
+                ->when($matricula, function ($query, $matricula) {
+                    return $query->where('matricula', 'like', "%{$matricula}%");
+                })
+                ->when($dataInicio, function ($query, $dataInicio) {
+                    return $query->where('data', '>=', $dataInicio);
+                })
+                ->when($dataFim, function ($query, $dataFim) {
+                    return $query->where('data', '<=', $dataFim);
+                });
 
-        return $this->renderTabelaFallback($registros, $periodoStr);
+            switch ($ordenarPor) {
+                case 'data_asc':
+                    $query->orderBy('data', 'asc')->orderBy('hora', 'asc');
+                    break;
+                case 'nome_asc':
+                    $query->orderBy('nome', 'asc');
+                    break;
+                case 'situacao_asc':
+                    $query->orderBy('confirmado', 'desc')->orderBy('data', 'desc');
+                    break;
+                case 'data_desc':
+                default:
+                    $query->orderBy('data', 'desc')->orderBy('hora', 'desc');
+                    break;
+            }
 
-    } catch (\Exception $e) {
-        return response()->json([
-            'erro' => $e->getMessage(),
-            'linha' => $e->getLine()
-        ], 500);
-    }
-}
+            $registros = $query->get();
 
-private function renderTabelaFallback($registros, $periodoStr)
-{
-    if ($registros->isEmpty()) {
-        return "<p style='color: #555;'>Nenhum agendamento encontrado para os filtros aplicados.</p>";
-    }
+            $dataInicioFormatada = $dataInicio ? \Carbon\Carbon::parse($dataInicio)->format('d/m/Y') : 'N/A';
+            $dataFimFormatada = $dataFim ? \Carbon\Carbon::parse($dataFim)->format('d/m/Y') : 'N/A';
+            $periodoStr = "Período da consulta: {$dataInicioFormatada} a {$dataFimFormatada}";
 
-    $html = "<h3>Total de registros encontrados: " . $registros->count() . "</h3>";
-    $html .= "<p id='periodo-relatorio' style='font-style: italic; color: #555;'>{$periodoStr}</p>";
-    
-    $html .= "<table id='tabela-relatorio' style='width: 100%; border-collapse: collapse; margin-top: 15px;'>
-                <thead style='background-color: #f2f2f2;'>
-                    <tr>
-                        <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Aluno</th>
-                        <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Matrícula</th>
-                        <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Data e Hora</th>
-                        <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Situação</th>
-                    </tr>
-                </thead>
-                <tbody>";
+            return $this->renderTabelaFallback($registros, $periodoStr);
 
-    foreach ($registros as $reg) {
-        $situacao = $reg->confirmado ? 'Confirmado' : 'Agendado pelo Aluno';
-        
-        $statusClass = $reg->confirmado ? 'color: #00833D;' : 'color: #d97706;';
-        
-        $dataReg = \Carbon\Carbon::parse($reg->data)->format('d/m/Y');
-        $horaReg = \Carbon\Carbon::parse($reg->hora)->format('H:i');
-        
-        $html .= "<tr>
-                    <td style='padding: 8px; border: 1px solid #ddd;'>{$reg->nome}</td>
-                    <td style='padding: 8px; border: 1px solid #ddd;'>{$reg->matricula}</td>
-                    <td style='padding: 8px; border: 1px solid #ddd;'>{$dataReg} às {$horaReg}</td>
-                    <td style='padding: 8px; border: 1px solid #ddd;'><strong style='{$statusClass}'>{$situacao}</strong></td>
-                </tr>";
+        } catch (\Exception $e) {
+            return response()->json([
+                'erro' => $e->getMessage(),
+                'linha' => $e->getLine()
+            ], 500);
+        }
     }
 
-    $html .= "</tbody></table>";
-    return $html;
-}
+    private function renderTabelaFallback($registros, $periodoStr)
+    {
+        if ($registros->isEmpty()) {
+            return "<p style='color: #555;'>Nenhum agendamento encontrado para os filtros aplicados.</p>";
+        }
+
+        $html = "<h3>Total de registros encontrados: " . $registros->count() . "</h3>";
+        $html .= "<p id='periodo-relatorio' style='font-style: italic; color: #555;'>{$periodoStr}</p>";
+        
+        $html .= "<table id='tabela-relatorio' style='width: 100%; border-collapse: collapse; margin-top: 15px;'>
+                    <thead style='background-color: #f2f2f2;'>
+                        <tr>
+                            <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Aluno</th>
+                            <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Matrícula</th>
+                            <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Data e Hora</th>
+                            <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Situação</th>
+                        </tr>
+                    </thead>
+                    <tbody>";
+
+        foreach ($registros as $reg) {
+            $situacao = $reg->confirmado ? 'Confirmado' : 'Agendado pelo Aluno';
+            $statusClass = $reg->confirmado ? 'color: #00833D;' : 'color: #d97706;';
+            
+            $dataReg = \Carbon\Carbon::parse($reg->data)->format('d/m/Y');
+            $horaReg = \Carbon\Carbon::parse($reg->hora)->format('H:i');
+            
+            $html .= "<tr>
+                        <td style='padding: 8px; border: 1px solid #ddd;'>{$reg->nome}</td>
+                        <td style='padding: 8px; border: 1px solid #ddd;'>{$reg->matricula}</td>
+                        <td style='padding: 8px; border: 1px solid #ddd;'>{$dataReg} às {$horaReg}</td>
+                        <td style='padding: 8px; border: 1px solid #ddd;'><strong style='{$statusClass}'>{$situacao}</strong></td>
+                    </tr>";
+        }
+
+        $html .= "</tbody></table>";
+        return $html;
+    }
 }

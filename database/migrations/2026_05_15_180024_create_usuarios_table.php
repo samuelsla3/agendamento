@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('usuarios', function (Blueprint $table) {
-            $table->id(); // int(11) AUTO_INCREMENT PRIMARY KEY
+            $table->id();
             $table->string('nome', 100);
             $table->string('email', 100)->unique();
-            $table->string('senha', 255); // No Laravel vamos salvar a Hash aqui
+            $table->string('senha', 255);
             $table->enum('tipo', ['estudante', 'psicologa']);
             $table->string('matricula', 20)->unique();
             $table->date('data_nascimento')->nullable();
             $table->string('cidade', 100)->nullable();
-            $table->timestamps(); // Cria as colunas created_at e updated_at
+            $table->timestamps();
         });
     }
 

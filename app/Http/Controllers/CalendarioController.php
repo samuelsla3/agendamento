@@ -17,21 +17,21 @@ class CalendarioController extends Controller
         $horariosBrutos = Horario::where('data', '>=', now()->toDateString())->get();
 
         $horarios = [];
-            foreach ($horariosBrutos as $horario) {
-                $horaFormatada = Carbon::parse($horario->hora)->format('i') === '00' 
-                    ? Carbon::parse($horario->hora)->format('H\h') 
-                    : Carbon::parse($horario->hora)->format('H\h\m');
+        foreach ($horariosBrutos as $horario) {
+            $horaFormatada = Carbon::parse($horario->hora)->format('i') === '00' 
+                ? Carbon::parse($horario->hora)->format('H\h') 
+                : Carbon::parse($horario->hora)->format('H\h\m');
 
-                $horarios[] = [
-                    'id' => $horario->id,
-                    'title' => $horaFormatada,
-                    'start' => $horario->data . 'T' . $horario->hora,
-                    'extendedProps' => [
-                        'disponivel' => (int)$horario->disponivel,
-                        'matricula_agendada' => $horario->matricula
-                    ]
-                ];
-            }
+            $horarios[] = [
+                'id' => $horario->id,
+                'title' => $horaFormatada,
+                'start' => $horario->data . 'T' . $horario->hora,
+                'extendedProps' => [
+                    'disponivel' => (int)$horario->disponivel,
+                    'matricula_agendada' => $horario->matricula
+                ]
+            ];
+        }
 
         $nome = session('nome') ?? session('usuario_nome') ?? (auth()->check() ? auth()->user()->nome : null);
         $tipo = session('tipo') ?? session('usuario_tipo') ?? (auth()->check() ? auth()->user()->tipo : null);
@@ -40,10 +40,33 @@ class CalendarioController extends Controller
         $registros = collect();
         
         if ($nome && ($tipo === 'estudante' || $tipo === 'aluno')) {
-            $registros = Horario::where('matricula', $matricula)
-                            ->orderBy('data', 'desc')
-                            ->orderBy('hora', 'desc')
-                            ->get();
+            $registrosBrutos = RegistroAtendimento::where('matricula', $matricula)
+                                ->orderBy('data_registro', 'desc')
+                                ->get();
+
+            $historicoCancelados = $registrosBrutos->map(function($reg) {
+                $horarioOriginal = Horario::find($reg->id_horario_original);
+                
+                $reg->data_atendimento = $horarioOriginal ? $horarioOriginal->data : $reg->data_registro;
+                $reg->hora_atendimento = $horarioOriginal ? $horarioOriginal->hora : $reg->data_registro;
+                
+                return $reg;
+            });
+
+            $ativosBrutos = Horario::where('matricula', $matricula)
+                                   ->where('disponivel', 0)
+                                   ->get();
+
+            $historicoAtivos = $ativosBrutos->map(function($ativo) {
+                return (object)[
+                    'data_atendimento' => $ativo->data,
+                    'hora_atendimento' => $ativo->hora,
+                    'status'           => 'Agendado',
+                    'observacao'       => null
+                ];
+            });
+
+            $registros = collect($historicoAtivos)->merge($historicoCancelados);
         }
 
         return view('index', compact('horarios', 'registros'));
@@ -112,11 +135,14 @@ class CalendarioController extends Controller
 
             $justificativa = $request->input('justificativa', '');
 
-            DB::transaction(function () use ($horario, $justificativa) {
+            DB::transaction(function () use ($horario, $justificativa, $nome, $matricula) {
                 RegistroAtendimento::create([
-                    'status' => 'Cancelado pelo Aluno',
-                    'observacao' => $justificativa,
-                    'data_registro' => now()
+                    'id_horario_original' => $horario->id,
+                    'nome'                => $nome,
+                    'matricula'           => $matricula,
+                    'status'              => 'Cancelado pelo Aluno',
+                    'observacao'          => $justificativa,
+                    'data_registro'       => now()
                 ]);
 
                 $horario->update([
@@ -126,7 +152,7 @@ class CalendarioController extends Controller
                     'confirmado' => 0,
                     'justificativa_cancelamento' => $justificativa
                 ]);
-        });
+            });
 
             try {
                 $data_formatada = Carbon::parse($horario->data)->format('d/m/Y');
