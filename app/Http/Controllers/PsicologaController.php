@@ -100,7 +100,7 @@ class PsicologaController extends Controller
                         'matricula'           => $horario->matricula ?? 'N/A',
                         'status'              => 'Realizado',
                         'observacao'          => 'Atendimento concluído com sucesso.',
-                        'data_registro'       => now()
+                        'data_registro'       => \Carbon\Carbon::parse($horario->data . ' ' . $horario->hora)
                     ]);
                     $horario->delete();
                 });
@@ -109,9 +109,17 @@ class PsicologaController extends Controller
 
             case 'cancel_by_psicologa':
                 $horario = Horario::find($id);
-                $justificativa = $request->input('justificativa', 'Motivos operacionais.');
-
                 if (!$horario) return response()->json(['status' => 'error', 'message' => 'Horário não encontrado.']);
+
+                $dataHoraAtendimento = \Carbon\Carbon::parse($horario->data . ' ' . $horario->hora);
+                if ($dataHoraAtendimento->isPast()) {
+                    return response()->json([
+                        'status' => 'error', 
+                        'message' => 'Este atendimento já passou do horário atual e agora só pode ser Confirmado.'
+                    ]);
+                }
+
+                $justificativa = $request->input('justificativa', 'Motivos operacionais.');
 
                 $nomeAlunoSalvar = $horario->nome;
                 $matriculaAlunoSalvar = $horario->matricula;
@@ -151,7 +159,18 @@ class PsicologaController extends Controller
                 return response()->json(['status' => 'success', 'message' => 'Agendamento cancelado e aluno notificado.']);
 
             case 'delete':
-                Horario::where('id', $id)->delete();
+                $horario = Horario::find($id);
+                if (!$horario) return response()->json(['status' => 'error', 'message' => 'Horário não encontrado.']);
+
+                $dataHoraAtendimento = \Carbon\Carbon::parse($horario->data . ' ' . $horario->hora);
+                if ($dataHoraAtendimento->isPast()) {
+                    return response()->json([
+                        'status' => 'error', 
+                        'message' => 'Não é possível excluir um horário do passado.'
+                    ]);
+                }
+
+                $horario->delete();
                 return response()->json(['status' => 'success', 'message' => 'Horário excluído com sucesso.']);
 
             case 'delete_specific_default':
@@ -252,31 +271,30 @@ class PsicologaController extends Controller
             $dataFim = $request->input('data_fim');
             $ordenarPor = $request->input('ordenar_por', 'data_desc');
 
-            $query = \App\Models\Horario::query()
-                ->whereNotNull('matricula') 
+            $query = DB::table('registros_atendimentos')
                 ->when($matricula, function ($query, $matricula) {
                     return $query->where('matricula', 'like', "%{$matricula}%");
                 })
                 ->when($dataInicio, function ($query, $dataInicio) {
-                    return $query->where('data', '>=', $dataInicio);
+                    return $query->where('data_registro', '>=', $dataInicio . ' 00:00:00');
                 })
                 ->when($dataFim, function ($query, $dataFim) {
-                    return $query->where('data', '<=', $dataFim);
+                    return $query->where('data_registro', '<=', $dataFim . ' 23:59:59');
                 });
 
             switch ($ordenarPor) {
                 case 'data_asc':
-                    $query->orderBy('data', 'asc')->orderBy('hora', 'asc');
+                    $query->orderBy('data_registro', 'asc');
                     break;
                 case 'nome_asc':
                     $query->orderBy('nome', 'asc');
                     break;
                 case 'situacao_asc':
-                    $query->orderBy('confirmado', 'desc')->orderBy('data', 'desc');
+                    $query->orderBy('status', 'asc');
                     break;
                 case 'data_desc':
                 default:
-                    $query->orderBy('data', 'desc')->orderBy('hora', 'desc');
+                    $query->orderBy('data_registro', 'desc');
                     break;
             }
 
@@ -284,7 +302,7 @@ class PsicologaController extends Controller
 
             $dataInicioFormatada = $dataInicio ? \Carbon\Carbon::parse($dataInicio)->format('d/m/Y') : 'N/A';
             $dataFimFormatada = $dataFim ? \Carbon\Carbon::parse($dataFim)->format('d/m/Y') : 'N/A';
-            $periodoStr = "Período da consulta: {$dataInicioFormatada} a {$dataFimFormatada}";
+            $periodoStr = "Período do relatório: {$dataInicioFormatada} a {$dataFimFormatada}";
 
             return $this->renderTabelaFallback($registros, $periodoStr);
 
@@ -317,11 +335,11 @@ class PsicologaController extends Controller
                     <tbody>";
 
         foreach ($registros as $reg) {
-            $situacao = $reg->confirmado ? 'Confirmado' : 'Agendado pelo Aluno';
-            $statusClass = $reg->confirmado ? 'color: #00833D;' : 'color: #d97706;';
+            $situacao = $reg->status === 'Realizado' ? 'Confirmado' : $reg->status;
+            $statusClass = $reg->status === 'Realizado' ? 'color: #00833D;' : 'color: #dc3545;';
             
-            $dataReg = \Carbon\Carbon::parse($reg->data)->format('d/m/Y');
-            $horaReg = \Carbon\Carbon::parse($reg->hora)->format('H:i');
+            $dataReg = \Carbon\Carbon::parse($reg->data_registro)->format('d/m/Y');
+            $horaReg = \Carbon\Carbon::parse($reg->data_registro)->format('H:i');
             
             $html .= "<tr>
                         <td style='padding: 8px; border: 1px solid #ddd;'>{$reg->nome}</td>

@@ -93,6 +93,17 @@ class CalendarioController extends Controller
         if ($action === 'agendar') {
             $horario = Horario::find($request->input('id_horario'));
 
+            // ALTERAÇÃO DE SEGURANÇA: Impede agendamento de horários retroativos
+            if ($horario) {
+                $dataHoraAgendamento = \Carbon\Carbon::parse($horario->data . ' ' . $horario->hora);
+                if ($dataHoraAgendamento->isPast()) {
+                    return response()->json([
+                        'status' => 'error', 
+                        'message' => 'Não é possível realizar agendamentos para um horário que já passou.'
+                    ]);
+                }
+            }
+
             if ($horario && $horario->disponivel == 1) {
                 $horario->update([
                     'disponivel' => 0,
@@ -131,6 +142,15 @@ class CalendarioController extends Controller
 
             if ($matricula !== $horario->matricula) {
                 return response()->json(['status' => 'error', 'message' => 'Você só pode cancelar seu próprio agendamento.']);
+            }
+
+            // ALTERAÇÃO DE SEGURANÇA: Impede o cancelamento se faltar menos de 3 horas
+            $dataHoraAtendimento = \Carbon\Carbon::parse($horario->data . ' ' . $horario->hora);
+            if (now()->diffInHours($dataHoraAtendimento, false) < 3) {
+                return response()->json([
+                    'status' => 'error', 
+                    'message' => 'O cancelamento só é permitido com antecedência mínima de 3 horas antes do atendimento.'
+                ]);
             }
 
             $justificativa = $request->input('justificativa', '');

@@ -52,47 +52,56 @@ function openModal(event) {
     const props = event.extendedProps;
     const isPast = new Date(event.start) < new Date();
     
-    // Limpa textos antigos e esconde os blocos para não acumular lixo visual de cliques anteriores
     $('#justificativaTexto, #agendadoNome, #agendadoMatricula, #agendadoStatus').text('');
-    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn').hide();
+    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn').hide();
     
-    // 1. Se tem justificativa de cancelamento (independente de quem cancelou)
-    if (props.justificativa_cancelamento) {
+    const isCanceladoReal = props.justificativa_cancelamento && props.disponivel == 1;
+
+    if (isCanceladoReal) {
         $('#justificativaTexto').text(props.justificativa_cancelamento);
         $('#justificativaInfo').show();
     }
 
-    // 2. Verifica se o horário está puramente disponível (e não cancelado)
-    if (props.disponivel === 1 && !props.justificativa_cancelamento) {
+    if (props.disponivel === 1 && !isCanceladoReal) {
         $('#modalTitle').text('Editar Horário Disponível');
         $('#form-disponivel').show();
         const start = new Date(event.start);
         $('#data').val(start.toISOString().slice(0, 10));
         $('#hora').val(start.toTimeString().slice(0, 5));
+        
+        if (!isPast) {
+            $('#deleteBtn').show();
+        }
     } else {
-        // Entra aqui se estiver Agendado OU Cancelado
         $('#agendadoInfo').show();
         
-        // Altere aqui se no seu banco/FullCalendar o nome do campo for diferente (ex: props.aluno_nome)
         $('#agendadoNome').text(props.nome || props.aluno_nome || 'N/A');
         $('#agendadoMatricula').text(props.matricula || props.aluno_matricula || 'N/A');
         
-        if (props.justificativa_cancelamento) {
+        if (isCanceladoReal) {
             $('#modalTitle').text('Agendamento Cancelado');
             
-            // ALTERAÇÃO AQUI: Em vez de texto fixo, usamos o status_real enviado pelo Controller
-            // Se por algum motivo o status_real não vier, ele usa 'Cancelado' como segurança
             const statusTexto = props.status_real || 'Cancelado';
             $('#agendadoStatus').text(statusTexto).css('color', 'var(--danger-color)');
+            
+            if (!isPast) {
+                $('#deleteBtn').show();
+            }
             
         } else {
             $('#modalTitle').text('Detalhes do Agendamento');
             $('#agendadoStatus').text('Agendado').css('color', '#d97706');
-            if (isPast) { $('#confirmBtn').show(); }
-            $('#cancelByPsicologaBtn').show();
+            
+            if (isPast) { 
+                $('#confirmBtn').show(); 
+                $('#cancelByPsicologaBtn').hide();
+                $('#deleteBtn').hide();
+            } else {
+                $('#cancelByPsicologaBtn').show();
+                $('#deleteBtn').show();
+            }
         }
     }
-    $('#deleteBtn').show();
     $('#modal').addClass('is-visible');
 }
 
@@ -199,13 +208,11 @@ function switchTab(type) {
     const individualForm = document.getElementById('individual-form');
     const buttons = document.querySelectorAll('.tab-btn');
 
-    // Remove estado ativo de todos os botões de aba
     buttons.forEach(btn => {
         btn.style.color = '#6c757d';
         btn.style.borderBottom = 'none';
     });
 
-    // Evento de clique
     if (type === 'bloco') {
         buttons[0].style.color = '#00833D';
         buttons[0].style.borderBottom = '3px solid #00833D';
@@ -213,7 +220,6 @@ function switchTab(type) {
         blocoForm.style.display = 'block';
         individualForm.style.display = 'none';
 
-        // Ativa validações do bloco e desativa do individual
         toggleInputs(blocoForm, true);
         toggleInputs(individualForm, false);
     } else {
@@ -223,13 +229,11 @@ function switchTab(type) {
         blocoForm.style.display = 'none';
         individualForm.style.display = 'block';
 
-        // Ativa validações do individual e desativa do bloco
         toggleInputs(blocoForm, false);
         toggleInputs(individualForm, true);
     }
 }
 
-// Função auxiliar para evitar conflito de validação 'required' entre formulários escondidos
 function toggleInputs(form, enable) {
     const inputs = form.querySelectorAll('input');
     inputs.forEach(input => {
@@ -237,16 +241,12 @@ function toggleInputs(form, enable) {
     });
 }
 
-// Modifique sua função closeModal existente para resetar para a primeira aba quando fechar
 const originalCloseModal = window.closeModal;
 window.closeModal = function() {
     if (typeof originalCloseModal === 'function') originalCloseModal();
-    switchTab('bloco'); // Volta o padrão sempre para a primeira aba
+    switchTab('bloco');
 }
 
-// ======================================================================
-// ENTRADA DO FORMULÁRIO INDIVIDUAL INTEGRADO COM SENDAJAXREQUEST
-// ======================================================================
 $('#individual-form').submit(function(e) {
     e.preventDefault();
     sendAjaxRequest({
