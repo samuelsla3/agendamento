@@ -17,6 +17,12 @@ class PsicologaController extends Controller
             return redirect()->route('login')->with('erro', 'Acesso negado.');
         }
 
+        $hoje = \Carbon\Carbon::today()->toDateString();
+        $agendamentosHoje = Horario::where('data', $hoje)
+        ->where('disponivel', 0)
+        ->orderBy('hora', 'asc')
+        ->get();
+
         $ultimosCancelamentos = DB::table('registros_atendimentos')
             ->where('status', 'Cancelado pelo Aluno')
             ->orderBy('data_registro', 'desc')
@@ -35,7 +41,7 @@ class PsicologaController extends Controller
             return $cancelamento;
         });
 
-        return view('agenda', compact('ultimosCancelamentos'));
+        return view('agenda', compact('ultimosCancelamentos', 'agendamentosHoje'));
     }
 
     public function listarEventos()

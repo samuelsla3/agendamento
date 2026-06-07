@@ -237,3 +237,115 @@ form input[type="text"], form input[type="date"], form input[type="time"], form 
 #tabela-historico-aluno th, #tabela-historico-aluno td { padding: 8px; border: 1px solid #ddd; text-align: left; }
     .text-success { color: #00833D; }
     .text-danger { color: #dc3545; }
+
+/* AGENDAMENTOS DE HOJE */
+
+.agenda-hoje-section {
+    margin-bottom: 30px;
+    border-left: 5px solid #00833D;
+    padding-left: 15px;
+}
+
+.agenda-hoje-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.agenda-hoje-badge {
+    background: #00833D;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.agenda-hoje-vazia {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    margin-top: 15px;
+    border: 1px dashed #ccc;
+}
+
+.agenda-hoje-vazia p {
+    color: #666;
+    margin: 0;
+}
+
+.table-responsive-wrapper {
+    overflow-x: auto;
+    margin-top: 15px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.table-agenda-hoje {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.table-agenda-hoje thead tr {
+    background-color: #f4f4f4;
+    border-bottom: 2px solid #ddd;
+}
+
+.table-agenda-hoje th, 
+.table-agenda-hoje td {
+    padding: 12px 15px;
+}
+
+.table-agenda-hoje tbody tr {
+    border-bottom: 1px solid #eee;
+    transition: background 0.2s;
+}
+
+.table-agenda-hoje tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+.table-agenda-hoje .col-hora {
+    font-weight: bold;
+    color: #00833D;
+}
+
+.table-agenda-hoje .col-aluno {
+    font-weight: 500;
+}
+
+.table-agenda-hoje .col-matricula {
+    color: #555;
+}
+
+.status-confirmado {
+    color: #00833D;
+    font-weight: bold;
+}
+
+.status-agendado {
+    color: #e67e22;
+    font-weight: bold;
+}
+
+/* MODAL DO AGENDAMENTO DE HOJE */
+.btn-acoes-hoje {
+    background-color: #f4f4f4;
+    border: 1px solid #ccc;
+    color: #333;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-acoes-hoje:hover {
+    background-color: #00833D;
+    border-color: #00833D;
+    color: white;
+}

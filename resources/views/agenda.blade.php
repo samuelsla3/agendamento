@@ -33,6 +33,74 @@
             <button type="button" class="btn btn-danger" onclick="$('#deleteModal').addClass('is-visible')">Apagar Horários Futuros</button>
         </div>
         
+        <section class="content-section agenda-hoje-section">
+            <div class="agenda-hoje-header">
+                <h2>Agenda de Hoje - {{ \Carbon\Carbon::today()->format('d/m/Y') }}</h2>
+                <span class="agenda-hoje-badge">
+                    {{ $agendamentosHoje->count() }} {{ $agendamentosHoje->count() === 1 ? 'atendimento' : 'atendimentos' }}
+                </span>
+            </div>
+
+            @if($agendamentosHoje->isEmpty())
+                <div class="agenda-hoje-vazia">
+                    <p>Nenhum agendamento marcado para o dia de hoje.</p>
+                </div>
+            @else
+                <div class="table-responsive-wrapper">
+                    <table class="table-agenda-hoje">
+                        <thead>
+                            <tr>
+                                <th>Horário</th>
+                                <th>Aluno</th>
+                                <th>Matrícula</th>
+                                <th>Status Interno</th>
+                                <th style="text-align: center;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($agendamentosHoje as $agendamento)
+                                @php
+                                    // Cria a verificação se o horário específico de hoje já passou do momento atual
+                                    $isPast = \Carbon\Carbon::parse($agendamento->data . ' ' . $agendamento->hora)->isPast();
+                                @endphp
+                                <tr>
+                                    <td class="col-hora">
+                                        {{ \Carbon\Carbon::parse($agendamento->hora)->format('H:i') }}h
+                                    </td>
+                                    <td class="col-aluno">
+                                        {{ $agendamento->nome ?? 'Não informado' }}
+                                    </td>
+                                    <td class="col-matricula">
+                                        {{ $agendamento->matricula ?? 'N/A' }}
+                                    </td>
+                                    <td>
+                                        @if($agendamento->confirmado)
+                                            <span class="status-confirmado">Confirmado</span>
+                                        @else
+                                            <span class="status-agendado">Agendado</span>
+                                        @endif
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <button type="button" 
+                                                class="btn-acoes-hoje"
+                                                data-id="{{ $agendamento->id }}"
+                                                data-disponivel="{{ $agendamento->disponivel }}"
+                                                data-confirmado="{{ $agendamento->confirmado }}"
+                                                data-nome="{{ $agendamento->nome ?? 'Não informado' }}"
+                                                data-matricula="{{ $agendamento->matricula ?? 'N/A' }}"
+                                                data-ispast="{{ $isPast ? '1' : '0' }}"
+                                                onclick="abrirAcoesHoje(this)">
+                                            Operar
+                                        </button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </section>
+
         <section class="content-section">
             <h2>Últimos Cancelamentos</h2>
             @if($ultimosCancelamentos->isEmpty())

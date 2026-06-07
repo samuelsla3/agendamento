@@ -255,3 +255,39 @@ $('#individual-form').submit(function(e) {
         hora_individual: $('#hora_individual').val()
     });
 });
+
+function abrirAcoesHoje(botao) {
+    const id = botao.getAttribute('data-id');
+    const disponivel = parseInt(botao.getAttribute('data-disponivel'));
+    const confirmado = parseInt(botao.getAttribute('data-confirmado'));
+    const nome = botao.getAttribute('data-nome');
+    const matricula = botao.getAttribute('data-matricula');
+    const isPast = botao.getAttribute('data-ispast') === '1';
+
+    $('#eventId').val(id);
+    $('#justificativaTexto, #agendadoNome, #agendadoMatricula, #agendadoStatus').text('');
+    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn').hide();
+
+    $('#modalTitle').text('Detalhes do Agendamento');
+    $('#agendadoInfo').show();
+    
+    $('#agendadoNome').text(nome);
+    $('#agendadoMatricula').text(matricula);
+    $('#agendadoStatus').text('Agendado').css('color', '#d97706');
+
+    if (isPast) { 
+        $('#confirmBtn').show(); 
+        $('#cancelByPsicologaBtn').hide();
+        $('#deleteBtn').hide();
+    } else {
+        $('#cancelByPsicologaBtn').show();
+        $('#deleteBtn').show();
+    }
+
+    if (confirmado === 1) {
+        $('#confirmBtn').hide();
+        $('#agendadoStatus').text('✓ Confirmado').css('color', '#00833D');
+    }
+
+    $('#modal').addClass('is-visible');
+}
