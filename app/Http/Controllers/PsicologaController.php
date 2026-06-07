@@ -20,7 +20,7 @@ class PsicologaController extends Controller
         $ultimosCancelamentos = DB::table('registros_atendimentos')
             ->where('status', 'Cancelado pelo Aluno')
             ->orderBy('data_registro', 'desc')
-            ->take(5)
+            ->take(10)
             ->get();
 
         $ultimosCancelamentos = collect($ultimosCancelamentos)->map(function ($cancelamento) {

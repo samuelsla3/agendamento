@@ -38,26 +38,35 @@
             @if($ultimosCancelamentos->isEmpty())
                 <p style="text-align: center;">Nenhum cancelamento recente.</p>
             @else
-                <ul class="cancelamentos-lista">
-                    @foreach ($ultimosCancelamentos as $cancelamento)
-                        @php
-                            $data_atendimento = \Carbon\Carbon::parse($cancelamento->data_atendimento)->format('d/m/Y');
-                            $hora_atendimento = \Carbon\Carbon::parse($cancelamento->hora_atendimento)->format('H:i');
-                            $momento_cancelamento = \Carbon\Carbon::parse($cancelamento->data_registro)->format('d/m/Y \à\s H:i');
-                        @endphp
-                        
-                        <li>
-                            <strong>Aluno:</strong> {{ $cancelamento->nome_aluno ?? 'Não informado' }} 
-                            (Mat: {{ $cancelamento->matricula_aluno ?? 'N/A' }})<br>
-                            
-                            <strong>Horário Cancelado:</strong> Dia {{ $data_atendimento }} às {{ $hora_atendimento }}h<br>
-                            
-                            <strong>Cancelado em:</strong> {{ $momento_cancelamento }}<br>
-                            
-                            <strong>Justificativa:</strong> "{{ $cancelamento->observacao ?? 'Sem justificativa.' }}"
-                        </li>
+                <div style="display: flex; gap: 30px; justify-content: space-between; flex-wrap: wrap;">
+                    
+                    @foreach ($ultimosCancelamentos->chunk(5) as $bloco)
+                        {{-- Cada coluna ocupa quase metade da largura (48%) e alinha à esquerda --}}
+                        <div style="flex: 1; min-width: 300px; max-width: 48%; text-align: left;">
+                            <ul class="cancelamentos-lista">
+                                @foreach ($bloco as $cancelamento)
+                                    @php
+                                        $data_atendimento = \Carbon\Carbon::parse($cancelamento->data_atendimento)->format('d/m/Y');
+                                        $hora_atendimento = \Carbon\Carbon::parse($cancelamento->hora_atendimento)->format('H:i');
+                                        $momento_cancelamento = \Carbon\Carbon::parse($cancelamento->data_registro)->format('d/m/Y \à\s H:i');
+                                    @endphp
+                                    
+                                    <li style="margin-bottom: 15px;">
+                                        <strong>Aluno:</strong> {{ $cancelamento->nome_aluno ?? 'Não informado' }} 
+                                        (Mat: {{ $cancelamento->matricula_aluno ?? 'N/A' }})<br>
+                                        
+                                        <strong>Horário Cancelado:</strong> Dia {{ $data_atendimento }} às {{ $hora_atendimento }}h<br>
+                                        
+                                        <strong>Cancelado em:</strong> {{ $momento_cancelamento }}<br>
+                                        
+                                        <strong>Justificativa:</strong> "{{ $cancelamento->observacao ?? 'Sem justificativa.' }}"
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
                     @endforeach
-                </ul>
+
+                </div>
             @endif
         </section>
 
