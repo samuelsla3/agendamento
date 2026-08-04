@@ -53,7 +53,7 @@ function openModal(event) {
     const isPast = new Date(event.start) < new Date();
     
     $('#justificativaTexto, #agendadoNome, #agendadoMatricula, #agendadoStatus').text('');
-    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn').hide();
+    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #prontuarioBtn').hide();
     
     const isCanceladoReal = props.justificativa_cancelamento && props.disponivel == 1;
 
@@ -77,6 +77,11 @@ function openModal(event) {
         
         $('#agendadoNome').text(props.nome || props.aluno_nome || 'N/A');
         $('#agendadoMatricula').text(props.matricula || props.aluno_matricula || 'N/A');
+
+        const alunoId = props.aluno_id || props.user_id;
+        if (alunoId && alunoId !== 'null') {
+            $('#prontuarioBtn').attr('href', '/prontuarios/aluno/' + alunoId).css('display', 'inline-block');
+        }
         
         if (isCanceladoReal) {
             $('#modalTitle').text('Agendamento Cancelado');
@@ -258,6 +263,7 @@ $('#individual-form').submit(function(e) {
 
 function abrirAcoesHoje(botao) {
     const id = botao.getAttribute('data-id');
+    const alunoId = botao.getAttribute('data-alunoid');
     const disponivel = parseInt(botao.getAttribute('data-disponivel'));
     const confirmado = parseInt(botao.getAttribute('data-confirmado'));
     const nome = botao.getAttribute('data-nome');
@@ -266,7 +272,8 @@ function abrirAcoesHoje(botao) {
 
     $('#eventId').val(id);
     $('#justificativaTexto, #agendadoNome, #agendadoMatricula, #agendadoStatus').text('');
-    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn').hide();
+    
+    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #prontuarioBtn').hide();
 
     $('#modalTitle').text('Detalhes do Agendamento');
     $('#agendadoInfo').show();
@@ -274,6 +281,12 @@ function abrirAcoesHoje(botao) {
     $('#agendadoNome').text(nome);
     $('#agendadoMatricula').text(matricula);
     $('#agendadoStatus').text('Agendado').css('color', '#d97706');
+
+    if (alunoId && alunoId !== '' && alunoId !== 'null' && alunoId !== 'undefined') {
+        $('#prontuarioBtn').attr('href', '/prontuarios/aluno/' + alunoId).css('display', 'inline-block');
+    } else if (matricula && matricula !== 'N/A' && matricula !== '') {
+        $('#prontuarioBtn').attr('href', '/prontuarios/aluno/' + matricula).css('display', 'inline-block');
+    }
 
     if (isPast) { 
         $('#confirmBtn').show(); 

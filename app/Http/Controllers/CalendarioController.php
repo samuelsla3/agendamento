@@ -93,7 +93,6 @@ class CalendarioController extends Controller
         if ($action === 'agendar') {
             $horario = Horario::find($request->input('id_horario'));
 
-            // ALTERAÇÃO DE SEGURANÇA: Impede agendamento de horários retroativos
             if ($horario) {
                 $dataHoraAgendamento = \Carbon\Carbon::parse($horario->data . ' ' . $horario->hora);
                 if ($dataHoraAgendamento->isPast()) {

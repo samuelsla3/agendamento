@@ -11,38 +11,42 @@ use Illuminate\Support\Facades\Mail;
 
 class PsicologaController extends Controller
 {
-    public function index()
-    {
-        if (!auth()->check() || auth()->user()->tipo !== 'psicologa') {
-            return redirect()->route('login')->with('erro', 'Acesso negado.');
-        }
+public function index()
+{
+    if (!auth()->check() || auth()->user()->tipo !== 'psicologa') {
+        return redirect()->route('login')->with('erro', 'Acesso negado.');
+    }
 
-        $hoje = \Carbon\Carbon::today()->toDateString();
-        $agendamentosHoje = Horario::where('data', $hoje)
+    $hoje = \Carbon\Carbon::today()->toDateString();
+    $agendamentosHoje = Horario::where('data', $hoje)
         ->where('disponivel', 0)
         ->orderBy('hora', 'asc')
         ->get();
 
-        $ultimosCancelamentos = DB::table('registros_atendimentos')
-            ->where('status', 'Cancelado pelo Aluno')
-            ->orderBy('data_registro', 'desc')
-            ->take(10)
-            ->get();
+    $ultimosCancelamentos = DB::table('registros_atendimentos')
+        ->where('status', 'Cancelado pelo Aluno')
+        ->orderBy('data_registro', 'desc')
+        ->take(10)
+        ->get();
 
-        $ultimosCancelamentos = collect($ultimosCancelamentos)->map(function ($cancelamento) {
-            $horario = Horario::find($cancelamento->id_horario_original);
-            
-            $cancelamento->nome_aluno = $cancelamento->nome ?? 'Não informado';
-            $cancelamento->matricula_aluno = $cancelamento->matricula ?? 'N/A';
-            
-            $cancelamento->data_atendimento = $horario ? $horario->data : $cancelamento->data_registro;
-            $cancelamento->hora_atendimento = $horario ? $horario->hora : $cancelamento->data_registro;
-            
-            return $cancelamento;
-        });
+    $ultimosCancelamentos = collect($ultimosCancelamentos)->map(function ($cancelamento) {
+        $horario = Horario::find($cancelamento->id_horario_original);
+        
+        $cancelamento->nome_aluno = $cancelamento->nome ?? 'Não informado';
+        $cancelamento->matricula_aluno = $cancelamento->matricula ?? 'N/A';
+        
+        $cancelamento->data_atendimento = $horario ? $horario->data : $cancelamento->data_registro;
+        $cancelamento->hora_atendimento = $horario ? $horario->hora : $cancelamento->data_registro;
+        
+        return $cancelamento;
+    });
 
-        return view('agenda', compact('ultimosCancelamentos', 'agendamentosHoje'));
-    }
+    $alunos = Usuario::whereIn(DB::raw('LOWER(tipo)'), ['aluno', 'estudante'])
+        ->orderBy('nome', 'asc')
+        ->get();
+
+    return view('agenda', compact('ultimosCancelamentos', 'agendamentosHoje', 'alunos'));
+}
 
     public function listarEventos()
 {
@@ -137,7 +141,7 @@ class PsicologaController extends Controller
                         'id_horario_original' => $horario->id, 
                         'nome'                => $nomeAlunoSalvar ?? 'N/A',
                         'matricula'           => $matriculaAlunoSalvar ?? 'N/A',
-                        'status'              => 'Cancelado pela Psicóloga', // Status correto!
+                        'status'              => 'Cancelado pela Psicóloga',
                         'observacao'          => 'Motivo: ' . $justificativa,
                         'data_registro'       => now()
                     ]);
