@@ -28,7 +28,7 @@ class ProntuarioController extends Controller
                         ->firstOrFail();
 
         $sessoes = ProntuarioSessao::where('aluno_id', $aluno->id)
-                    ->orderBy('data_sessao', 'asc')
+                    ->orderBy('data_sessao', 'desc')
                     ->get();
 
         return view('prontuarios.show', compact('aluno', 'sessoes'));

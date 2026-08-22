@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PsicologaController;
 use App\Http\Controllers\ProntuarioController;
+use App\Http\Controllers\AgendamentoController;
 
 Route::get('/', [CalendarioController::class, 'index'])->name('agenda.index');
 
@@ -13,6 +14,10 @@ Route::post('/login', [AuthController::class, 'logar']);
 Route::get('/registro', [AuthController::class, 'mostrarRegistro'])->name('register');
 Route::post('/registro', [AuthController::class, 'registrar'])->name('registrar');
 
+    #cancelamento através de uma rota pública (sem middleware auth)
+    Route::get('/cancelar-direto/{id}', [CalendarioController::class, 'cancelarDireto'])
+    ->name('agendamento.cancelarDirect')
+    ->middleware('signed'); #middleware de segurança em caso de a url expirar ou se alguem alterar o id na url
 
 Route::middleware(['auth'])->group(function () {
 

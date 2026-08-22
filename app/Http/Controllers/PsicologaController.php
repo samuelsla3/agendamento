@@ -161,7 +161,7 @@ public function index()
                         $corpoHtml = "Olá, <strong>{$nomeAlunoSalvar}</strong>!<br><br>Sua consulta em <strong>{$dataFormato}</strong> às <strong>{$horaFormato}</strong> foi cancelada.<br><strong>Motivo:</strong> {$justificativa}";
 
                         Mail::html($corpoHtml, function ($message) use ($aluno) {
-                            $message->to($aluno->email)->subject('Aviso Urgente: Sua consulta foi cancelada');
+                            $message->to($aluno->email)->subject('Setor de Psicologia IFBA: Sua consulta foi cancelada');
                         });
                     }
                 });

@@ -17,4 +17,11 @@ class Horario extends Model
     {
         return $this->hasOne(Agendamento::class, 'id_horario');
     }
+
+    public function usuario()
+    {
+        // Conecta a coluna 'matricula' de Horario com a coluna 'matricula' do Model Usuario
+        return $this->belongsTo(Usuario::class, 'matricula', 'matricula');
+        // NOTA: Se a sua classe de usuários se chamar User::class, substitua Usuario::class por User::class
+    }
 }

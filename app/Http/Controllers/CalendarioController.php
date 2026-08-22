@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Agendamento;
 use App\Models\Horario;
 use App\Models\RegistroAtendimento;
 use Illuminate\Support\Facades\DB;
@@ -103,6 +104,24 @@ class CalendarioController extends Controller
                 }
             }
 
+            #consulta no bd na tabela horarios
+            $jaTemAgendamentoNoDia = Horario::where('matricula', $matricula)
+            ->where('data', $horario->data)
+            ->where('disponivel', 0) #considera apenas horarios ocupados (valor 0)
+            ->exists(); #retorna true se encontrar 1 registro
+            #no contexto de limite de atividades diárias, faz a consulta na turma
+            #trocando o exists por count()
+            #no if exibiriam o erro usando algo como: if ($qtdAvaliacoesNoDia >= 3)
+
+            #se retornar true aparecerá na tela a mensagem de erro
+            if ($jaTemAgendamentoNoDia) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Você já possui um atendimento agendado para esta data.'
+                ]);
+            }
+        
+
             if ($horario && $horario->disponivel == 1) {
                 $horario->update([
                     'disponivel' => 0,
@@ -185,4 +204,43 @@ class CalendarioController extends Controller
 
         return response()->json(['status' => 'error', 'message' => 'Ação inválida.']);
     }
+
+    public function cancelarDireto($id)
+{
+    // Tenta encontrar em Agendamento ou em Horario pelo ID
+    $agendamento = Agendamento::find($id);
+
+    if ($agendamento) {
+        $agendamento->status = 'cancelado';
+        $agendamento->save();
+
+        // Se houver um horário vinculado, libere-o (disponivel = 1)
+        if ($agendamento->horario) {
+            $agendamento->horario->update([
+                'disponivel' => 1,
+                'nome' => null,
+                'matricula' => null
+            ]);
+        }
+    } else {
+        // Se o ID recebido for diretamente o ID da tabela 'horarios'
+        $horario = Horario::findOrFail($id);
+        
+        $horario->update([
+            'disponivel' => 1,
+            'confirmado' => 0,
+            'nome' => null,
+            'matricula' => null,
+            'justificativa_cancelamento' => 'Cancelado pelo aluno via e-mail'
+        ]);
+    }
+
+    return response("
+    <div style='text-align: center; margin-top: 50px; font-family: sans-serif;'>
+        <h2 style='color: #2b8a3e;'>Agendamento Cancelado com Sucesso!</h2>
+        <p>Seu horário foi liberado no sistema do IFBA Seabra.</p>
+        <a href='".url('/')."' style='color: #1c7ed6; text-decoration: none; font-weight: bold;'>Voltar para o site</a>
+    </div>
+");
+}
 }
