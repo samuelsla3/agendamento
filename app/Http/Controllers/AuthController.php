@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Usuario;
 use App\Services\SuapService;
+use App\Services\Suap\EmailPessoalService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -19,7 +20,7 @@ class AuthController extends Controller
         return view('login');
     }
 
-    public function logar(Request $request, SuapService $suapService)
+    public function logar(Request $request, SuapService $suapService, EmailPessoalService $emailService)
     {
         $credenciais = $request->validate([
             'matricula' => 'required|string',
@@ -36,6 +37,12 @@ class AuthController extends Controller
 
         if ($token) {
             $dadosSuap = $suapService->meusDados($token);
+
+            if (!is_array($dadosSuap) || empty($dadosSuap)) {
+                return back()->withErrors([
+                    'matricula' => 'Não foi possível consultar seus dados no SUAP. Tente novamente.'
+                ])->withInput($request->only('matricula'));
+            }
 
             // Extrai situação e tenta resgatar a turma do payload principal
             $situacaoVinculo = $dadosSuap['vinculo']['situacao'] 
@@ -68,11 +75,7 @@ class AuthController extends Controller
                 $turmaAtual = "{$anoIngresso} - {$siglaCurso}";
             }
 
-            Log::info("Login SUAP - Matrícula {$matricula}:", [
-                'situacao' => $situacaoVinculo,
-                'turma'    => $turmaAtual,
-                'payload'  => $dadosSuap
-            ]);
+            Log::info('Login SUAP: dados recebidos.');
 
             // Bloqueia egressos/inativos
             $situacoesInativas = ['Concluído', 'Formado', 'Evadido', 'Cancelado', 'Desligado', 'Transferido'];
@@ -90,19 +93,31 @@ class AuthController extends Controller
                  ?? $dadosSuap['nome'] 
                  ?? 'Estudante';
 
-            // PRIORIDADE DE E-MAIL: Pessoal > Institucional > Máscara @ifba.edu.br (com validação anti-string vazia)
-            $emailPessoal = $dadosSuap['email_pessoal'] 
-                         ?? $dadosSuap['email_secundario'] 
-                         ?? $dadosSuap['vinculo']['email_pessoal'] 
-                         ?? null;
+            $usuarioExistente = Usuario::where('matricula', $matricula)->first();
+            $emailFinal = $emailService->resolver(
+                $dadosSuap,
+                $matricula,
+                $senha,
+                $usuarioExistente?->email
+            );
 
-            $emailGeral = !empty($dadosSuap['email']) ? trim($dadosSuap['email']) : null;
-            $emailBruto = $emailPessoal ?? $emailGeral;
+            // A tabela exige e-mail único; um contato compartilhado não pode derrubar o login.
+            $emailEmUso = fn (string $email): bool => Usuario::where('email', $email)
+                ->where('matricula', '<>', $matricula)->exists();
 
-            if (!empty($emailBruto) && filter_var($emailBruto, FILTER_VALIDATE_EMAIL)) {
-                $emailFinal = $emailBruto;
-            } else {
-                $emailFinal = $matricula . '@ifba.edu.br';
+            if ($emailEmUso($emailFinal)) {
+                Log::warning('SUAP email pessoal: contato ja vinculado a outra conta.');
+                $emailAtual = trim($usuarioExistente?->email ?? '');
+                $emailFinal = filter_var($emailAtual, FILTER_VALIDATE_EMAIL) !== false
+                    && !$emailEmUso($emailAtual)
+                    ? $emailAtual
+                    : $matricula . '@ifba.edu.br';
+
+                if ($emailEmUso($emailFinal)) {
+                    return back()->withErrors([
+                        'matricula' => 'Existe um conflito de e-mail no cadastro. Procure o responsável pelo sistema.'
+                    ])->withInput($request->only('matricula'));
+                }
             }
 
             // Salva ou atualiza no banco local
