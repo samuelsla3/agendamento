@@ -23,17 +23,21 @@ public function index()
         ->orderBy('hora', 'asc')
         ->get();
 
-    $ultimosCancelamentos = DB::table('registros_atendimentos')
-        ->where('status', 'Cancelado pelo Aluno')
-        ->orderBy('data_registro', 'desc')
+    // Filtra para exibir apenas os cancelamentos cujos horários originais continuam disponíveis (disponivel = 1)
+    $ultimosCancelamentos = DB::table('registros_atendimentos as ra')
+        ->join('horarios as h', 'ra.id_horario_original', '=', 'h.id')
+        ->where('ra.status', 'Cancelado pelo Aluno')
+        ->where('h.disponivel', 1)
+        ->select('ra.*')
+        ->orderBy('ra.data_registro', 'desc')
         ->take(10)
         ->get();
 
     $ultimosCancelamentos = collect($ultimosCancelamentos)->map(function ($cancelamento) {
         $horario = Horario::find($cancelamento->id_horario_original);
         
-        $cancelamento->nome_aluno = $cancelamento->nome ?? 'Não informado';
-        $cancelamento->matricula_aluno = $cancelamento->matricula ?? 'N/A';
+        $cancelamento->nome_aluno = $cancelamento->nome ?? $cancelamento->nome_aluno ?? 'Não informado';
+        $cancelamento->matricula_aluno = $cancelamento->matricula ?? $cancelamento->matricula_aluno ?? 'N/A';
         
         $cancelamento->data_atendimento = $horario ? $horario->data : $cancelamento->data_registro;
         $cancelamento->hora_atendimento = $horario ? $horario->hora : $cancelamento->data_registro;
@@ -49,49 +53,49 @@ public function index()
 }
 
     public function listarEventos()
-{
-    $horarios = Horario::all();
-    $eventos = [];
+    {
+        $horarios = Horario::all();
+        $eventos = [];
 
-    foreach ($horarios as $row) {
-        $nome = $row->nome;
-        $matricula = $row->matricula;
-        $statusReal = $row->confirmado ? 'Confirmado' : 'Agendado';
+        foreach ($horarios as $row) {
+            $nome = $row->nome;
+            $matricula = $row->matricula;
+            $statusReal = $row->confirmado ? 'Confirmado' : 'Agendado';
 
-        if ($row->disponivel == 1 && !empty($row->justificativa_cancelamento)) {
-            $historico = DB::table('registros_atendimentos')
-                ->where('id_horario_original', $row->id)
-                ->orderBy('data_registro', 'desc')
-                ->first();
+            if ($row->disponivel == 1 && !empty($row->justificativa_cancelamento)) {
+                $historico = DB::table('registros_atendimentos')
+                    ->where('id_horario_original', $row->id)
+                    ->orderBy('data_registro', 'desc')
+                    ->first();
 
-            if ($historico) {
-                $nome = $historico->nome;
-                $matricula = $historico->matricula;
-                $statusReal = $historico->status; 
-            } else {
-                $statusReal = 'Cancelado';
+                if ($historico) {
+                    $nome = $historico->nome ?? $historico->nome_aluno ?? $nome;
+                    $matricula = $historico->matricula ?? $historico->matricula_aluno ?? $matricula;
+                    $statusReal = $historico->status; 
+                } else {
+                    $statusReal = 'Cancelado';
+                }
             }
+
+            $eventos[] = [
+                'id' => $row->id,
+                'title' => $nome ?? 'Disponível',
+                'start' => $row->data . 'T' . $row->hora,
+                'extendedProps' => [
+                    'id' => $row->id,
+                    'id_horario' => $row->id,
+                    'disponivel' => (int)$row->disponivel,
+                    'nome' => $nome,
+                    'matricula' => $matricula,
+                    'confirmado' => (int)$row->confirmado,
+                    'justificativa_cancelamento' => $row->justificativa_cancelamento,
+                    'status_real' => $statusReal 
+                ]
+            ];
         }
 
-        $eventos[] = [
-            'id' => $row->id,
-            'title' => $nome ?? 'Disponível',
-            'start' => $row->data . 'T' . $row->hora,
-            'extendedProps' => [
-                'id' => $row->id,
-                'id_horario' => $row->id,
-                'disponivel' => (int)$row->disponivel,
-                'nome' => $nome,
-                'matricula' => $matricula,
-                'confirmado' => (int)$row->confirmado,
-                'justificativa_cancelamento' => $row->justificativa_cancelamento,
-                'status_real' => $statusReal 
-            ]
-        ];
+        return response()->json($eventos);
     }
-
-    return response()->json($eventos);
-}
 
     public function processarAcao(Request $request)
     {
@@ -104,69 +108,115 @@ public function index()
                 if (!$horario) return response()->json(['status' => 'error', 'message' => 'Horário não encontrado.']);
 
                 DB::transaction(function () use ($horario) {
+                    // Busca defensiva para garantir nome e matrícula
+                    $nomeAluno = $horario->nome;
+                    $matriculaAluno = $horario->matricula;
+
+                    if (empty($nomeAluno) || empty($matriculaAluno)) {
+                        $aluno = Usuario::where('matricula', $horario->matricula)
+                            ->orWhere('id', $horario->aluno_id ?? $horario->user_id ?? null)
+                            ->first();
+
+                        if ($aluno) {
+                            $nomeAluno = $nomeAluno ?: $aluno->nome;
+                            $matriculaAluno = $matriculaAluno ?: $aluno->matricula;
+                        }
+                    }
+
+                    // 1. Cria o histórico permanente na tabela de relatórios
                     RegistroAtendimento::create([
                         'id_horario_original' => $horario->id, 
-                        'nome'                => $horario->nome ?? 'N/A',
-                        'matricula'           => $horario->matricula ?? 'N/A',
+                        'nome'                => $nomeAluno ?? 'Não informado',
+                        'matricula'           => $matriculaAluno ?? 'N/A',
                         'status'              => 'Realizado',
                         'observacao'          => 'Atendimento concluído com sucesso.',
                         'data_registro'       => \Carbon\Carbon::parse($horario->data . ' ' . $horario->hora)
                     ]);
-                    $horario->delete();
+
+                    // 2. Atualiza o horário
+                    $horario->disponivel = 0;
+                    $horario->confirmado = 1;
+                    $horario->save();
                 });
 
-                return response()->json(['status' => 'success', 'message' => 'Atendimento confirmado e movido para o histórico.']);
+                return response()->json(['status' => 'success', 'message' => 'Atendimento concluído e mantido no histórico!']);
 
             case 'cancel_by_psicologa':
-                $horario = Horario::find($id);
-                if (!$horario) return response()->json(['status' => 'error', 'message' => 'Horário não encontrado.']);
+    $horario = Horario::find($id);
+    if (!$horario) return response()->json(['status' => 'error', 'message' => 'Horário não encontrado.']);
 
-                $dataHoraAtendimento = \Carbon\Carbon::parse($horario->data . ' ' . $horario->hora);
-                if ($dataHoraAtendimento->isPast()) {
-                    return response()->json([
-                        'status' => 'error', 
-                        'message' => 'Este atendimento já passou do horário atual e agora só pode ser Confirmado.'
-                    ]);
-                }
+    $justificativa = $request->input('justificativa', 'Motivos operacionais.');
 
-                $justificativa = $request->input('justificativa', 'Motivos operacionais.');
+    DB::transaction(function () use ($horario, $justificativa) {
+        // 1. PRIMEIRA TENTATIVA: Dados gravados direto na model Horario
+        $nomeAluno = $horario->nome;
+        $matriculaAluno = $horario->matricula;
 
-                $nomeAlunoSalvar = $horario->nome;
-                $matriculaAlunoSalvar = $horario->matricula;
+        // 2. SEGUNDA TENTATIVA: Se estiver nulo, busca no último histórico registrado para este horário
+        if (empty($nomeAluno) || empty($matriculaAluno)) {
+            $ultimoRegistro = DB::table('registros_atendimentos')
+                ->where('id_horario_original', $horario->id)
+                ->where('nome', '!=', 'Não informado')
+                ->whereNotNull('nome')
+                ->orderBy('id', 'desc')
+                ->first();
 
-                DB::transaction(function () use ($horario, $justificativa, $nomeAlunoSalvar, $matriculaAlunoSalvar) {
-                    $aluno = Usuario::where('matricula', $matriculaAlunoSalvar)->first();
+            if ($ultimoRegistro) {
+                $nomeAluno = $nomeAluno ?: $ultimoRegistro->nome;
+                $matriculaAluno = $matriculaAluno ?: $ultimoRegistro->matricula;
+            }
+        }
 
-                    RegistroAtendimento::create([
-                        'id_horario_original' => $horario->id, 
-                        'nome'                => $nomeAlunoSalvar ?? 'N/A',
-                        'matricula'           => $matriculaAlunoSalvar ?? 'N/A',
-                        'status'              => 'Cancelado pela Psicóloga',
-                        'observacao'          => 'Motivo: ' . $justificativa,
-                        'data_registro'       => now()
-                    ]);
+        // 3. TERCEIRA TENTATIVA: Busca o Aluno diretamente na tabela de Usuários (via matrícula ou ID)
+        $aluno = null;
+        if (!empty($matriculaAluno) && $matriculaAluno !== 'N/A') {
+            $aluno = Usuario::where('matricula', $matriculaAluno)->first();
+        }
 
-                    $horario->update([
-                        'disponivel' => 1,
-                        'nome' => null,
-                        'matricula' => null,
-                        'confirmado' => 0,
-                        'justificativa_cancelamento' => $justificativa
-                    ]);
+        if (!$aluno && (isset($horario->aluno_id) || isset($horario->user_id))) {
+            $alunoId = $horario->aluno_id ?? $horario->user_id;
+            $aluno = Usuario::find($alunoId);
+        }
 
-                    if ($aluno && !empty($aluno->email)) {
-                        $dataFormato = date('d/m/Y', strtotime($horario->data));
-                        $horaFormato = date('H:i', strtotime($horario->hora));
-                        
-                        $corpoHtml = "Olá, <strong>{$nomeAlunoSalvar}</strong>!<br><br>Sua consulta em <strong>{$dataFormato}</strong> às <strong>{$horaFormato}</strong> foi cancelada.<br><strong>Motivo:</strong> {$justificativa}";
+        // Se encontrou a Model do Aluno, garante a captura do nome e matrícula
+        if ($aluno) {
+            $nomeAluno = !empty($nomeAluno) && $nomeAluno !== 'Não informado' ? $nomeAluno : $aluno->nome;
+            $matriculaAluno = !empty($matriculaAluno) && $matriculaAluno !== 'N/A' ? $matriculaAluno : $aluno->matricula;
+        }
 
-                        Mail::html($corpoHtml, function ($message) use ($aluno) {
-                            $message->to($aluno->email)->subject('Setor de Psicologia IFBA: Sua consulta foi cancelada');
-                        });
-                    }
-                });
+        // Registra o cancelamento garantindo que NUNCA grave nulo se encontrou em algum lugar
+        RegistroAtendimento::create([
+            'id_horario_original' => $horario->id, 
+            'nome'                => $nomeAluno ?: 'Não informado',
+            'matricula'           => $matriculaAluno ?: 'N/A',
+            'status'              => 'Cancelado pela Psicóloga',
+            'observacao'          => 'Motivo: ' . $justificativa,
+            'data_registro'       => now()
+        ]);
 
-                return response()->json(['status' => 'success', 'message' => 'Agendamento cancelado e aluno notificado.']);
+        // Reseta o horário liberando-o na agenda
+        $horario->update([
+            'disponivel' => 1,
+            'nome' => null,
+            'matricula' => null,
+            'confirmado' => 0,
+            'justificativa_cancelamento' => $justificativa
+        ]);
+
+        // Envia o e-mail de notificação se o aluno for localizado
+        if ($aluno && !empty($aluno->email)) {
+            $dataFormato = date('d/m/Y', strtotime($horario->data));
+            $horaFormato = date('H:i', strtotime($horario->hora));
+            
+            $corpoHtml = "Olá, <strong>{$nomeAluno}</strong>!<br><br>Sua consulta em <strong>{$dataFormato}</strong> às <strong>{$horaFormato}</strong> foi cancelada.<br><strong>Motivo:</strong> {$justificativa}";
+
+            Mail::html($corpoHtml, function ($message) use ($aluno) {
+                $message->to($aluno->email)->subject('Setor de Psicologia IFBA: Sua consulta foi cancelada');
+            });
+        }
+    });
+
+    return response()->json(['status' => 'success', 'message' => 'Agendamento cancelado e aluno notificado.']);
 
             case 'delete':
                 $horario = Horario::find($id);
@@ -276,12 +326,17 @@ public function index()
         }
 
         try {
-            $matricula = $request->input('aluno_matricula');
+            $nome = $request->filled('aluno_nome') ? $request->input('aluno_nome') : null;
+            $matricula = $request->filled('aluno_matricula') ? $request->input('aluno_matricula') : null;
             $dataInicio = $request->input('data_inicio');
             $dataFim = $request->input('data_fim');
             $ordenarPor = $request->input('ordenar_por', 'data_desc');
 
             $query = DB::table('registros_atendimentos')
+                ->when($nome, function ($query, $nome) {
+                    $nomeTermo = '%' . mb_strtolower($nome, 'UTF-8') . '%';
+                    return $query->whereRaw('LOWER(nome) LIKE ?', [$nomeTermo]);
+                })
                 ->when($matricula, function ($query, $matricula) {
                     return $query->where('matricula', 'like', "%{$matricula}%");
                 })
@@ -345,15 +400,18 @@ public function index()
                     <tbody>";
 
         foreach ($registros as $reg) {
-            $situacao = $reg->status === 'Realizado' ? 'Confirmado' : $reg->status;
+            $situacao = $reg->status === 'Realizado' ? 'Atendimento Realizado' : $reg->status;
             $statusClass = $reg->status === 'Realizado' ? 'color: #00833D;' : 'color: #dc3545;';
             
             $dataReg = \Carbon\Carbon::parse($reg->data_registro)->format('d/m/Y');
             $horaReg = \Carbon\Carbon::parse($reg->data_registro)->format('H:i');
             
+            $nomeExibir = $reg->nome ?? $reg->nome_aluno ?? 'Não informado';
+            $matriculaExibir = $reg->matricula ?? $reg->matricula_aluno ?? 'N/A';
+
             $html .= "<tr>
-                        <td style='padding: 8px; border: 1px solid #ddd;'>{$reg->nome}</td>
-                        <td style='padding: 8px; border: 1px solid #ddd;'>{$reg->matricula}</td>
+                        <td style='padding: 8px; border: 1px solid #ddd;'>{$nomeExibir}</td>
+                        <td style='padding: 8px; border: 1px solid #ddd;'>{$matriculaExibir}</td>
                         <td style='padding: 8px; border: 1px solid #ddd;'>{$dataReg} às {$horaReg}</td>
                         <td style='padding: 8px; border: 1px solid #ddd;'><strong style='{$statusClass}'>{$situacao}</strong></td>
                     </tr>";

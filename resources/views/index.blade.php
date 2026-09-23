@@ -17,10 +17,10 @@
 <body>
 
     <header class="header">
-        <h1>Agendamento de Consulta</h1>
+        <h1>Agendamento de Atendimento Psicológico</h1>
         <div class="user-info">
             @if(auth()->check())
-                <span>{{ auth()->user()->nome }} ({{ ucfirst(auth()->user()->tipo) }})</span>
+                <span>{{ auth()->user()->nome }} ({{ auth()->user()->matricula }})</span>
                 
                 <form action="{{ route('logout') }}" method="POST" style="display: inline;">
                     @csrf
@@ -28,7 +28,6 @@
                 </form>
             @else
                 <button class="btn btn-primary" onclick="window.location.href='{{ route('login') }}';">Fazer Login</button>
-                <button class="btn btn-secondary" onclick="window.location.href='{{ route('register') }}';">Criar Conta</button>
             @endif
         </div>
     </header>
@@ -38,7 +37,10 @@
         
         <section class="content-section">
             <h2>Calendário de Horários Disponíveis</h2>
-            <p class="instrucao-texto">Clique em um horário **Disponível** para tentar agendar. É necessário estar logado.</p>
+            <p class="instrucao-texto">
+    Clique em um horário <strong>disponível</strong> para fazer seu agendamento. 
+    @guest É necessário estar logado. @endguest
+</p>
             <div id="calendar"></div>
         </section>
 
@@ -65,7 +67,7 @@
                                 $data_hora = \Carbon\Carbon::parse($reg->data_atendimento)->format('d/m/Y') . ' às ' . \Carbon\Carbon::parse($reg->hora_atendimento)->format('H:i');
                                 
                                 if ($reg->status === 'Agendado') {
-                                    $status_texto = 'Agendado / Reservado';
+                                    $status_texto = 'Agendado';
                                     $status_class = 'text-success';
                                 } elseif ($reg->status === 'Realizado') {
                                     $status_texto = 'Atendimento Realizado';

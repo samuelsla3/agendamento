@@ -11,14 +11,14 @@
 </head>
 <body>
     <div class="card">
-        <h2>Olá, {{ $agendamento->aluno->name ?? 'Discente' }}!</h2>
+        <h2>Olá, {{ $agendamento->nome ?? optional($agendamento->aluno)->nome ?? 'Discente' }}!</h2>
 
         <p>Lembramos que você possui um atendimento psicológico agendado para <strong>amanhã</strong>.</p>
 
         <p>
     <strong>Data/Horário:</strong> 
-    {{ \Carbon\Carbon::parse($agendamento->horario->data ?? $agendamento->data)->format('d/m/Y') }} 
-    às {{ $agendamento->horario->hora ?? $agendamento->hora ?? $agendamento->horario->hora_inicio ?? '' }}<br>
+    {{ \Carbon\Carbon::parse($agendamento->data)->format('d/m/Y') }} 
+    às {{ \Carbon\Carbon::parse($agendamento->hora)->format('H:i') }}<br>
     <strong>Local:</strong> Setor de Psicologia / IFBA
 </p>
 

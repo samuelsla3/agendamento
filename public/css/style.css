@@ -67,6 +67,7 @@ body {
     margin: 30px 0;
     display: flex;
     justify-content: center;
+    align-items: center; /* Adicionado para alinhar verticalmente os botões */
     gap: 15px;
     flex-wrap: wrap;
 }

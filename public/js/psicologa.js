@@ -26,13 +26,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            if (props.disponivel == 0) {
-                className = 'evento-indisponivel-psicologa'; 
-                statusTexto = 'Agendado: ' + (props.nome || 'N/A');
-            } else if (props.justificativa_cancelamento) {
-                className = 'evento-indisponivel-psicologa'; 
-                statusTexto = 'Cancelado por: ' + (props.nome || 'N/A');
-            }
+            // Substitua o bloco de verificação de status no eventDataTransform por este:
+if (props.confirmado == 1) {
+    className = 'evento-indisponivel-psicologa';
+    statusTexto = 'Realizado: ' + (props.nome || 'N/A');
+} else if (props.disponivel == 0) {
+    className = 'evento-indisponivel-psicologa'; 
+    statusTexto = 'Agendado: ' + (props.nome || 'N/A');
+} else if (props.justificativa_cancelamento) {
+    className = 'evento-indisponivel-psicologa'; 
+    statusTexto = 'Cancelado por: ' + (props.nome || 'N/A');
+}
 
             let tituloFinal = (horarioOriginal ? horarioOriginal + ' - ' : '') + statusTexto;
 
@@ -93,19 +97,27 @@ function openModal(event) {
                 $('#deleteBtn').show();
             }
             
+} else {
+    $('#modalTitle').text('Detalhes do Agendamento');
+    
+    if (props.confirmado == 1) {
+        $('#agendadoStatus').text('Realizado / Concluído').css('color', '#00833D');
+        $('#confirmBtn, #cancelByPsicologaBtn, #deleteBtn').hide();
+    } else {
+        $('#agendadoStatus').text('Agendado').css('color', '#d97706');
+        
+        // Exibe o botão de cancelar SEMPRE que não estiver confirmado, mesmo se isPast for true
+        $('#cancelByPsicologaBtn').show();
+
+        if (isPast) { 
+            $('#confirmBtn').show(); 
+            $('#deleteBtn').hide();
         } else {
-            $('#modalTitle').text('Detalhes do Agendamento');
-            $('#agendadoStatus').text('Agendado').css('color', '#d97706');
-            
-            if (isPast) { 
-                $('#confirmBtn').show(); 
-                $('#cancelByPsicologaBtn').hide();
-                $('#deleteBtn').hide();
-            } else {
-                $('#cancelByPsicologaBtn').show();
-                $('#deleteBtn').show();
-            }
+            $('#confirmBtn').hide();
+            $('#deleteBtn').show();
         }
+    }
+}
     }
     $('#modal').addClass('is-visible');
 }
@@ -169,16 +181,11 @@ $('#cancel-by-psicologa-form').submit(function(e) {
 $('#filtro-relatorio-form').on('submit', function(e) {
     e.preventDefault();
     $('#resultado_relatorio').html('<p>Carregando relatório...</p>');
+    
     $.ajax({
         url: LaravelConfig.rotas.relatorio,
         method: 'POST',
-        data: {
-            _token: LaravelConfig.csrfToken,
-            aluno_matricula: $('#aluno_matricula').val(),
-            data_inicio: $('#data_inicio').val(),
-            data_fim: $('#data_fim').val(),
-            ordenar_por: $('#ordenar_por').val()
-        },
+        data: $(this).serialize(), // Envia automaticamente _token, aluno_nome, aluno_matricula, etc.
         success: function(response) {
             $('#resultado_relatorio').html(response);
         },
@@ -299,7 +306,7 @@ function abrirAcoesHoje(botao) {
 
     if (confirmado === 1) {
         $('#confirmBtn').hide();
-        $('#agendadoStatus').text('✓ Confirmado').css('color', '#00833D');
+        $('#agendadoStatus').text('Confirmado').css('color', '#00833D');
     }
 
     $('#modal').addClass('is-visible');

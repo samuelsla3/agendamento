@@ -9,4 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 #aponta para a $signature, e configura a automoção
-Schedule::command('atendimentos:enviar-lembretes')->dailyAt('08:00');
+Schedule::command('atendimentos:enviar-lembretes')->dailyAt('09:00');

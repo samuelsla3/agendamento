@@ -35,14 +35,25 @@ class ProntuarioController extends Controller
     }
 
     public function validarSenha(Request $request)
-    {
-        $request->validate([
-            'senha' => 'required|string',
-        ]);
+{
+    $request->validate([
+        'senha' => 'required|string',
+    ]);
 
-        $user = Auth::user();
+    $matricula = session('matricula') 
+              ?? session('usuario_matricula') 
+              ?? (Auth::check() ? Auth::user()->matricula : null);
 
-        if (Hash::check($request->senha, $user->password ?? $user->senha)) {
+    $user = Usuario::where('matricula', $matricula)->first();
+
+    if ($user) {
+        // Pega a senha que estiver preenchida no banco (senha ou password)
+        $senhaBanco = !empty($user->senha) ? $user->senha : $user->password;
+
+        // Valida tanto por Hash quanto por texto puro
+        $senhaValida = Hash::check($request->senha, $senhaBanco) || ($request->senha === $senhaBanco);
+
+        if ($senhaValida && !empty($senhaBanco)) {
             session(['prontuario_autorizado' => true]);
 
             $alunoId = session('aluno_id_pendente');
@@ -54,11 +65,12 @@ class ProntuarioController extends Controller
 
             return redirect()->route('psicologa.index');
         }
-
-        return redirect()->route('psicologa.index')
-                         ->with('pedir_senha', true)
-                         ->withErrors(['senha' => 'Senha de acesso incorreta. Acesso negado.']);
     }
+
+    return redirect()->route('psicologa.index')
+                     ->with('pedir_senha', true)
+                     ->withErrors(['senha' => 'Senha de acesso incorreta ou não cadastrada.']);
+}
 
     public function store(Request $request, $alunoId)
     {

@@ -15,6 +15,21 @@ document.addEventListener('DOMContentLoaded', function() {
         displayEventTime: false,
         events: LaravelConfig.horarios,
         eventClick: function(info) { openModal(info.event); },
+        
+        // AJUSTE 1: Aplica o cursor de "proibido" (not-allowed) visualmente no calendário
+        eventDidMount: function(info) {
+            const props = info.event.extendedProps;
+            const isPast = new Date(info.event.start) < new Date();
+            const ehMeuAgendamento = (LaravelConfig.userTipo === 'estudante' || LaravelConfig.userTipo === 'aluno') && 
+                                    (props.matricula_agendada === LaravelConfig.matriculaUsuario || props.matricula === LaravelConfig.matriculaUsuario);
+
+            // Se o horário já passou OU se está ocupado por outro aluno, aplica visual de indisponível
+            if (isPast || (props.disponivel != 1 && !ehMeuAgendamento && LaravelConfig.userTipo !== 'psicologa')) {
+                info.el.style.cursor = 'not-allowed';
+                info.el.style.opacity = '0.6';
+            }
+        },
+
         eventDataTransform: function(eventData) {
             const props = eventData.extendedProps;
             let className = '';
@@ -25,6 +40,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (props.disponivel == 1) {
                 className = 'evento-disponivel-aluno';
                 statusTexto = 'Disponível';
+            } else if (props.confirmado == 1) {
+                className = 'evento-indisponivel-aluno';
+                statusTexto = 'Atendimento Realizado';
             } else if ((LaravelConfig.userTipo === 'estudante' || LaravelConfig.userTipo === 'aluno') && props.matricula_agendada === LaravelConfig.matriculaUsuario) {
                 className = 'evento-meu-agendamento';
                 statusTexto = 'Meu Agendamento';
@@ -51,9 +69,12 @@ document.addEventListener('DOMContentLoaded', function() {
 function openModal(event) {
     const props = event.extendedProps;
     const dataHora = new Date(event.start).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'});
+    
+    // Calcula se o horário do agendamento é anterior ao momento atual
+    const isPast = new Date(event.start) < new Date();
 
     if (!LaravelConfig.isLoggedIn) {
-        showMessage('error', "Você precisa fazer login para gerenciar os horários.");
+        showMessage('error', "É necessário estar logado.");
         return;
     }
 
@@ -62,16 +83,34 @@ function openModal(event) {
         return;
     }
 
-    if (props.disponivel === 1) {
+    // AJUSTE 2: TRAVA IMEDIATA NO PRIMEIRO CLIQUE PARA HORÁRIO DISPONÍVEL QUE JÁ PASSOU
+    if (isPast && props.disponivel == 1) {
+        showMessage('error', "Não é possível realizar agendamentos para um horário que já passou.");
+        return;
+    }
+
+    // 1. TRAVA DE CONFIRMADO/REALIZADO
+    if (props.confirmado == 1 || props.status === 'Realizado') {
+        showMessage('error', "Este atendimento já foi realizado e não pode ser cancelado.");
+        return;
+    }
+
+    // 2. TRAVA DE HORÁRIO PASSADO (Impede cancelar retroativamente agendamentos passados)
+    if (isPast && props.disponivel != 1) {
+        showMessage('error', "Este horário já passou e não pode mais ser cancelado.");
+        return;
+    }
+
+    if (props.disponivel == 1) {
         $('#agendarModal').find('.data-hora').text(dataHora);
         $('#id_horario_agendar').val(event.id);
         $('#agendarModal').addClass('is-visible');
-    } else if (props.matricula_agendada === LaravelConfig.matriculaUsuario) {
+    } else if (props.matricula_agendada === LaravelConfig.matriculaUsuario || props.matricula === LaravelConfig.matriculaUsuario) {
         $('#cancelarModal').find('.data-hora').text(dataHora);
         $('#id_horario_cancelar').val(event.id);
         $('#cancelarModal').addClass('is-visible');
     } else {
-        showMessage('error', "Este horário não está disponível para você.");
+        showMessage('error', "Este horário já está ocupado.");
     }
 }
 

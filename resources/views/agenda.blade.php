@@ -93,7 +93,7 @@
                                                 data-confirmado="{{ $agendamento->confirmado }}"
                                                 data-nome="{{ $agendamento->nome ?? optional($agendamento->aluno)->name ?? 'Não informado' }}"
                                                 data-matricula="{{ $agendamento->matricula ?? optional($agendamento->aluno)->matricula ?? 'N/A' }}"
-                                                data-ispast="{{ $isPast ? '1' : '0' }}"
+                                                data-ispast="0"
                                                 onclick="abrirAcoesHoje(this)">
                                             Operar
                                         </button>
@@ -125,7 +125,7 @@
                                     
                                     <li style="margin-bottom: 15px;">
                                         <strong>Aluno:</strong> {{ $cancelamento->nome_aluno ?? 'Não informado' }} 
-                                        (Mat: {{ $cancelamento->matricula_aluno ?? 'N/A' }})<br>
+                                        ({{ $cancelamento->matricula_aluno ?? 'N/A' }})<br>
                                         
                                         <strong>Horário Cancelado:</strong> Dia {{ $data_atendimento }} às {{ $hora_atendimento }}h<br>
                                         
@@ -153,6 +153,10 @@
                 @csrf
                 <div class="form-row">
                     <div class="form-group">
+                        <label for="aluno_nome">Nome do Aluno:</label>
+        <input type="text" id="aluno_nome" name="aluno_nome" placeholder="Digite o nome...">
+    </div>
+    <div class="form-group">
                         <label for="aluno_matricula">Matrícula do Aluno:</label>
                         <input type="text" id="aluno_matricula" name="aluno_matricula">
                     </div>
@@ -204,18 +208,18 @@
                     <button type="submit" class="btn btn-primary">Salvar</button>
                 </form>
                 
-                <div id="action-buttons" style="margin-top: 20px;">
-                    <input type="hidden" id="eventId">
-                    
-                    <a id="prontuarioBtn" href="#" target="_blank" class="btn btn-info" style="display:none; background-color: #0284c7; border-color: #0284c7; color: #fff; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-weight: bold;">
-                        Ver / Anotar Prontuário
-                    </a>
+                <div id="action-buttons" class="action-buttons-group">
+    <input type="hidden" id="eventId">
+    
+    <a id="prontuarioBtn" href="#" target="_blank" class="btn btn-info" style="display:none; background-color: #0284c7; border-color: #0284c7; color: #fff; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-weight: bold;">
+        Acessar Prontuário
+    </a>
 
-                    <button type="button" id="confirmBtn" class="btn btn-success" style="display:none;">Confirmar Atendimento</button>
-                    <button type="button" id="cancelByPsicologaBtn" class="btn btn-danger" style="display:none;">Cancelar Agendamento</button>
-                    <button type="button" id="deleteBtn" class="btn btn-danger">Excluir Horário</button>
-                    <button type="button" onclick="closeModal()" class="btn btn-secondary">Fechar</button>
-                </div>
+    <button type="button" id="confirmBtn" class="btn btn-success" style="display:none;">Confirmar Atendimento</button>
+    <button type="button" id="cancelByPsicologaBtn" class="btn btn-danger" style="display:none;">Cancelar Agendamento</button>
+    <button type="button" id="deleteBtn" class="btn btn-danger">Excluir Horário</button>
+    <button type="button" onclick="closeModal()" class="btn btn-secondary">Fechar</button>
+</div>
             </div>
         </div>
 
@@ -284,27 +288,43 @@
         </div>
         
         <div id="deleteModal" class="modal">
-            <div class="modal-content">
-                <span class="close-btn" onclick="closeModal()">&times;</span>
-                <h3>Apagar Horários Disponíveis</h3>
-                <form id="delete-form">
-                    <div class="form-row">
-                        <div class="form-group"><label for="data_inicio_apagar">Apagar de:</label><input type="date" id="data_inicio_apagar" required></div>
-                        <div class="form-group"><label for="data_fim_apagar">Até:</label><input type="date" id="data_fim_apagar" required></div>
-                    </div>
-                    <div class="form-group checkbox-group">
-                        <p><strong>Selecionar horários a serem apagados:</strong></p>
-                        <label><input type="checkbox" name="horas_apagar[]" value="09:00:00"> 09:00</label>
-                        <label><input type="checkbox" name="horas_apagar[]" value="10:00:00"> 10:00</label>
-                        <label><input type="checkbox" name="horas_apagar[]" value="11:00:00"> 11:00</label>
-                        <label><input type="checkbox" name="horas_apagar[]" value="14:00:00"> 14:00</label>
-                        <label><input type="checkbox" name="horas_apagar[]" value="15:00:00"> 15:00</label>
-                        <label><input type="checkbox" name="horas_apagar[]" value="16:00:00"> 16:00</label>
-                    </div>
-                    <button type="submit" class="btn btn-danger">Apagar Horários Selecionados</button>
-                </form>
-            </div>
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h3>Apagar Horários Disponíveis</h3>
+        
+        <!-- Alerta sobre agendamentos existentes -->
+        <div class="alert alert-warning" style="background-color: #fff3cd; border: 1px solid #ffeba2; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px;">
+            <strong>Atenção:</strong> Caso algum dos horários no período selecionado já esteja <strong>agendado por um aluno</strong>, o ideal é realizar o <strong>cancelamento</strong> (individual ou em bloco) para que o discente seja notificado por e-mail.
         </div>
+
+        <form id="delete-form">
+            <div class="form-row">
+                <div class="form-group"><label for="data_inicio_apagar">Apagar de:</label><input type="date" id="data_inicio_apagar" required></div>
+                <div class="form-group"><label for="data_fim_apagar">Até:</label><input type="date" id="data_fim_apagar" required></div>
+            </div>
+            
+            <div class="form-group checkbox-group">
+                <p><strong>Selecionar horários a serem apagados:</strong></p>
+                
+                <!-- Opção Selecionar Todos -->
+                <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #00833D;">
+                    <input type="checkbox" id="selecionarTodosHoras" onchange="toggleTodosHorarios(this)"> 
+                    [ Selecionar Todos os Horários ]
+                </label>
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 8px 0;">
+
+                <label><input type="checkbox" class="hora-checkbox" name="horas_apagar[]" value="09:00:00"> 09:00</label>
+                <label><input type="checkbox" class="hora-checkbox" name="horas_apagar[]" value="10:00:00"> 10:00</label>
+                <label><input type="checkbox" class="hora-checkbox" name="horas_apagar[]" value="11:00:00"> 11:00</label>
+                <label><input type="checkbox" class="hora-checkbox" name="horas_apagar[]" value="14:00:00"> 14:00</label>
+                <label><input type="checkbox" class="hora-checkbox" name="horas_apagar[]" value="15:00:00"> 15:00</label>
+                <label><input type="checkbox" class="hora-checkbox" name="horas_apagar[]" value="16:00:00"> 16:00</label>
+            </div>
+            
+            <button type="submit" class="btn btn-danger">Apagar Horários Selecionados</button>
+        </form>
+    </div>
+</div>
         
         <div id="cancelByPsicologaModal" class="modal">
             <div class="modal-content">
@@ -322,138 +342,196 @@
         </div>
     </div>
 
+    <!-- MODAL DE BUSCA DE PRONTUÁRIO COM FILTRO POR DIGITAÇÃO -->
     <div id="modalBuscaProntuario" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); z-index: 99999; align-items: center; justify-content: center;">
-    <div style="background: #fff; width: 100%; max-width: 420px; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.3); font-family: sans-serif; margin: 20px;">
-        
-        <div style="background-color: #d1d5db; color: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0; font-size: 18px; font-weight: bold;">Buscar Prontuário</h3>
-            <button type="button" onclick="fecharModalBuscaProntuario()" style="background: transparent; border: none; color: #fff; font-size: 22px; cursor: pointer; font-weight: bold;">&times;</button>
-        </div>
+        <div style="background: #fff; width: 100%; max-width: 420px; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.3); font-family: sans-serif; margin: 20px;">
+            
+            <div style="background-color: #f3f4f6; color: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 18px; font-weight: bold; color: #111827;">Buscar Prontuário</h3>
+                <button type="button" onclick="fecharModalBuscaProntuario()" style="background: transparent; border: none; color: #374151; font-size: 22px; cursor: pointer; font-weight: bold;">&times;</button>
+            </div>
 
-        <form onsubmit="redirecionarParaProntuario(event)" style="padding: 24px;">
-            <div style="margin-bottom: 16px;">
-                <label for="selectAlunoProntuario" style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
-                    Selecione o Aluno
-                </label>
+            <form onsubmit="redirecionarParaProntuario(event)" style="padding: 24px;">
                 
-                <select id="selectAlunoProntuario" class="form-select" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;" required>
-                    <option value="" disabled selected>Digite ou selecione o nome do aluno</option>
+                <!-- CAMPO PARA DIGITAR O NOME/MATRÍCULA DO ALUNO -->
+                <div style="margin-bottom: 12px;">
+                    <label for="inputFiltroAluno" style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">
+                        Pesquisar Aluno por Nome:
+                    </label>
+                    <input type="text" id="inputFiltroAluno" onkeyup="filtrarListaAlunosProntuario()" placeholder="Digite o nome para filtrar..." style="width: 100%; padding: 9px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box;">
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label for="selectAlunoProntuario" style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                        Selecione o Aluno
+                    </label>
                     
-                    @if(isset($alunos) && $alunos->count() > 0)
-                        @foreach($alunos as $aluno)
-                            <option value="{{ $aluno->id }}">
-                                {{ $aluno->nome }} (Matrícula: {{ $aluno->matricula ?? 'N/A' }})
-                            </option>
-                        @endforeach
-                    @else
-                        <option value="" disabled>Nenhum aluno encontrado no sistema</option>
-                    @endif
-                </select>
-            </div>
+                    <select id="selectAlunoProntuario" class="form-select" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;" required size="5">
+                        <option value="" disabled selected>Escolha um aluno na lista abaixo...</option>
+                        
+                        @if(isset($alunos) && $alunos->count() > 0)
+                            @foreach($alunos as $aluno)
+                                <option value="{{ $aluno->id }}" data-search="{{ strtolower($aluno->nome . ' ' . $aluno->matricula) }}">
+                                    {{ $aluno->nome }} ({{ $aluno->matricula ?? 'N/A' }})
+                                </option>
+                            @endforeach
+                        @else
+                            <option value="" disabled>Nenhum aluno encontrado no sistema</option>
+                        @endif
+                    </select>
+                </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
-                <button type="button" onclick="fecharModalBuscaProntuario()" style="padding: 10px 18px; background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; color: #374151; font-weight: 600; cursor: pointer;">
-                    Cancelar
-                </button>
-                <button type="submit" style="padding: 10px 20px; background-color: #00833D; border: none; border-radius: 8px; color: #ffffff; font-weight: 600; cursor: pointer;">
-                    Abrir Prontuário
-                </button>
-            </div>
-        </form>
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+                    <button type="button" onclick="fecharModalBuscaProntuario()" style="padding: 10px 18px; background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; color: #374151; font-weight: 600; cursor: pointer;">
+                        Cancelar
+                    </button>
+                    <button type="submit" style="padding: 10px 20px; background-color: #00833D; border: none; border-radius: 8px; color: #ffffff; font-weight: 600; cursor: pointer;">
+                        Abrir Prontuário
+                    </button>
+                </div>
+            </form>
 
-    </div>
-</div>
-
-
-<div id="modalSenhaProntuario" style="display: {{ session('pedir_senha') || $errors->has('senha') ? 'flex' : 'none' }}; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); z-index: 100000; align-items: center; justify-content: center;">
-    <div style="background: #fff; width: 100%; max-width: 400px; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.3); font-family: sans-serif; margin: 20px;">
-        
-        <div style="background-color: #00833D; color: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0; font-size: 16px; font-weight: bold;">Acesso Restrito ao Prontuário</h3>
-            <button type="button" onclick="fecharModalSenhaProntuario()" style="background: transparent; border: none; color: #fff; font-size: 22px; cursor: pointer; font-weight: bold;">&times;</button>
         </div>
-
-        <form action="{{ route('prontuarios.validar-senha') }}" method="POST" style="padding: 24px;">
-            @csrf
-            <p style="font-size: 13px; color: #4b5563; margin-top: 0; margin-bottom: 16px;">
-                Por razões de segurança, digite a sua senha de acesso para visualizar o prontuário.
-            </p>
-
-            <div style="margin-bottom: 16px;">
-                <label for="senhaProntuarioInput" style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
-                    Sua Senha
-                </label>
-                <input type="password" id="senhaProntuarioInput" name="senha" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box;" placeholder="••••••••" required autofocus>
-                
-                @error('senha')
-                    <span style="color: #ef4444; font-size: 12px; margin-top: 6px; display: block;">{{ $message }}</span>
-                @enderror
-            </div>
-
-            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
-                <button type="button" onclick="fecharModalSenhaProntuario()" style="padding: 10px 18px; background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; color: #374151; font-weight: 600; cursor: pointer;">
-                    Cancelar
-                </button>
-                <button type="submit" style="padding: 10px 20px; background-color: #00833D; border: none; border-radius: 8px; color: #ffffff; font-weight: 600; cursor: pointer;">
-                    Confirmar Senha
-                </button>
-            </div>
-        </form>
-
     </div>
-</div>
 
+    <!-- MODAL DE SENHA DE ACESSO -->
+    <div id="modalSenhaProntuario" style="display: {{ session('pedir_senha') || $errors->has('senha') ? 'flex' : 'none' }}; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); z-index: 100000; align-items: center; justify-content: center;">
+        <div style="background: #fff; width: 100%; max-width: 400px; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.3); font-family: sans-serif; margin: 20px;">
+            
+            <div style="background-color: #f3f4f6; color: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 16px; font-weight: bold; color: #111827;">Acesso Restrito ao Prontuário</h3>
+                <button type="button" onclick="fecharModalSenhaProntuario()" style="background: transparent; border: none; color: #374151; font-size: 22px; cursor: pointer; font-weight: bold;">&times;</button>
+            </div>
 
-<script>
-function abrirModalBuscaProntuario() {
-    var modal = document.getElementById('modalBuscaProntuario');
-    if (modal) {
-        modal.style.display = 'flex';
-    }
-}
+            <form action="{{ route('prontuarios.validar-senha') }}" method="POST" style="padding: 24px;">
+                @csrf
+                <p style="font-size: 13px; color: #4b5563; margin-top: 0; margin-bottom: 16px;">
+                    Por razões de segurança, digite a sua senha de acesso para visualizar o prontuário.
+                </p>
 
-function fecharModalBuscaProntuario() {
-    var modal = document.getElementById('modalBuscaProntuario');
-    if (modal) {
-        modal.style.display = 'none';
-        var select = document.getElementById('selectAlunoProntuario');
-        if (select) select.value = '';
-    }
-}
+                <div style="margin-bottom: 16px;">
+                    <label for="senhaProntuarioInput" style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                        Sua Senha
+                    </label>
+                    <input type="password" id="senhaProntuarioInput" name="senha" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box;" placeholder="••••••••" required autofocus>
+                    
+                    @error('senha')
+                        <span style="color: #ef4444; font-size: 12px; margin-top: 6px; display: block;">{{ $message }}</span>
+                    @enderror
+                </div>
 
-function fecharModalSenhaProntuario() {
-    var modal = document.getElementById('modalSenhaProntuario');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+                    <button type="button" onclick="fecharModalSenhaProntuario()" style="padding: 10px 18px; background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; color: #374151; font-weight: 600; cursor: pointer;">
+                        Cancelar
+                    </button>
+                    <button type="submit" style="padding: 10px 20px; background-color: #00833D; border: none; border-radius: 8px; color: #ffffff; font-weight: 600; cursor: pointer;">
+                        Confirmar Senha
+                    </button>
+                </div>
+            </form>
 
-function redirecionarParaProntuario(e) {
-    if (e) e.preventDefault();
-    
-    const select = document.getElementById('selectAlunoProntuario');
-    const alunoId = select ? select.value : null;
-    
-    if (alunoId) {
-        window.location.href = '/prontuarios/aluno/' + alunoId;
-    } else {
-        alert('Por favor, selecione um aluno na lista.');
-    }
-}
-</script>
+        </div>
+    </div>
 
-<script>
-    const LaravelConfig = {
-        csrfToken: "{{ csrf_token() }}",
-        rotas: {
-            eventos: "{{ route('agenda.eventos') }}",
-            acao: "{{ route('agenda.acao') }}",
-            relatorio: "/agenda/relatorio"
+    <!-- FUNÇÕES JAVASCRIPT CORRIGIDAS -->
+    <script>
+    function abrirModalBuscaProntuario() {
+        var modal = document.getElementById('modalBuscaProntuario');
+        if (modal) {
+            modal.style.display = 'flex';
+            var input = document.getElementById('inputFiltroAluno');
+            if (input) {
+                input.value = '';
+                input.focus();
+                filtrarListaAlunosProntuario();
+            }
         }
-    };
+    }
+
+    function fecharModalBuscaProntuario() {
+        var modal = document.getElementById('modalBuscaProntuario');
+        if (modal) {
+            modal.style.display = 'none';
+            var select = document.getElementById('selectAlunoProntuario');
+            if (select) select.value = '';
+        }
+    }
+
+    function fecharModalSenhaProntuario() {
+        var modal = document.getElementById('modalSenhaProntuario');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // FUNÇÃO QUE FILTRA OS ALUNOS ENQUANTO VOCÊ DIGITA
+    function filtrarListaAlunosProntuario() {
+        const termo = document.getElementById('inputFiltroAluno').value.toLowerCase().trim();
+        const select = document.getElementById('selectAlunoProntuario');
+        const options = select.getElementsByTagName('option');
+
+        for (let i = 0; i < options.length; i++) {
+            // Ignora o placeholder inicial
+            if (options[i].disabled && options[i].value === "") continue;
+
+            const textoBusca = options[i].getAttribute('data-search') || options[i].text.toLowerCase();
+            
+            if (textoBusca.includes(termo)) {
+                options[i].style.display = "";
+            } else {
+                options[i].style.display = "none";
+            }
+        }
+    }
+
+    function redirecionarParaProntuario(e) {
+        if (e) e.preventDefault();
+        
+        const select = document.getElementById('selectAlunoProntuario');
+        const alunoId = select ? select.value : null;
+        
+        if (alunoId) {
+            window.location.href = '/prontuarios/aluno/' + alunoId;
+        } else {
+            alert('Por favor, selecione um aluno na lista.');
+        }
+    }
+    </script>
+
+    <script>
+    function toggleTodosHorarios(masterCheckbox) {
+        const checkboxes = document.querySelectorAll('.hora-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = masterCheckbox.checked;
+        });
+    }
+
+    // Opcional: Desmarca o "Selecionar Todos" se alguma hora individual for desmarcada
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('hora-checkbox')) {
+            const master = document.getElementById('selecionarTodosHoras');
+            const total = document.querySelectorAll('.hora-checkbox').length;
+            const marcados = document.querySelectorAll('.hora-checkbox:checked').length;
+            
+            if (master) {
+                master.checked = (total === marcados);
+            }
+        }
+    });
 </script>
 
-<script src="{{ asset('js/psicologa.js') }}?v={{ time() }}"></script>
+    <script>
+        const LaravelConfig = {
+            csrfToken: "{{ csrf_token() }}",
+            rotas: {
+                eventos: "{{ route('agenda.eventos') }}",
+                acao: "{{ route('agenda.acao') }}",
+                relatorio: "/agenda/relatorio"
+            }
+        };
+    </script>
+
+    <script src="{{ asset('js/psicologa.js') }}?v={{ time() }}"></script>
 
 </body>
 </html>
