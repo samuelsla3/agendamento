@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prontuário - {{ $aluno->nome ?? $aluno->name }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite('resources/css/app.css')
 </head>
 <body class="bg-gray-100 min-h-screen">
 
@@ -72,10 +72,17 @@
                             Registrado em {{ $sessao->created_at ? $sessao->created_at->format('d/m/Y H:i') : '' }}
                         </span>
 
-                        <button type="button" 
-        onclick="abrirModalEdicao({{ $sessao->id }}, '{{ \Carbon\Carbon::parse($sessao->data_sessao)->format('Y-m-d') }}', '{{ addslashes($sessao->anotacoes) }}')" 
-        class="text-amber-500 hover:text-amber-700 p-1 rounded transition" 
-        title="Editar Sessão">
+                        <button
+    type="button"
+    data-sessao="{{ json_encode([
+        'id' => $sessao->id,
+        'data' => \Carbon\Carbon::parse($sessao->data_sessao)->format('Y-m-d'),
+        'anotacoes' => $sessao->anotacoes,
+    ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) }}"
+    onclick="abrirModalEdicao(this)"
+    class="text-amber-500 hover:text-amber-700 p-1 rounded transition"
+    title="Editar Sessão"
+>
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
     </svg>
@@ -106,7 +113,7 @@
 
 </div>
 
-<div id="modalEditarSessao" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+<div id="modalEditarSessao" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
     <div class="bg-white p-6 rounded-lg max-w-lg w-full shadow-xl">
         <h3 class="text-lg font-bold text-gray-800 mb-4">Editar Registro da Sessão</h3>
         
@@ -132,7 +139,7 @@
     </div>
 </div>
 
-<div id="modalSenhaProntuario" class="fixed inset-0 bg-black bg-opacity-60 {{ session('pedir_senha') || $errors->has('senha') ? 'flex' : 'hidden' }} items-center justify-center z-50 p-4">
+<div id="modalSenhaProntuario" class="fixed inset-0 bg-black/60 {{ session('pedir_senha') || $errors->has('senha') ? 'flex' : 'hidden' }} items-center justify-center z-50 p-4">
     <div class="bg-white p-6 rounded-lg max-w-md w-full shadow-2xl border-t-4 border-[#00833D]">
         <div class="flex items-center gap-3 mb-4">
             <div class="p-2 bg-green-100 rounded-full text-[#00833D]">
@@ -167,13 +174,19 @@
 </div>
 
 <script>
-function abrirModalEdicao(id, data, anotacoes) {
-    document.getElementById('formEditarSessao').action = '/prontuarios/sessao/' + id;
-    
-    document.getElementById('edit_data_sessao').value = data;
-    document.getElementById('edit_anotacoes').value = anotacoes;
-    
+function abrirModalEdicao(botao) {
+    const sessao = JSON.parse(botao.dataset.sessao);
+
+    document.getElementById('formEditarSessao').action =
+        '/prontuarios/sessao/' + sessao.id;
+
+    document.getElementById('edit_data_sessao').value = sessao.data;
+
+    document.getElementById('edit_anotacoes').value =
+        sessao.anotacoes ?? '';
+
     const modal = document.getElementById('modalEditarSessao');
+
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 }

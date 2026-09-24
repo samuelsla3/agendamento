@@ -109,6 +109,7 @@ public function index()
 
                 DB::transaction(function () use ($horario) {
                     // Busca defensiva para garantir nome e matrícula
+                    $horario = $horario->bloquearReservaAtual();
                     $nomeAluno = $horario->nome;
                     $matriculaAluno = $horario->matricula;
 
@@ -136,6 +137,7 @@ public function index()
                     // 2. Atualiza o horário
                     $horario->disponivel = 0;
                     $horario->confirmado = 1;
+                    $horario->token_cancelamento = null;
                     $horario->save();
                 });
 
@@ -149,6 +151,7 @@ public function index()
 
     DB::transaction(function () use ($horario, $justificativa) {
         // 1. PRIMEIRA TENTATIVA: Dados gravados direto na model Horario
+        $horario = $horario->bloquearReservaAtual();
         $nomeAluno = $horario->nome;
         $matriculaAluno = $horario->matricula;
 
@@ -200,7 +203,8 @@ public function index()
             'nome' => null,
             'matricula' => null,
             'confirmado' => 0,
-            'justificativa_cancelamento' => $justificativa
+            'justificativa_cancelamento' => $justificativa,
+            'token_cancelamento' => null
         ]);
 
         // Envia o e-mail de notificação se o aluno for localizado

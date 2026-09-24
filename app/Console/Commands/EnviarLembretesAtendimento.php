@@ -20,8 +20,13 @@ class EnviarLembretesAtendimento extends Command
         $amanha = Carbon::tomorrow()->toDateString();
 
         $horarios = Horario::where('data', $amanha)
-            ->where('disponivel', 0)
-            ->get();
+    ->where('disponivel', 0)
+    ->where(function ($query) {
+        $query->where('confirmado', 0)
+            ->orWhereNull('confirmado');
+    })
+    ->whereNotNull('token_cancelamento')
+    ->get();
 
         if ($horarios->isEmpty()) {
             $this->warn("Nenhum agendamento encontrado para a data de amanhã ({$amanha}).");
@@ -45,10 +50,13 @@ class EnviarLembretesAtendimento extends Command
             if ($aluno && !empty($aluno->email)) {
                 // Generates the signed URL for direct cancellation valid for 48 hours
                 $urlCancelamento = URL::temporarySignedRoute(
-                    'agendamento.cancelarDirect',
-                    now()->addHours(48),
-                    ['id' => $horario->id]
-                );
+    'agendamento.cancelarDirect',
+    now()->addHours(48),
+    [
+        'id' => $horario->id,
+        'token' => $horario->token_cancelamento,
+    ]
+);
 
                 try {
                     // Uses Mail::send linking the Blade view and passing the data variables

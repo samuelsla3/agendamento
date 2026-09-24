@@ -9,10 +9,20 @@ class Horario extends Model
     protected $table = 'horarios';
 
     protected $fillable = [
-        'data', 'hora', 'disponivel', 'nome', 'matricula', 'confirmado', 'justificativa_cancelamento'
+        'data',
+        'hora',
+        'disponivel',
+        'nome',
+        'matricula',
+        'confirmado',
+        'justificativa_cancelamento',
+        'token_cancelamento',
     ];
 
-    // Relacionamento: Um horário pode ter um agendamento vinculado a ele
+    protected $hidden = [
+        'token_cancelamento',
+    ];
+
     public function agendamento()
     {
         return $this->hasOne(Agendamento::class, 'id_horario');
@@ -20,8 +30,28 @@ class Horario extends Model
 
     public function usuario()
     {
-        // Conecta a coluna 'matricula' de Horario com a coluna 'matricula' do Model Usuario
         return $this->belongsTo(Usuario::class, 'matricula', 'matricula');
-        // NOTA: Se a sua classe de usuários se chamar User::class, substitua Usuario::class por User::class
+    }
+
+    /**
+     * Deve ser chamado dentro de DB::transaction().
+     */
+    public function bloquearReservaAtual(): self
+    {
+        $atual = self::whereKey($this->getKey())
+            ->lockForUpdate()
+            ->first();
+
+        abort_if(
+            !$atual
+            || (int) $atual->disponivel !== 0
+            || (int) $atual->confirmado === 1
+            || empty($this->token_cancelamento)
+            || $atual->token_cancelamento !== $this->token_cancelamento,
+            409,
+            'Este agendamento foi alterado ou encerrado. Atualize a página.'
+        );
+
+        return $atual;
     }
 }

@@ -17,7 +17,7 @@
         <p>Você está prestes a cancelar seu atendimento agendado para:</p>
         <p><strong>Data:</strong> {{ \Carbon\Carbon::parse($horario->data)->format('d/m/Y') }} às {{ $horario->hora }}</p>
         
-        <form action="{{ route('agendamento.cancelar.executar', $horario->id) }}" method="POST">
+        <form action="{{ $urlExecutar }}" method="POST">
             @csrf
             <button type="submit" class="btn-danger">Sim, quero cancelar meu horário</button>
         </form>

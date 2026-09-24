@@ -22,12 +22,19 @@ Route::post('/login', [AuthController::class, 'logar'])->name('login.post');
  */
 
 // Cancelamento direto via link assinado do e-mail
-Route::get('/cancelar-confirmar/{id}', [CalendarioController::class, 'exibirTelaCancelamento'])
+Route::get(
+    '/cancelar-confirmar/{id}',
+    [CalendarioController::class, 'exibirTelaCancelamento']
+)
     ->name('agendamento.cancelarDirect')
     ->middleware('signed');
 
-Route::post('/cancelar-executar/{id}', [CalendarioController::class, 'executarCancelamentoDireto'])
-    ->name('agendamento.cancelar.executar');
+Route::post(
+    '/cancelar-executar/{id}',
+    [CalendarioController::class, 'executarCancelamentoDireto']
+)
+    ->name('agendamento.cancelar.executar')
+    ->middleware('signed');
 
 // Rotas protegidas por login
 Route::middleware(['auth'])->group(function () {
