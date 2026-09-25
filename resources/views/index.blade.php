@@ -66,7 +66,10 @@
                     <tbody>
                         @foreach ($registros as $reg)
                             @php
-                                $data_hora = \Carbon\Carbon::parse($reg->data_atendimento)->format('d/m/Y') . ' às ' . \Carbon\Carbon::parse($reg->hora_atendimento)->format('H:i');
+                                $data_hora = !empty($reg->data_atendimento) && !empty($reg->hora_atendimento)
+                                    ? \Carbon\Carbon::parse($reg->data_atendimento)->format('d/m/Y')
+                                        . ' às ' . \Carbon\Carbon::parse($reg->hora_atendimento)->format('H:i')
+                                    : 'Data/hora não preservadas neste registro antigo';
                                 
                                 if ($reg->status === 'Agendado') {
                                     $status_texto = 'Agendado';

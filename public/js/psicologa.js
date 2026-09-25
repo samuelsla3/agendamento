@@ -33,9 +33,9 @@ if (props.confirmado == 1) {
 } else if (props.disponivel == 0) {
     className = 'evento-indisponivel-psicologa'; 
     statusTexto = 'Agendado: ' + (props.nome || 'N/A');
-} else if (props.justificativa_cancelamento) {
-    className = 'evento-indisponivel-psicologa'; 
-    statusTexto = 'Cancelado por: ' + (props.nome || 'N/A');
+} else if (props.justificativa_cancelamento || String(props.status_real || '').startsWith('Cancelado')) {
+    className = 'evento-disponivel-psicologa';
+    statusTexto = 'Disponível (cancelamento anterior)';
 }
 
             let tituloFinal = (horarioOriginal ? horarioOriginal + ' - ' : '') + statusTexto;
@@ -52,34 +52,66 @@ if (props.confirmado == 1) {
 });
 
 function openModal(event) {
-    $('#eventId').val(event.id);
     const props = event.extendedProps;
-    $('#eventId').data('versao', props.versao);
-    const isPast = new Date(event.start) < new Date();
-    
+    const start = new Date(event.start);
+    const isPast = start < new Date();
+    const disponivel = Number(props.disponivel) === 1;
+    const confirmado = Number(props.confirmado) === 1;
+    const statusAnterior = String(props.status_real || '');
+    const teveCancelamento = disponivel && !confirmado && (
+        Boolean(props.justificativa_cancelamento)
+        || statusAnterior.startsWith('Cancelado')
+    );
+
+    $('#eventId').val(event.id).data('versao', props.versao);
     $('#justificativaTexto, #agendadoNome, #agendadoMatricula, #agendadoStatus').text('');
     $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #prontuarioBtn').hide();
-    
-    const isCanceladoReal = props.justificativa_cancelamento && props.disponivel == 1;
 
-    if (isCanceladoReal) {
-        $('#justificativaTexto').text(props.justificativa_cancelamento);
-        $('#justificativaInfo').show();
-    }
-
-    if (props.disponivel === 1 && !isCanceladoReal) {
+    if (disponivel && !confirmado) {
         $('#modalTitle').text('Editar Horário Disponível');
         $('#form-disponivel').show();
-        const start = new Date(event.start);
-        $('#data').val(start.toISOString().slice(0, 10));
+
+        // Usa a data local exibida no calendário, sem convertê-la para UTC.
+        const ano = start.getFullYear();
+        const mes = String(start.getMonth() + 1).padStart(2, '0');
+        const dia = String(start.getDate()).padStart(2, '0');
+        $('#data').val(`${ano}-${mes}-${dia}`);
         $('#hora').val(start.toTimeString().slice(0, 5));
-        
+
+        if (teveCancelamento) {
+            const nome = props.nome || props.aluno_nome;
+            let aviso = nome ? `A reserva anterior de ${nome}` : 'A reserva anterior';
+
+            if (statusAnterior === 'Cancelado pelo Aluno') {
+                aviso += ' foi cancelada pelo próprio aluno.';
+            } else if (statusAnterior === 'Cancelado pela Psicóloga') {
+                aviso += ' foi cancelada pela psicóloga.';
+            } else {
+                aviso += ' foi cancelada.';
+            }
+
+            if (props.data_hora_reserva_anterior) {
+    aviso += ` A reserva cancelada estava marcada para ${props.data_hora_reserva_anterior}.`;
+} else {
+    aviso += ' A data e a hora originais não foram preservadas neste registro antigo.';
+}
+
+if (props.justificativa_cancelamento) {
+    aviso += ` Motivo: ${props.justificativa_cancelamento}`;
+}
+
+            aviso += ' Esta vaga está disponível para edição e novo agendamento.';
+            // Nome e justificativa são texto, nunca HTML executável.
+            $('#justificativaTexto').text(aviso);
+            $('#justificativaInfo').show();
+        }
+
         if (!isPast) {
             $('#deleteBtn').show();
         }
     } else {
+        $('#modalTitle').text('Detalhes do Agendamento');
         $('#agendadoInfo').show();
-        
         $('#agendadoNome').text(props.nome || props.aluno_nome || 'N/A');
         $('#agendadoMatricula').text(props.matricula || props.aluno_matricula || 'N/A');
 
@@ -87,39 +119,20 @@ function openModal(event) {
         if (alunoId && alunoId !== 'null') {
             $('#prontuarioBtn').attr('href', '/prontuarios/aluno/' + alunoId).css('display', 'inline-block');
         }
-        
-        if (isCanceladoReal) {
-            $('#modalTitle').text('Agendamento Cancelado');
-            
-            const statusTexto = props.status_real || 'Cancelado';
-            $('#agendadoStatus').text(statusTexto).css('color', 'var(--danger-color)');
-            
-            if (!isPast) {
+
+        if (confirmado) {
+            $('#agendadoStatus').text('Realizado / Concluído').css('color', '#00833D');
+        } else {
+            $('#agendadoStatus').text('Agendado').css('color', '#d97706');
+            $('#cancelByPsicologaBtn').show();
+            if (isPast) {
+                $('#confirmBtn').show();
+            } else {
                 $('#deleteBtn').show();
             }
-            
-} else {
-    $('#modalTitle').text('Detalhes do Agendamento');
-    
-    if (props.confirmado == 1) {
-        $('#agendadoStatus').text('Realizado / Concluído').css('color', '#00833D');
-        $('#confirmBtn, #cancelByPsicologaBtn, #deleteBtn').hide();
-    } else {
-        $('#agendadoStatus').text('Agendado').css('color', '#d97706');
-        
-        // Exibe o botão de cancelar SEMPRE que não estiver confirmado, mesmo se isPast for true
-        $('#cancelByPsicologaBtn').show();
-
-        if (isPast) { 
-            $('#confirmBtn').show(); 
-            $('#deleteBtn').hide();
-        } else {
-            $('#confirmBtn').hide();
-            $('#deleteBtn').show();
         }
     }
-}
-    }
+
     $('#modal').addClass('is-visible');
 }
 

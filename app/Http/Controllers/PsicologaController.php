@@ -35,13 +35,11 @@ public function index()
         ->get();
 
     $ultimosCancelamentos = collect($ultimosCancelamentos)->map(function ($cancelamento) {
-        $horario = Horario::find($cancelamento->id_horario_original);
         
         $cancelamento->nome_aluno = $cancelamento->nome ?? $cancelamento->nome_aluno ?? 'Não informado';
         $cancelamento->matricula_aluno = $cancelamento->matricula ?? $cancelamento->matricula_aluno ?? 'N/A';
         
-        $cancelamento->data_atendimento = $horario ? $horario->data : $cancelamento->data_registro;
-        $cancelamento->hora_atendimento = $horario ? $horario->hora : $cancelamento->data_registro;
+        // data_atendimento e hora_atendimento vêm de ra.*, sem consultar a vaga atual.
         
         return $cancelamento;
     });
@@ -59,6 +57,7 @@ public function index()
         $eventos = [];
 
         foreach ($horarios as $row) {
+            $dataHoraReservaAnterior = null;
             $nome = $row->nome;
             $matricula = $row->matricula;
             $statusReal = $row->confirmado ? 'Confirmado' : 'Agendado';
@@ -73,6 +72,16 @@ public function index()
                     $nome = $historico->nome ?? $historico->nome_aluno ?? $nome;
                     $matricula = $historico->matricula ?? $historico->matricula_aluno ?? $matricula;
                     $statusReal = $historico->status; 
+                    // Usa a data e a hora preservadas no histórico do atendimento.
+if (
+    !empty($historico->data_atendimento)
+    && !empty($historico->hora_atendimento)
+) {
+    $dataHoraReservaAnterior =
+        Carbon::parse($historico->data_atendimento)->format('d/m/Y')
+        . ' às '
+        . Carbon::parse($historico->hora_atendimento)->format('H:i');
+}
                 } else {
                     $statusReal = 'Cancelado';
                 }
@@ -91,7 +100,8 @@ public function index()
                     'matricula' => $matricula,
                     'confirmado' => (int)$row->confirmado,
                     'justificativa_cancelamento' => $row->justificativa_cancelamento,
-                    'status_real' => $statusReal 
+                    'status_real' => $statusReal,
+                    'data_hora_reserva_anterior' => $dataHoraReservaAnterior
                 ]
             ];
         }
@@ -112,7 +122,8 @@ public function index()
         switch ($action) {
             case 'confirmar':
                 abort_if((int) $horario->disponivel !== 0 || (int) $horario->confirmado === 1, 409, 'Atendimento já encerrado ou vaga sem reserva.');
-                RegistroAtendimento::create(['id_horario_original' => $horario->id, 'nome' => $horario->nome,
+                RegistroAtendimento::create(['id_horario_original' => $horario->id,
+                    'data_atendimento' => $horario->data, 'hora_atendimento' => $horario->hora, 'nome' => $horario->nome,
                     'matricula' => $horario->matricula, 'status' => 'Realizado',
                     'observacao' => 'Atendimento concluído com sucesso.',
                     'data_registro' => Carbon::parse($horario->data.' '.$horario->hora)]);
@@ -126,7 +137,8 @@ public function index()
                 $aluno = Usuario::where('matricula', $horario->matricula)->first();
                 $nome = $horario->nome ?? $aluno?->nome ?? 'Discente';
                 $token = $horario->token_cancelamento;
-                RegistroAtendimento::create(['id_horario_original' => $horario->id, 'nome' => $nome,
+                RegistroAtendimento::create(['id_horario_original' => $horario->id,
+                    'data_atendimento' => $horario->data, 'hora_atendimento' => $horario->hora, 'nome' => $nome,
                     'matricula' => $horario->matricula, 'status' => 'Cancelado pela Psicóloga',
                     'observacao' => 'Motivo: '.$justificativa, 'data_registro' => now()]);
                 $horario->update(['disponivel' => 1, 'nome' => null, 'matricula' => null, 'confirmado' => 0,

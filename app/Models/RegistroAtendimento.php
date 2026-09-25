@@ -14,7 +14,9 @@ class RegistroAtendimento extends Model
     'matricula', 
     'status', 
     'observacao', 
-    'data_registro'
+    'data_registro',
+    'data_atendimento',
+    'hora_atendimento'
 ];
 
     public function horarioOriginal()

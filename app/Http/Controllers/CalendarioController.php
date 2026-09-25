@@ -66,14 +66,9 @@ class CalendarioController extends Controller
                                             ->orderBy('data_registro', 'desc')
                                             ->get();
 
-        $historicoCancelados = $registrosBrutos->map(function($reg) {
-            $horarioOriginal = Horario::find($reg->id_horario_original);
-            
-            $reg->data_atendimento = $horarioOriginal ? $horarioOriginal->data : $reg->data_registro;
-            $reg->hora_atendimento = $horarioOriginal ? $horarioOriginal->hora : $reg->data_registro;
-            
-            return $reg;
-        });
+        // O histórico usa a data/hora gravada no próprio registro.
+        // Valores ausentes em registros antigos são tratados pela view.
+        $historicoCancelados = $registrosBrutos;
 
         $ativosBrutos = Horario::where('matricula', $matricula)
                                ->where('disponivel', 0)
@@ -138,7 +133,8 @@ class CalendarioController extends Controller
         $request->validate(['justificativa' => 'nullable|string']);
         $token = $horario->token_cancelamento;
         $justificativa = $request->input('justificativa', '') ?? '';
-        RegistroAtendimento::create(['id_horario_original' => $horario->id, 'nome' => $nome, 'matricula' => $matricula,
+        RegistroAtendimento::create(['id_horario_original' => $horario->id,
+                    'data_atendimento' => $horario->data, 'hora_atendimento' => $horario->hora, 'nome' => $nome, 'matricula' => $matricula,
             'status' => 'Cancelado pelo Aluno', 'observacao' => $justificativa, 'data_registro' => now()]);
         $horario->update(['disponivel' => 1, 'nome' => null, 'matricula' => null, 'confirmado' => 0,
             'justificativa_cancelamento' => $justificativa, 'token_cancelamento' => null]);
@@ -165,7 +161,8 @@ class CalendarioController extends Controller
             DB::table('travas_operacoes')->where('nome', 'agenda')->lockForUpdate()->first();
             $horario = Horario::whereKey($id)->lockForUpdate()->first();
             if (!$this->tokenCancelamentoValido($horario, $request->query('token'))) { return false; }
-            RegistroAtendimento::create(['id_horario_original' => $horario->id, 'nome' => $horario->nome,
+            RegistroAtendimento::create(['id_horario_original' => $horario->id,
+                    'data_atendimento' => $horario->data, 'hora_atendimento' => $horario->hora, 'nome' => $horario->nome,
                 'matricula' => $horario->matricula, 'status' => 'Cancelado pelo Aluno',
                 'observacao' => 'Cancelamento confirmado via link do e-mail', 'data_registro' => now()]);
             $horario->update(['disponivel' => 1, 'nome' => null, 'matricula' => null, 'confirmado' => 0,

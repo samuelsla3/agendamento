@@ -121,8 +121,10 @@
                             <ul class="cancelamentos-lista">
                                 @foreach ($bloco as $cancelamento)
                                     @php
-                                        $data_atendimento = \Carbon\Carbon::parse($cancelamento->data_atendimento)->format('d/m/Y');
-                                        $hora_atendimento = \Carbon\Carbon::parse($cancelamento->hora_atendimento)->format('H:i');
+                                        $horario_cancelado = !empty($cancelamento->data_atendimento) && !empty($cancelamento->hora_atendimento)
+                                            ? 'Dia ' . \Carbon\Carbon::parse($cancelamento->data_atendimento)->format('d/m/Y')
+                                                . ' às ' . \Carbon\Carbon::parse($cancelamento->hora_atendimento)->format('H:i') . 'h'
+                                            : 'Data/hora não preservadas neste registro antigo';
                                         $momento_cancelamento = \Carbon\Carbon::parse($cancelamento->data_registro)->format('d/m/Y \à\s H:i');
                                     @endphp
                                     
@@ -130,7 +132,7 @@
                                         <strong>Aluno:</strong> {{ $cancelamento->nome_aluno ?? 'Não informado' }} 
                                         ({{ $cancelamento->matricula_aluno ?? 'N/A' }})<br>
                                         
-                                        <strong>Horário Cancelado:</strong> Dia {{ $data_atendimento }} às {{ $hora_atendimento }}h<br>
+                                        <strong>Horário Cancelado:</strong> {{ $horario_cancelado }}<br>
                                         
                                         <strong>Cancelado em:</strong> {{ $momento_cancelamento }}<br>
                                         
@@ -195,7 +197,7 @@
                 
                 <div id="justificativaInfo" style="display:none;" class="cancelamentos-lista">
                     <li>
-                        <strong>Justificativa do cancelamento:</strong>
+                        <strong>Cancelamento anterior:</strong>
                         <p id="justificativaTexto" style="margin: 5px 0 0 0;"></p>
                     </li>
                 </div>
@@ -536,7 +538,7 @@
         };
     </script>
 
-    <script src="{{ asset('js/psicologa.js') }}?v=20260924-1"></script>
+    <script src="{{ asset('js/psicologa.js') }}?v=20260925-1"></script>
 
 </body>
 </html>
