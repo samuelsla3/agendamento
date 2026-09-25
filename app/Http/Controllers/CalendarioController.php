@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Agendamento;
 use App\Models\Horario;
 use App\Models\RegistroAtendimento;
 use App\Mail\ConfirmacaoAgendamentoMail;

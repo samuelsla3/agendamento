@@ -33,7 +33,6 @@ class AuthController extends Controller
         // ---------------------------------------------------------------------
         // 1. TENTA AUTENTICAR NO SUAP VIA API JWT (Fluxo Principal para Alunos)
         // ---------------------------------------------------------------------
-        $token = $suapService->autenticar($matricula, $senha);
 
         $token = $suapService->autenticar($matricula, $senha);
 

@@ -205,7 +205,7 @@ if (
         return response()->json(['status' => 'error', 'message' => 'Ação inválida.']);
     }
 
-    public function gerarRelatorio(Request $request)
+        public function gerarRelatorio(Request $request)
     {
         if (!auth()->check() || auth()->user()->tipo !== 'psicologa') {
             return response('Acesso negado.', 403);
@@ -227,15 +227,17 @@ if (
                     return $query->where('matricula', 'like', "%{$matricula}%");
                 })
                 ->when($dataInicio, function ($query, $dataInicio) {
-                    return $query->where('data_registro', '>=', $dataInicio . ' 00:00:00');
+                    return $query->where('data_atendimento', '>=', $dataInicio);
                 })
                 ->when($dataFim, function ($query, $dataFim) {
-                    return $query->where('data_registro', '<=', $dataFim . ' 23:59:59');
+                    return $query->where('data_atendimento', '<=', $dataFim);
                 });
 
             switch ($ordenarPor) {
                 case 'data_asc':
-                    $query->orderBy('data_registro', 'asc');
+                    $query->orderByRaw('data_atendimento IS NULL ASC')
+                        ->orderBy('data_atendimento', 'asc')
+                        ->orderBy('hora_atendimento', 'asc');
                     break;
                 case 'nome_asc':
                     $query->orderBy('nome', 'asc');
@@ -245,7 +247,9 @@ if (
                     break;
                 case 'data_desc':
                 default:
-                    $query->orderBy('data_registro', 'desc');
+                    $query->orderByRaw('data_atendimento IS NULL ASC')
+                        ->orderBy('data_atendimento', 'desc')
+                        ->orderBy('hora_atendimento', 'desc');
                     break;
             }
 
@@ -253,7 +257,7 @@ if (
 
             $dataInicioFormatada = $dataInicio ? \Carbon\Carbon::parse($dataInicio)->format('d/m/Y') : 'N/A';
             $dataFimFormatada = $dataFim ? \Carbon\Carbon::parse($dataFim)->format('d/m/Y') : 'N/A';
-            $periodoStr = "Período do relatório: {$dataInicioFormatada} a {$dataFimFormatada}";
+            $periodoStr = "Período dos atendimentos marcados: {$dataInicioFormatada} a {$dataFimFormatada}";
 
             return $this->renderTabelaFallback($registros, $periodoStr);
 
@@ -279,7 +283,7 @@ if (
                         <tr>
                             <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Aluno</th>
                             <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Matrícula</th>
-                            <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Data e Hora</th>
+                            <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Data e hora marcadas</th>
                             <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Situação</th>
                         </tr>
                     </thead>
@@ -289,8 +293,13 @@ if (
             $situacao = $reg->status === 'Realizado' ? 'Atendimento Realizado' : $reg->status;
             $statusClass = $reg->status === 'Realizado' ? 'color: #00833D;' : 'color: #dc3545;';
             
-            $dataReg = \Carbon\Carbon::parse($reg->data_registro)->format('d/m/Y');
-            $horaReg = \Carbon\Carbon::parse($reg->data_registro)->format('H:i');
+            // O relatório usa a reserva histórica, nunca a vaga atual.
+            if (!empty($reg->data_atendimento) && !empty($reg->hora_atendimento)) {
+                $dataHoraAtendimento = Carbon::parse($reg->data_atendimento)->format('d/m/Y')
+                    . ' às ' . Carbon::parse($reg->hora_atendimento)->format('H:i');
+            } else {
+                $dataHoraAtendimento = 'Data/hora não preservadas neste registro antigo';
+            }
             
             $nomeExibir = $reg->nome ?? $reg->nome_aluno ?? 'Não informado';
             $matriculaExibir = $reg->matricula ?? $reg->matricula_aluno ?? 'N/A';
@@ -298,7 +307,7 @@ if (
             $html .= "<tr>
                         <td style='padding: 8px; border: 1px solid #ddd;'>{$nomeExibir}</td>
                         <td style='padding: 8px; border: 1px solid #ddd;'>{$matriculaExibir}</td>
-                        <td style='padding: 8px; border: 1px solid #ddd;'>{$dataReg} às {$horaReg}</td>
+                        <td style='padding: 8px; border: 1px solid #ddd;'>{$dataHoraAtendimento}</td>
                         <td style='padding: 8px; border: 1px solid #ddd;'><strong style='{$statusClass}'>{$situacao}</strong></td>
                     </tr>";
         }

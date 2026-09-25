@@ -7,7 +7,6 @@ class Horario extends Model
     protected $table = 'horarios';
     protected $fillable = ['data', 'hora', 'disponivel', 'nome', 'matricula', 'confirmado', 'justificativa_cancelamento', 'token_cancelamento'];
     protected $hidden = ['token_cancelamento'];
-    public function agendamento() { return $this->hasOne(Agendamento::class, 'id_horario'); }
     public function usuario() { return $this->belongsTo(Usuario::class, 'matricula', 'matricula'); }
     public function versao(): string
     {

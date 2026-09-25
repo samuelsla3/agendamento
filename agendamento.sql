@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Tempo de geração: 25/09/2026 às 20:09
+-- Tempo de geração: 25/09/2026 às 20:57
 -- Versão do servidor: 8.0.30
 -- Versão do PHP: 8.2.30
 
@@ -20,21 +20,6 @@ SET time_zone = "+00:00";
 --
 -- Banco de dados: `agendamento`
 --
-
--- --------------------------------------------------------
-
---
--- Estrutura para tabela `agendamentos`
---
-
-CREATE TABLE `agendamentos` (
-  `id` bigint UNSIGNED NOT NULL,
-  `id_horario` bigint UNSIGNED DEFAULT NULL,
-  `nome` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `observacao` text COLLATE utf8mb4_unicode_ci,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -62,7 +47,9 @@ INSERT INTO `avisos_email` (`id`, `evento`, `conteudo`, `estado`, `enviado_em`, 
 (2, '0e4ef6b250ff92c49598de25d653b8b9dd403e807832c09fc4a52f7c0c3cd891', '', 'enviado', '2026-09-24 21:35:58', NULL, '2026-09-24 21:35:55', '2026-09-24 21:35:58'),
 (3, 'b40be533b8a616c62ec47d83d3839cda133aa5f981d5a1d5c86bf539c4219bb9', '', 'enviado', '2026-09-25 02:54:15', NULL, '2026-09-25 02:54:11', '2026-09-25 02:54:15'),
 (4, 'c242f919710cd899de02087d44d90818b255aa2be117820404c0dec6a800938f', '', 'enviado', '2026-09-25 04:00:38', NULL, '2026-09-25 04:00:34', '2026-09-25 04:00:38'),
-(5, 'c0ecfe2b79e42ba0a9e1eb15d2656fec62ff88f65b1cc0fa5bc7535fe597c37a', '', 'enviado', '2026-09-25 04:00:59', NULL, '2026-09-25 04:00:55', '2026-09-25 04:00:59');
+(5, 'c0ecfe2b79e42ba0a9e1eb15d2656fec62ff88f65b1cc0fa5bc7535fe597c37a', '', 'enviado', '2026-09-25 04:00:59', NULL, '2026-09-25 04:00:55', '2026-09-25 04:00:59'),
+(6, '855332d25460cac979359c6ce5e7cba0b177054d32fc79e3b695f63d2a7e5ec2', '', 'enviado', '2026-09-25 20:34:52', NULL, '2026-09-25 20:34:48', '2026-09-25 20:34:52'),
+(7, 'd0af9f8082eddfff2915d145984ba35a2dfc0fb9d528a45978381414dff2e597', '', 'enviado', '2026-09-25 20:35:36', NULL, '2026-09-25 20:35:32', '2026-09-25 20:35:36');
 
 -- --------------------------------------------------------
 
@@ -93,8 +80,8 @@ INSERT INTO `cache` (`key`, `value`, `expiration`) VALUES
 ('laravel-cache-login-tentativa:d4cf1e17887790f04c537aff00bc18422ea66166de767ae8a58eda7678456936', 'b:1;', 1790363246),
 ('laravel-cache-login-tentativa:f4b08dc3203bb843ca31c9b58bc3902123cf27374d4583ef8f4626f06a7c280e', 'b:1;', 1790306416),
 ('laravel-cache-login-tentativa:ff90d522e0f2d96325fb9bac06365ad85004c5c671fee787862fd34f9158ccb7', 'b:1;', 1790363210),
-('laravel-cache-senha-prontuario:356a192b7913b04c54574d18c28d46e6395428ab', 'i:5;', 1790307667),
-('laravel-cache-senha-prontuario:356a192b7913b04c54574d18c28d46e6395428ab:timer', 'i:1790307667;', 1790307667);
+('laravel-cache-senha-prontuario:356a192b7913b04c54574d18c28d46e6395428ab', 'i:1;', 1790370411),
+('laravel-cache-senha-prontuario:356a192b7913b04c54574d18c28d46e6395428ab:timer', 'i:1790370410;', 1790370411);
 
 -- --------------------------------------------------------
 
@@ -169,7 +156,7 @@ INSERT INTO `horarios` (`id`, `data`, `hora`, `disponivel`, `nome`, `matricula`,
 (187, '2026-09-29', '16:00:00', 1, NULL, NULL, 0, NULL, '2026-09-25 04:00:21', '2026-09-25 04:00:21', NULL),
 (188, '2026-09-30', '09:00:00', 1, NULL, NULL, 0, NULL, '2026-09-25 04:00:21', '2026-09-25 04:00:21', NULL),
 (189, '2026-09-30', '10:00:00', 1, NULL, NULL, 0, NULL, '2026-09-25 04:00:21', '2026-09-25 04:00:21', NULL),
-(190, '2026-09-30', '11:00:00', 1, NULL, NULL, 0, NULL, '2026-09-25 04:00:21', '2026-09-25 04:00:21', NULL),
+(190, '2026-09-30', '11:00:00', 1, NULL, NULL, 0, 'Testando', '2026-09-25 04:00:21', '2026-09-25 20:35:32', NULL),
 (191, '2026-09-30', '14:00:00', 1, NULL, NULL, 0, NULL, '2026-09-25 04:00:21', '2026-09-25 04:00:21', NULL),
 (192, '2026-09-30', '15:00:00', 1, NULL, NULL, 0, NULL, '2026-09-25 04:00:21', '2026-09-25 04:00:21', NULL),
 (193, '2026-09-30', '16:00:00', 1, NULL, NULL, 0, NULL, '2026-09-25 04:00:21', '2026-09-25 04:00:21', NULL),
@@ -290,7 +277,8 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (10, '2026_08_23_232700_add_turma_codigo_to_usuarios_table', 3),
 (11, '2026_09_24_161756_add_token_cancelamento_to_horarios_table', 4),
 (12, '2026_09_24_230000_create_controle_operacoes_tables', 5),
-(13, '2026_09_25_010000_add_data_hora_atendimento_to_registros_atendimentos_table', 6);
+(13, '2026_09_25_010000_add_data_hora_atendimento_to_registros_atendimentos_table', 6),
+(14, '2026_09_25_020000_remove_tabelas_legadas_users_e_agendamentos', 7);
 
 -- --------------------------------------------------------
 
@@ -315,9 +303,11 @@ INSERT INTO `operacoes_http` (`chave`, `assinatura`, `resposta`, `created_at`) V
 ('379fc4ce716a3ff3fedeeb8c8f8abadc3db5660e093efa618fa8c7fe60bcc452', '86a3384938cf538d77dc6bb06bcf62f60acd2e869d0ff1e572cd49d77577f3ca', '{\"tipo\":\"json\",\"status\":200,\"dados\":{\"status\":\"success\",\"message\":\"24 hor\\u00e1rios customizados criados com sucesso.\"}}', '2026-09-25 04:00:21'),
 ('795769bcb76d7d21235f14427e36ce32283882318ac8d51cef53ee2444ae542b', '0c02cd665a2e71a9534e66358f24b72b55a85d08b86c39156f65d1d44d17f836', '{\"tipo\":\"json\",\"status\":200,\"dados\":{\"status\":\"success\",\"message\":\"Agendamento realizado! A confirma\\u00e7\\u00e3o ser\\u00e1 enviada por e-mail.\"}}', '2026-09-25 04:00:34'),
 ('8c70ec35dcfafb69b3a504ebaf40440487a417e5ac811f5dc50e9e1b0ef8672c', 'd4f003f1a75c6ec33778c7922f915c5fbc6117e5579b8ef82524279c4ded574b', '{\"tipo\":\"json\",\"status\":200,\"dados\":{\"status\":\"success\",\"message\":\"Agendamento cancelado. A confirma\\u00e7\\u00e3o ser\\u00e1 enviada por e-mail.\"}}', '2026-09-24 21:35:55'),
+('9a6219c089b42e7b33c4846a5c6a0e007239bbd26a0d686b5cd02b1a47566308', '601242ea8e0a4fbc618217b774cdc694eef53d44de5505d2fc3d17a381e71ac4', '{\"tipo\":\"json\",\"status\":200,\"dados\":{\"status\":\"success\",\"message\":\"Agendamento realizado! A confirma\\u00e7\\u00e3o ser\\u00e1 enviada por e-mail.\"}}', '2026-09-25 20:34:48'),
 ('c555d28632409c22206faf44d9a85b9587df65ec303dd74c137b0e6e02d5de93', 'a9a7f380be13ec7ef29a3bcabc0ab81ad1a88d024a2af6c0a0163f7718f14706', '{\"tipo\":\"json\",\"status\":200,\"dados\":{\"status\":\"success\",\"message\":\"Agendamento realizado! A confirma\\u00e7\\u00e3o ser\\u00e1 enviada por e-mail.\"}}', '2026-09-25 02:54:11'),
 ('d6c333b183bdaf513caa0f4f8a776366dc49681706e63cca2cb8c4a41f09fd8b', '7c6bc14925992741b490b3b11c0805aacac49dc93239cf5d9ac4ba3fc4182425', '{\"tipo\":\"json\",\"status\":200,\"dados\":{\"status\":\"success\",\"message\":\"Agendamento cancelado. A confirma\\u00e7\\u00e3o ser\\u00e1 enviada por e-mail.\"}}', '2026-09-25 04:00:55'),
-('fdd65724b5daffafcd5c28dc9253c4c1f50d950d4e4a745654ac6fd98088e4b7', '2d23259d59296cea01b09d4c28a04efccf04ba74cc6324386151674c6ba1a38c', '{\"tipo\":\"json\",\"status\":200,\"dados\":{\"status\":\"success\",\"message\":\"Agendamento realizado! A confirma\\u00e7\\u00e3o ser\\u00e1 enviada por e-mail.\"}}', '2026-09-24 21:34:57');
+('fdd65724b5daffafcd5c28dc9253c4c1f50d950d4e4a745654ac6fd98088e4b7', '2d23259d59296cea01b09d4c28a04efccf04ba74cc6324386151674c6ba1a38c', '{\"tipo\":\"json\",\"status\":200,\"dados\":{\"status\":\"success\",\"message\":\"Agendamento realizado! A confirma\\u00e7\\u00e3o ser\\u00e1 enviada por e-mail.\"}}', '2026-09-24 21:34:57'),
+('fdf4820040d96d7ee1b10eeb5bdf742eaa7b0637341fa2f07768cc89022e9a3b', 'e832e632af19f6a17edd9c43d5fca7c1f569654eb410d19002ef1a0425a5adc5', '{\"tipo\":\"json\",\"status\":200,\"dados\":{\"status\":\"success\",\"message\":\"Agendamento cancelado. A confirma\\u00e7\\u00e3o ser\\u00e1 enviada por e-mail.\"}}', '2026-09-25 20:35:32');
 
 -- --------------------------------------------------------
 
@@ -383,7 +373,8 @@ INSERT INTO `registros_atendimentos` (`id`, `id_horario_original`, `nome`, `matr
 (45, 176, 'SAMUEL OLIVEIRA JACONELY', '20241180017', 'Cancelado pela Psicóloga', 'Motivo: Te amo Jaco <3', '2026-09-24 16:50:54', '2026-09-24 19:50:54', '2026-09-24 19:50:54', NULL, NULL),
 (46, 176, 'SAMUEL SANTOS DE LIMA ALVES', '20231180003', 'Cancelado pelo Aluno', 'Teste', '2026-09-24 18:35:55', '2026-09-24 21:35:55', '2026-09-24 21:35:55', NULL, NULL),
 (47, 175, 'SAMUEL SANTOS DE LIMA ALVES', '20231180003', 'Realizado', 'Atendimento concluído com sucesso.', '2026-09-24 15:52:00', '2026-09-24 21:39:35', '2026-09-24 21:39:35', NULL, NULL),
-(48, 182, 'SAMUEL SANTOS DE LIMA ALVES', '20231180003', 'Cancelado pelo Aluno', 'Testinho', '2026-09-25 01:00:55', '2026-09-25 04:00:55', '2026-09-25 04:00:55', '2026-09-29', '09:00:00');
+(48, 182, 'SAMUEL SANTOS DE LIMA ALVES', '20231180003', 'Cancelado pelo Aluno', 'Testinho', '2026-09-25 01:00:55', '2026-09-25 04:00:55', '2026-09-25 04:00:55', '2026-09-29', '09:00:00'),
+(49, 190, 'SAMUEL SANTOS DE LIMA ALVES', '20231180003', 'Cancelado pelo Aluno', 'Testando', '2026-09-25 17:35:32', '2026-09-25 20:35:32', '2026-09-25 20:35:32', '2026-09-30', '11:00:00');
 
 -- --------------------------------------------------------
 
@@ -405,8 +396,8 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('CQqK8ZVraXIN2bnGe3AIIrYv9OVnJR6KUovWHsiT', 24, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', 'YToxMTp7czo2OiJfdG9rZW4iO3M6NDA6ImlGMXBKVGY4ZkxndXhDSFY4WlVZVGpsdWpGTlBWWWpKRzNSWU12UWEiO3M6OToiX3ByZXZpb3VzIjthOjI6e3M6MzoidXJsIjtzOjIxOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAiO3M6NToicm91dGUiO3M6MTI6ImFnZW5kYS5pbmRleCI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fXM6NTA6ImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjI0O3M6ODoic3VhcF9qd3QiO3M6MjA1OiJleUowZVhBaU9pSktWMVFpTENKaGJHY2lPaUpJVXpJMU5pSjkuZXlKMWMyVnlYMmxrSWpveE1UZ3hNamtzSW1WdFlXbHNJam9pSWl3aWRYTmxjbTVoYldVaU9pSXlNREl6TVRFNE1EQXdNeUlzSW1WNGNDSTZNVGM1TURRME9UQXhNQ3dpYjNKcFoxOXBZWFFpT2pFM09UQXpOakkyTVRCOS5XSVBtbU1mTktBLTc2Xy1pUERKaGlYaWxGTWN0VU84bk53Vml0RllOTGVJIjtzOjEyOiJ1c3VhcmlvX3RpcG8iO3M6NToiYWx1bm8iO3M6MTI6InVzdWFyaW9fbm9tZSI7czoyNzoiU0FNVUVMIFNBTlRPUyBERSBMSU1BIEFMVkVTIjtzOjQ6Im5vbWUiO3M6Mjc6IlNBTVVFTCBTQU5UT1MgREUgTElNQSBBTFZFUyI7czo0OiJ0aXBvIjtzOjk6ImVzdHVkYW50ZSI7czo5OiJtYXRyaWN1bGEiO3M6MTE6IjIwMjMxMTgwMDAzIjtzOjU6ImVtYWlsIjtzOjMzOiJzYW11ZWxzYW50b3NkZWxpbWFhbHZlc0BnbWFpbC5jb20iO30=', 1790362615),
-('lZWOQLFe89znqScixTHN157rSk5aFv68BbKpFdfT', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', 'YTo4OntzOjY6Il90b2tlbiI7czo0MDoiQkxOTnp2REtVSmpvNU1BWnJvVU5oVGlqdWVvRzA4MkNRc3RpcmtMTiI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo5OiJfcHJldmlvdXMiO2E6Mjp7czozOiJ1cmwiO3M6MTEwOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYWdlbmRhL2V2ZW50b3M/ZW5kPTIwMjYtMTAtMTFUMDAlM0EwMCUzQTAwLTAzJTNBMDAmc3RhcnQ9MjAyNi0wOC0zMFQwMCUzQTAwJTNBMDAtMDMlM0EwMCI7czo1OiJyb3V0ZSI7czoxNDoiYWdlbmRhLmV2ZW50b3MiO31zOjUwOiJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI7aToxO3M6MTI6InVzdWFyaW9fdGlwbyI7czo5OiJwc2ljb2xvZ2EiO3M6MTI6InVzdWFyaW9fbm9tZSI7czoxNDoiRWR1YXJkYSBDaGF2ZXMiO3M6NDoibm9tZSI7czoxNDoiRWR1YXJkYSBDaGF2ZXMiO3M6NDoidGlwbyI7czo5OiJwc2ljb2xvZ2EiO30=', 1790363466),
+('CQqK8ZVraXIN2bnGe3AIIrYv9OVnJR6KUovWHsiT', 24, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', 'YToxMTp7czo2OiJfdG9rZW4iO3M6NDA6ImlGMXBKVGY4ZkxndXhDSFY4WlVZVGpsdWpGTlBWWWpKRzNSWU12UWEiO3M6OToiX3ByZXZpb3VzIjthOjI6e3M6MzoidXJsIjtzOjIxOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAiO3M6NToicm91dGUiO3M6MTI6ImFnZW5kYS5pbmRleCI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fXM6NTA6ImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjI0O3M6ODoic3VhcF9qd3QiO3M6MjA1OiJleUowZVhBaU9pSktWMVFpTENKaGJHY2lPaUpJVXpJMU5pSjkuZXlKMWMyVnlYMmxrSWpveE1UZ3hNamtzSW1WdFlXbHNJam9pSWl3aWRYTmxjbTVoYldVaU9pSXlNREl6TVRFNE1EQXdNeUlzSW1WNGNDSTZNVGM1TURRME9UQXhNQ3dpYjNKcFoxOXBZWFFpT2pFM09UQXpOakkyTVRCOS5XSVBtbU1mTktBLTc2Xy1pUERKaGlYaWxGTWN0VU84bk53Vml0RllOTGVJIjtzOjEyOiJ1c3VhcmlvX3RpcG8iO3M6NToiYWx1bm8iO3M6MTI6InVzdWFyaW9fbm9tZSI7czoyNzoiU0FNVUVMIFNBTlRPUyBERSBMSU1BIEFMVkVTIjtzOjQ6Im5vbWUiO3M6Mjc6IlNBTVVFTCBTQU5UT1MgREUgTElNQSBBTFZFUyI7czo0OiJ0aXBvIjtzOjk6ImVzdHVkYW50ZSI7czo5OiJtYXRyaWN1bGEiO3M6MTE6IjIwMjMxMTgwMDAzIjtzOjU6ImVtYWlsIjtzOjMzOiJzYW11ZWxzYW50b3NkZWxpbWFhbHZlc0BnbWFpbC5jb20iO30=', 1790369329),
+('lZWOQLFe89znqScixTHN157rSk5aFv68BbKpFdfT', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', 'YTo5OntzOjY6Il90b2tlbiI7czo0MDoiQkxOTnp2REtVSmpvNU1BWnJvVU5oVGlqdWVvRzA4MkNRc3RpcmtMTiI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo5OiJfcHJldmlvdXMiO2E6Mjp7czozOiJ1cmwiO3M6MTEwOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYWdlbmRhL2V2ZW50b3M/ZW5kPTIwMjYtMTAtMTFUMDAlM0EwMCUzQTAwLTAzJTNBMDAmc3RhcnQ9MjAyNi0wOC0zMFQwMCUzQTAwJTNBMDAtMDMlM0EwMCI7czo1OiJyb3V0ZSI7czoxNDoiYWdlbmRhLmV2ZW50b3MiO31zOjUwOiJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI7aToxO3M6MTI6InVzdWFyaW9fdGlwbyI7czo5OiJwc2ljb2xvZ2EiO3M6MTI6InVzdWFyaW9fbm9tZSI7czoxNDoiRWR1YXJkYSBDaGF2ZXMiO3M6NDoibm9tZSI7czoxNDoiRWR1YXJkYSBDaGF2ZXMiO3M6NDoidGlwbyI7czo5OiJwc2ljb2xvZ2EiO3M6MjE6InByb250dWFyaW9fYXV0b3JpemFkbyI7YjoxO30=', 1790369335),
 ('nnTMa8nXWnlQmZEm2rAW1YPaIFIgBuTeFHkI5ZgJ', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', 'YTo5OntzOjY6Il90b2tlbiI7czo0MDoiV2xKbUwwMDJsN1BpdGVTdHAwb2MwZzgyczBsVENYRkRGcG5DeWNzZSI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo5OiJfcHJldmlvdXMiO2E6Mjp7czozOiJ1cmwiO3M6MTEwOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYWdlbmRhL2V2ZW50b3M/ZW5kPTIwMjYtMTAtMTFUMDAlM0EwMCUzQTAwLTAzJTNBMDAmc3RhcnQ9MjAyNi0wOC0zMFQwMCUzQTAwJTNBMDAtMDMlM0EwMCI7czo1OiJyb3V0ZSI7czoxNDoiYWdlbmRhLmV2ZW50b3MiO31zOjUwOiJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI7aToxO3M6MTI6InVzdWFyaW9fdGlwbyI7czo5OiJwc2ljb2xvZ2EiO3M6MTI6InVzdWFyaW9fbm9tZSI7czoxNDoiRWR1YXJkYSBDaGF2ZXMiO3M6NDoibm9tZSI7czoxNDoiRWR1YXJkYSBDaGF2ZXMiO3M6NDoidGlwbyI7czo5OiJwc2ljb2xvZ2EiO3M6MTc6ImFsdW5vX2lkX3BlbmRlbnRlIjtzOjI6IjIzIjt9', 1790308915),
 ('ZhMJx2DCayXnIunrXpRkFXfQWq1728IOI9D99Qfn', 24, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', 'YToxMTp7czo2OiJfdG9rZW4iO3M6NDA6IjVSQWFkRm5sTE5Gd3lpNWRWU3MyNGR2dmtpT0ZiUXNobWdiZmwyR24iO3M6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fXM6OToiX3ByZXZpb3VzIjthOjI6e3M6MzoidXJsIjtzOjIxOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAiO3M6NToicm91dGUiO3M6MTI6ImFnZW5kYS5pbmRleCI7fXM6NTA6ImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjI0O3M6ODoic3VhcF9qd3QiO3M6MjA1OiJleUowZVhBaU9pSktWMVFpTENKaGJHY2lPaUpJVXpJMU5pSjkuZXlKMWMyVnlYMmxrSWpveE1UZ3hNamtzSW1WdFlXbHNJam9pSWl3aWRYTmxjbTVoYldVaU9pSXlNREl6TVRFNE1EQXdNeUlzSW1WNGNDSTZNVGM1TURNNU1USXpPU3dpYjNKcFoxOXBZWFFpT2pFM09UQXpNRFE0TXpsOS5Rd0F6NDFIVUlRaFZNa0NiMGl5WFd2TWZKcmNRVEw0TzZPMTZrU29NZHZVIjtzOjEyOiJ1c3VhcmlvX3RpcG8iO3M6NToiYWx1bm8iO3M6MTI6InVzdWFyaW9fbm9tZSI7czoyNzoiU0FNVUVMIFNBTlRPUyBERSBMSU1BIEFMVkVTIjtzOjQ6Im5vbWUiO3M6Mjc6IlNBTVVFTCBTQU5UT1MgREUgTElNQSBBTFZFUyI7czo0OiJ0aXBvIjtzOjk6ImVzdHVkYW50ZSI7czo5OiJtYXRyaWN1bGEiO3M6MTE6IjIwMjMxMTgwMDAzIjtzOjU6ImVtYWlsIjtzOjMzOiJzYW11ZWxzYW50b3NkZWxpbWFhbHZlc0BnbWFpbC5jb20iO30=', 1790308860);
 
@@ -427,23 +418,6 @@ CREATE TABLE `travas_operacoes` (
 INSERT INTO `travas_operacoes` (`nome`) VALUES
 ('agenda'),
 ('prontuario');
-
--- --------------------------------------------------------
-
---
--- Estrutura para tabela `users`
---
-
-CREATE TABLE `users` (
-  `id` bigint UNSIGNED NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `email_verified_at` timestamp NULL DEFAULT NULL,
-  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `remember_token` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -479,13 +453,6 @@ INSERT INTO `usuarios` (`id`, `nome`, `email`, `turma_codigo`, `senha`, `tipo`, 
 --
 -- Índices para tabelas despejadas
 --
-
---
--- Índices de tabela `agendamentos`
---
-ALTER TABLE `agendamentos`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `agendamentos_id_horario_foreign` (`id_horario`);
 
 --
 -- Índices de tabela `avisos_email`
@@ -583,13 +550,6 @@ ALTER TABLE `travas_operacoes`
   ADD PRIMARY KEY (`nome`);
 
 --
--- Índices de tabela `users`
---
-ALTER TABLE `users`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `users_email_unique` (`email`);
-
---
 -- Índices de tabela `usuarios`
 --
 ALTER TABLE `usuarios`
@@ -602,16 +562,10 @@ ALTER TABLE `usuarios`
 --
 
 --
--- AUTO_INCREMENT de tabela `agendamentos`
---
-ALTER TABLE `agendamentos`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT de tabela `avisos_email`
 --
 ALTER TABLE `avisos_email`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT de tabela `failed_jobs`
@@ -635,7 +589,7 @@ ALTER TABLE `jobs`
 -- AUTO_INCREMENT de tabela `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT de tabela `prontuario_sessoes`
@@ -647,13 +601,7 @@ ALTER TABLE `prontuario_sessoes`
 -- AUTO_INCREMENT de tabela `registros_atendimentos`
 --
 ALTER TABLE `registros_atendimentos`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
-
---
--- AUTO_INCREMENT de tabela `users`
---
-ALTER TABLE `users`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
 
 --
 -- AUTO_INCREMENT de tabela `usuarios`
@@ -664,12 +612,6 @@ ALTER TABLE `usuarios`
 --
 -- Restrições para tabelas despejadas
 --
-
---
--- Restrições para tabelas `agendamentos`
---
-ALTER TABLE `agendamentos`
-  ADD CONSTRAINT `agendamentos_id_horario_foreign` FOREIGN KEY (`id_horario`) REFERENCES `horarios` (`id`) ON DELETE CASCADE;
 
 --
 -- Restrições para tabelas `prontuario_sessoes`
