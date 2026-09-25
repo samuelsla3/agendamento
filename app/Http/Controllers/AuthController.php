@@ -35,14 +35,15 @@ class AuthController extends Controller
         // ---------------------------------------------------------------------
         $token = $suapService->autenticar($matricula, $senha);
 
-        if ($token) {
-            $dadosSuap = $suapService->meusDados($token);
+        $token = $suapService->autenticar($matricula, $senha);
 
-            if (!is_array($dadosSuap) || empty($dadosSuap)) {
-                return back()->withErrors([
-                    'matricula' => 'Não foi possível consultar seus dados no SUAP. Tente novamente.'
-                ])->withInput($request->only('matricula'));
-            }
+$dadosSuap = $token
+    ? $suapService->meusDados($token)
+    : null;
+
+// Só utiliza o fluxo SUAP quando os dados foram obtidos.
+// Caso contrário, segue para o login local existente abaixo.
+if ($token && is_array($dadosSuap) && !empty($dadosSuap)) {
 
             // Extrai situação e tenta resgatar a turma do payload principal
             $situacaoVinculo = $dadosSuap['vinculo']['situacao'] 

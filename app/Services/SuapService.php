@@ -14,7 +14,7 @@ class SuapService
     {
         try {
             $response = Http::asJson()
-                ->timeout(5)
+                ->connectTimeout(3)->timeout(5)
                 ->post($this->baseUrl . '/autenticacao/token/', [
                     'username' => $matricula,
                     'password' => $senha,
@@ -33,7 +33,7 @@ class SuapService
     public function meusDados(string $jwt): ?array
     {
         try {
-            $response = Http::withHeaders([
+            $response = Http::connectTimeout(3)->timeout(5)->withHeaders([
                 'Authorization' => 'JWT ' . $jwt,
                 'Content-Type'  => 'application/json',
             ])->get($this->baseUrl . '/minhas-informacoes/meus-dados/');
@@ -60,7 +60,7 @@ public function obterTurmaAtual(string $jwt): ?string
         $anoAtual = date('Y');
 
         // 1. Tenta buscar no boletim passando o ano letivo atual
-        $response = Http::timeout(5)
+        $response = Http::connectTimeout(3)->timeout(5)
             ->withHeaders([
                 'Authorization' => 'JWT ' . $jwt,
                 'Content-Type'  => 'application/json',
@@ -75,7 +75,7 @@ public function obterTurmaAtual(string $jwt): ?string
         }
 
         // 2. Se falhar, tenta o endpoint geral de vínculos do aluno
-        $responseVinculos = Http::timeout(5)
+        $responseVinculos = Http::connectTimeout(3)->timeout(5)
             ->withHeaders([
                 'Authorization' => 'JWT ' . $jwt,
                 'Content-Type'  => 'application/json',

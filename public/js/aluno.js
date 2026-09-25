@@ -103,11 +103,11 @@ function openModal(event) {
 
     if (props.disponivel == 1) {
         $('#agendarModal').find('.data-hora').text(dataHora);
-        $('#id_horario_agendar').val(event.id);
+        $('#id_horario_agendar').val(event.id).data('versao', props.versao);
         $('#agendarModal').addClass('is-visible');
     } else if (props.matricula_agendada === LaravelConfig.matriculaUsuario || props.matricula === LaravelConfig.matriculaUsuario) {
         $('#cancelarModal').find('.data-hora').text(dataHora);
-        $('#id_horario_cancelar').val(event.id);
+        $('#id_horario_cancelar').val(event.id).data('versao', props.versao);
         $('#cancelarModal').addClass('is-visible');
     } else {
         showMessage('error', "Este horário já está ocupado.");
@@ -122,7 +122,8 @@ $('#agendar-form').on('submit', function(e) {
     e.preventDefault(); 
     sendAjaxRequest(LaravelConfig.rotas.agendar, { 
         action: 'agendar', 
-        id_horario: $('#id_horario_agendar').val() 
+        id_horario: $('#id_horario_agendar').val(),
+        versao: $('#id_horario_agendar').data('versao') 
     }); 
 });
 
@@ -130,21 +131,22 @@ $('#cancelar-form').on('submit', function(e) {
     e.preventDefault(); 
     sendAjaxRequest(LaravelConfig.rotas.cancelar, { 
         action: 'cancelar', 
-        id_horario: $('#id_horario_cancelar').val(), 
+        id_horario: $('#id_horario_cancelar').val(),
+        versao: $('#id_horario_cancelar').data('versao'), 
         justificativa: $('#justificativa').val() 
     }); 
 });
 
+
 function sendAjaxRequest(urlAlvo, data) {
-    $.ajax({
-        url: urlAlvo, 
-        type: 'POST', 
-        contentType: 'application/json', 
-        data: JSON.stringify(data),
-        success: function(response) {
+    return Operacoes.ajax({
+        grupo: 'agenda', url: urlAlvo, data, json: true, navegar: true,
+        botoes: '#agendar-form button[type="submit"], #cancelar-form button[type="submit"]',
+        texto: data.action === 'agendar' ? 'Agendando…' : 'Cancelando…',
+        sucesso(response) {
             showMessage(response.status, response.message);
-            if (response.status === 'success') { setTimeout(() => window.refreshCalendar(), 1500); }
+            setTimeout(() => window.refreshCalendar(), 1000);
         },
-        error: function() { showMessage('error', 'Erro de comunicação. Tente novamente.'); }
+        erro(message) { showMessage('error', message); }
     });
 }

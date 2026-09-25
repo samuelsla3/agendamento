@@ -29,12 +29,14 @@
             color: #333;
         }
     </style>
+<script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
 </head>
 <body>
 
 <div class="auth-container">
-    <form method="POST" action="{{ route('login.post') }}">
-        @csrf 
+    <form data-texto-envio="Verificando seus dados. Aguarde..." method="POST" action="{{ route('login.post') }}">
+        @csrf
+            @include('partials.operacao') 
 
         <h2>Login com SUAP</h2>
         

@@ -20,6 +20,10 @@ class ProntuarioSessao extends Model
         'data_sessao' => 'date',
     ];
 
+    protected $hidden = [
+    'anotacoes',
+];
+
     public function aluno()
     {
         return $this->belongsTo(User::class, 'aluno_id');

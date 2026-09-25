@@ -7,7 +7,8 @@ use App\Models\Horario;
 use App\Models\RegistroAtendimento;
 use App\Models\Usuario;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
+use App\Services\AvisosEmail;
+use Carbon\Carbon;
 
 class PsicologaController extends Controller
 {
@@ -84,6 +85,7 @@ public function index()
                 'extendedProps' => [
                     'id' => $row->id,
                     'id_horario' => $row->id,
+                    'versao' => $row->versao(),
                     'disponivel' => (int)$row->disponivel,
                     'nome' => $nome,
                     'matricula' => $matricula,
@@ -97,229 +99,97 @@ public function index()
         return response()->json($eventos);
     }
 
+
+    // A rota usa RequisicaoUnica: todas as escritas de agenda são serializadas.
     public function processarAcao(Request $request)
     {
         $action = $request->input('action');
-        $id = $request->input('id');
-
+        if (in_array($action, ['confirmar', 'cancel_by_psicologa', 'delete', 'edit'])) {
+            $request->validate(['id' => 'required|integer', 'versao' => 'required|string|size:64']);
+            $horario = Horario::whereKey($request->input('id'))->lockForUpdate()->firstOrFail();
+            $horario->conferirVersao($request->input('versao'));
+        }
         switch ($action) {
             case 'confirmar':
-                $horario = Horario::find($id);
-                if (!$horario) return response()->json(['status' => 'error', 'message' => 'Horário não encontrado.']);
-
-                DB::transaction(function () use ($horario) {
-                    // Busca defensiva para garantir nome e matrícula
-                    $horario = $horario->bloquearReservaAtual();
-                    $nomeAluno = $horario->nome;
-                    $matriculaAluno = $horario->matricula;
-
-                    if (empty($nomeAluno) || empty($matriculaAluno)) {
-                        $aluno = Usuario::where('matricula', $horario->matricula)
-                            ->orWhere('id', $horario->aluno_id ?? $horario->user_id ?? null)
-                            ->first();
-
-                        if ($aluno) {
-                            $nomeAluno = $nomeAluno ?: $aluno->nome;
-                            $matriculaAluno = $matriculaAluno ?: $aluno->matricula;
-                        }
-                    }
-
-                    // 1. Cria o histórico permanente na tabela de relatórios
-                    RegistroAtendimento::create([
-                        'id_horario_original' => $horario->id, 
-                        'nome'                => $nomeAluno ?? 'Não informado',
-                        'matricula'           => $matriculaAluno ?? 'N/A',
-                        'status'              => 'Realizado',
-                        'observacao'          => 'Atendimento concluído com sucesso.',
-                        'data_registro'       => \Carbon\Carbon::parse($horario->data . ' ' . $horario->hora)
-                    ]);
-
-                    // 2. Atualiza o horário
-                    $horario->disponivel = 0;
-                    $horario->confirmado = 1;
-                    $horario->token_cancelamento = null;
-                    $horario->save();
-                });
-
+                abort_if((int) $horario->disponivel !== 0 || (int) $horario->confirmado === 1, 409, 'Atendimento já encerrado ou vaga sem reserva.');
+                RegistroAtendimento::create(['id_horario_original' => $horario->id, 'nome' => $horario->nome,
+                    'matricula' => $horario->matricula, 'status' => 'Realizado',
+                    'observacao' => 'Atendimento concluído com sucesso.',
+                    'data_registro' => Carbon::parse($horario->data.' '.$horario->hora)]);
+                $horario->update(['confirmado' => 1, 'token_cancelamento' => null]);
                 return response()->json(['status' => 'success', 'message' => 'Atendimento concluído e mantido no histórico!']);
 
             case 'cancel_by_psicologa':
-    $horario = Horario::find($id);
-    if (!$horario) return response()->json(['status' => 'error', 'message' => 'Horário não encontrado.']);
-
-    $justificativa = $request->input('justificativa', 'Motivos operacionais.');
-
-    DB::transaction(function () use ($horario, $justificativa) {
-        // 1. PRIMEIRA TENTATIVA: Dados gravados direto na model Horario
-        $horario = $horario->bloquearReservaAtual();
-        $nomeAluno = $horario->nome;
-        $matriculaAluno = $horario->matricula;
-
-        // 2. SEGUNDA TENTATIVA: Se estiver nulo, busca no último histórico registrado para este horário
-        if (empty($nomeAluno) || empty($matriculaAluno)) {
-            $ultimoRegistro = DB::table('registros_atendimentos')
-                ->where('id_horario_original', $horario->id)
-                ->where('nome', '!=', 'Não informado')
-                ->whereNotNull('nome')
-                ->orderBy('id', 'desc')
-                ->first();
-
-            if ($ultimoRegistro) {
-                $nomeAluno = $nomeAluno ?: $ultimoRegistro->nome;
-                $matriculaAluno = $matriculaAluno ?: $ultimoRegistro->matricula;
-            }
-        }
-
-        // 3. TERCEIRA TENTATIVA: Busca o Aluno diretamente na tabela de Usuários (via matrícula ou ID)
-        $aluno = null;
-        if (!empty($matriculaAluno) && $matriculaAluno !== 'N/A') {
-            $aluno = Usuario::where('matricula', $matriculaAluno)->first();
-        }
-
-        if (!$aluno && (isset($horario->aluno_id) || isset($horario->user_id))) {
-            $alunoId = $horario->aluno_id ?? $horario->user_id;
-            $aluno = Usuario::find($alunoId);
-        }
-
-        // Se encontrou a Model do Aluno, garante a captura do nome e matrícula
-        if ($aluno) {
-            $nomeAluno = !empty($nomeAluno) && $nomeAluno !== 'Não informado' ? $nomeAluno : $aluno->nome;
-            $matriculaAluno = !empty($matriculaAluno) && $matriculaAluno !== 'N/A' ? $matriculaAluno : $aluno->matricula;
-        }
-
-        // Registra o cancelamento garantindo que NUNCA grave nulo se encontrou em algum lugar
-        RegistroAtendimento::create([
-            'id_horario_original' => $horario->id, 
-            'nome'                => $nomeAluno ?: 'Não informado',
-            'matricula'           => $matriculaAluno ?: 'N/A',
-            'status'              => 'Cancelado pela Psicóloga',
-            'observacao'          => 'Motivo: ' . $justificativa,
-            'data_registro'       => now()
-        ]);
-
-        // Reseta o horário liberando-o na agenda
-        $horario->update([
-            'disponivel' => 1,
-            'nome' => null,
-            'matricula' => null,
-            'confirmado' => 0,
-            'justificativa_cancelamento' => $justificativa,
-            'token_cancelamento' => null
-        ]);
-
-        // Envia o e-mail de notificação se o aluno for localizado
-        if ($aluno && !empty($aluno->email)) {
-            $dataFormato = date('d/m/Y', strtotime($horario->data));
-            $horaFormato = date('H:i', strtotime($horario->hora));
-            
-            $corpoHtml = "Olá, <strong>{$nomeAluno}</strong>!<br><br>Sua consulta em <strong>{$dataFormato}</strong> às <strong>{$horaFormato}</strong> foi cancelada.<br><strong>Motivo:</strong> {$justificativa}";
-
-            Mail::html($corpoHtml, function ($message) use ($aluno) {
-                $message->to($aluno->email)->subject('Setor de Psicologia IFBA: Sua consulta foi cancelada');
-            });
-        }
-    });
-
-    return response()->json(['status' => 'success', 'message' => 'Agendamento cancelado e aluno notificado.']);
+                abort_if((int) $horario->disponivel !== 0 || (int) $horario->confirmado === 1, 409, 'Atendimento já encerrado ou vaga sem reserva.');
+                $request->validate(['justificativa' => 'nullable|string']);
+                $justificativa = $request->input('justificativa') ?: 'Motivos operacionais.';
+                $aluno = Usuario::where('matricula', $horario->matricula)->first();
+                $nome = $horario->nome ?? $aluno?->nome ?? 'Discente';
+                $token = $horario->token_cancelamento;
+                RegistroAtendimento::create(['id_horario_original' => $horario->id, 'nome' => $nome,
+                    'matricula' => $horario->matricula, 'status' => 'Cancelado pela Psicóloga',
+                    'observacao' => 'Motivo: '.$justificativa, 'data_registro' => now()]);
+                $horario->update(['disponivel' => 1, 'nome' => null, 'matricula' => null, 'confirmado' => 0,
+                    'justificativa_cancelamento' => $justificativa, 'token_cancelamento' => null]);
+                if ($aluno && $aluno->email) {
+                    AvisosEmail::registrar('cancelado:'.$token, $aluno->email,
+                        'Setor de Psicologia IFBA: Sua consulta foi cancelada',
+                        'Olá, '.e($nome).'!<br><br>Sua consulta em '.Carbon::parse($horario->data)->format('d/m/Y')
+                        .' às '.Carbon::parse($horario->hora)->format('H:i').' foi cancelada.<br><strong>Motivo:</strong> '.e($justificativa));
+                }
+                return response()->json(['status' => 'success', 'message' => 'Agendamento cancelado. A notificação será enviada por e-mail quando houver contato cadastrado.']);
 
             case 'delete':
-                $horario = Horario::find($id);
-                if (!$horario) return response()->json(['status' => 'error', 'message' => 'Horário não encontrado.']);
-
-                $dataHoraAtendimento = \Carbon\Carbon::parse($horario->data . ' ' . $horario->hora);
-                if ($dataHoraAtendimento->isPast()) {
-                    return response()->json([
-                        'status' => 'error', 
-                        'message' => 'Não é possível excluir um horário do passado.'
-                    ]);
+                if (Carbon::parse($horario->data.' '.$horario->hora)->isPast()) {
+                    return response()->json(['status' => 'error', 'message' => 'Não é possível excluir um horário do passado.']);
                 }
-
                 $horario->delete();
                 return response()->json(['status' => 'success', 'message' => 'Horário excluído com sucesso.']);
 
             case 'delete_specific_default':
-                $dataInicio = $request->input('data_inicio');
-                $dataFim = $request->input('data_fim');
-                $horas = $request->input('horas', []);
-
-                if (empty($dataInicio) || empty($dataFim) || empty($horas)) {
-                    return response()->json(['status' => 'error', 'message' => 'Preencha o período e selecione as horas.']);
-                }
-
-                $removidos = Horario::where('disponivel', 1)
-                    ->whereNull('nome')
-                    ->whereBetween('data', [$dataInicio, $dataFim])
-                    ->whereIn('hora', $horas)
-                    ->delete();
-
+                $request->validate(['data_inicio' => 'required|date', 'data_fim' => 'required|date|after_or_equal:data_inicio',
+                    'horas' => 'required|array|min:1', 'horas.*' => 'date_format:H:i:s']);
+                $removidos = Horario::where('disponivel', 1)->whereNull('nome')
+                    ->whereBetween('data', [$request->data_inicio, $request->data_fim])
+                    ->whereIn('hora', $request->horas)->delete();
                 return response()->json(['status' => 'success', 'message' => "{$removidos} horários foram apagados com sucesso."]);
 
             case 'generate_default':
-                $diasSemana = $request->input('dias_semana', []);
-                $dataInicio = new \DateTime($request->input('data_inicio'));
-                $dataFim = new \DateTime($request->input('data_fim'));
-                $dataFim->modify('+1 day');
-
-                $horariosPadrao = $request->input('horas_selecionadas', ['09:00:00', '10:00:00', '11:00:00', '14:00:00', '15:00:00', '16:00:00']);
-                
-                if (empty($diasSemana)) {
-                    return response()->json(['status' => 'error', 'message' => 'Selecione pelo menos um dia da semana.']);
-                }
-
-                $periodo = new \DatePeriod($dataInicio, new \DateInterval('P1D'), $dataFim);
+                $request->validate(['data_inicio' => 'required|date', 'data_fim' => 'required|date|after_or_equal:data_inicio',
+                    'dias_semana' => 'required|array|min:1', 'dias_semana.*' => 'integer|between:1,7',
+                    'horas_selecionadas' => 'required|array|min:1', 'horas_selecionadas.*' => 'date_format:H:i:s']);
+                $inicio = Carbon::parse($request->data_inicio)->startOfDay();
+                $fim = Carbon::parse($request->data_fim)->startOfDay();
                 $criados = 0;
-
-                foreach ($periodo as $dia) {
-                    if (in_array((int)$dia->format('N'), $diasSemana)) {
-                        foreach ($horariosPadrao as $hora) {
-                            $dataStr = $dia->format('Y-m-d');
-                            
-                            $existe = Horario::where('data', $dataStr)->where('hora', $hora)->exists();
-                            if (!$existe) {
-                                Horario::create([
-                                    'data' => $dataStr,
-                                    'hora' => $hora,
-                                    'disponivel' => 1
-                                ]);
-                                $criados++;
-                            }
+                for ($dia = $inicio->copy(); $dia->lte($fim); $dia->addDay()) {
+                    if (!in_array($dia->dayOfWeekIso, $request->dias_semana)) { continue; }
+                    foreach (array_unique($request->horas_selecionadas) as $hora) {
+                        if (!Horario::where('data', $dia->toDateString())->where('hora', $hora)->exists()) {
+                            Horario::create(['data' => $dia->toDateString(), 'hora' => $hora, 'disponivel' => 1]);
+                            $criados++;
                         }
                     }
                 }
-
                 return response()->json(['status' => 'success', 'message' => "{$criados} horários customizados criados com sucesso."]);
 
             case 'generate_individual':
-                $dataIndividual = $request->input('data_individual');
-                $horaIndividual = $request->input('hora_individual');
-
-                if (empty($dataIndividual) || empty($horaIndividual)) {
-                    return response()->json(['status' => 'error', 'message' => 'Selecione a data e o horário.']);
-                }
-
-                $horaFormatada = strlen($horaIndividual) === 5 ? $horaIndividual . ':00' : $horaIndividual;
-
-                $existe = Horario::where('data', $dataIndividual)->where('hora', $horaFormatada)->exists();
-                if ($existe) {
+                $request->validate(['data_individual' => 'required|date', 'hora_individual' => 'required|date_format:H:i']);
+                $hora = $request->hora_individual.':00';
+                if (Horario::where('data', $request->data_individual)->where('hora', $hora)->exists()) {
                     return response()->json(['status' => 'error', 'message' => 'Este horário já está cadastrado para este dia!']);
                 }
-
-                Horario::create([
-                    'data' => $dataIndividual,
-                    'hora' => $horaFormatada,
-                    'disponivel' => 1
-                ]);
-
+                Horario::create(['data' => $request->data_individual, 'hora' => $hora, 'disponivel' => 1]);
                 return response()->json(['status' => 'success', 'message' => 'Horário avulso criado com sucesso.']);
 
             case 'edit':
-                Horario::where('id', $id)->update([
-                    'data' => $request->input('data'),
-                    'hora' => $request->input('hora')
-                ]);
+                $request->validate(['data' => 'required|date', 'hora' => 'required|date_format:H:i']);
+                $hora = $request->hora.':00';
+                if (Horario::where('id', '<>', $horario->id)->where('data', $request->data)->where('hora', $hora)->exists()) {
+                    return response()->json(['status' => 'error', 'message' => 'Já existe um horário nesta data e hora.']);
+                }
+                $horario->update(['data' => $request->data, 'hora' => $hora]);
                 return response()->json(['status' => 'success', 'message' => 'Horário atualizado com sucesso.']);
         }
-
         return response()->json(['status' => 'error', 'message' => 'Ação inválida.']);
     }
 

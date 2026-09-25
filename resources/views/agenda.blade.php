@@ -13,6 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     
     <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ time() }}">
+<script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
 </head>
 <body>
 
@@ -22,6 +23,7 @@
             <span>{{ session('usuario_nome') }} ({{ ucfirst(auth()->user()->tipo) }})</span>
             <form action="{{ route('logout') }}" method="POST" style="display: inline;">
                 @csrf
+            @include('partials.operacao')
                 <button type="submit" class="btn btn-danger">Sair</button>
             </form>
         </div>
@@ -88,6 +90,7 @@
                                         <button type="button" 
                                                 class="btn-acoes-hoje"
                                                 data-id="{{ $agendamento->id }}"
+                                                data-versao="{{ $agendamento->versao() }}"
                                                 data-alunoid="{{ $agendamento->aluno_id ?? optional($agendamento->aluno)->id ?? $agendamento->user_id ?? '' }}"
                                                 data-disponivel="{{ $agendamento->disponivel }}"
                                                 data-confirmado="{{ $agendamento->confirmado }}"
@@ -151,6 +154,7 @@
             <h2>Relatório de Histórico de Alunos</h2>
             <form id="filtro-relatorio-form">
                 @csrf
+            @include('partials.operacao')
                 <div class="form-row">
                     <div class="form-group">
                         <label for="aluno_nome">Nome do Aluno:</label>
@@ -405,6 +409,7 @@
 
             <form action="{{ route('prontuarios.validar-senha') }}" method="POST" style="padding: 24px;">
                 @csrf
+            @include('partials.operacao')
                 <p style="font-size: 13px; color: #4b5563; margin-top: 0; margin-bottom: 16px;">
                     Por razões de segurança, digite a sua senha de acesso para visualizar o prontuário.
                 </p>
@@ -531,7 +536,7 @@
         };
     </script>
 
-    <script src="{{ asset('js/psicologa.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/psicologa.js') }}?v=20260924-1"></script>
 
 </body>
 </html>

@@ -16,5 +16,33 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
-    })->create();
+    $exceptions->dontFlash([
+        'anotacoes',
+        'senha',
+    ]);
+
+    $exceptions->render(function (
+        \Illuminate\Http\Exceptions\ThrottleRequestsException $e,
+        \Illuminate\Http\Request $request
+    ) {
+        // Personaliza somente o bloqueio da senha do prontuário.
+        if (!$request->routeIs('prontuarios.validar-senha')) {
+            return null;
+        }
+
+        $segundos = max(
+            1,
+            (int) ($e->getHeaders()['Retry-After'] ?? 60)
+        );
+
+        $minutos = (int) ceil($segundos / 60);
+        $unidade = $minutos === 1 ? 'minuto' : 'minutos';
+
+        return redirect()
+            ->route('psicologa.index')
+            ->with('pedir_senha', true)
+            ->withErrors([
+                'senha' => "Limite de tentativas excedido. Tente novamente em {$minutos} {$unidade}.",
+            ]);
+    });
+})->create();

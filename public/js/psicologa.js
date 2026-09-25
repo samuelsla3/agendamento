@@ -54,6 +54,7 @@ if (props.confirmado == 1) {
 function openModal(event) {
     $('#eventId').val(event.id);
     const props = event.extendedProps;
+    $('#eventId').data('versao', props.versao);
     const isPast = new Date(event.start) < new Date();
     
     $('#justificativaTexto, #agendadoNome, #agendadoMatricula, #agendadoStatus').text('');
@@ -137,32 +138,24 @@ $('.modal').on('click', function(e) {
     } 
 });
 
+
 function sendAjaxRequest(data) {
-    $.ajax({
-        url: LaravelConfig.rotas.acao, 
-        type: 'POST', 
-        headers: {
-            'X-CSRF-TOKEN': LaravelConfig.csrfToken 
-        },
-        data: data, 
-        success: function(response) {
-            alert(response.message);
-            if (response.status === 'success') {
-                window.refreshCalendar();
-                closeModal();
-                if (data.action === 'confirmar' || data.action === 'cancel_by_psicologa') { 
-                    location.reload(); 
-                }
-            }
-        },
-        error: function(xhr) { 
-            console.error("Erro detalhado:", xhr.responseText);
-            alert('Erro de comunicação com o servidor.'); 
-        }
+    if (['confirmar', 'cancel_by_psicologa', 'delete', 'edit'].includes(data.action)) {
+        data.versao = $('#eventId').data('versao');
+    }
+    const textos = {confirmar: 'Concluindo…', cancel_by_psicologa: 'Cancelando…',
+        generate_default: 'Gerando horários…', generate_individual: 'Criando horário…',
+        edit: 'Salvando…', delete: 'Excluindo…', delete_specific_default: 'Excluindo horários…'};
+    return Operacoes.ajax({
+        grupo: 'agenda', url: LaravelConfig.rotas.acao, data, navegar: true,
+        botoes: '#generate-form button[type="submit"], #individual-form button[type="submit"], #delete-form button[type="submit"], #form-disponivel button[type="submit"], #cancel-by-psicologa-form button[type="submit"], #confirmBtn, #deleteBtn',
+        texto: textos[data.action] || 'Processando…',
+        sucesso(response) { alert(response.message); location.reload(); },
+        erro(message) { alert(message); }
     });
 }
 
-$('#generate-form').submit(function(e) { e.preventDefault(); const diasSelecionados = []; $('input[name="dias_semana[]"]:checked').each(function() { diasSelecionados.push($(this).val()); }); sendAjaxRequest({ action: 'generate_default', data_inicio: $('#data_inicio_gerar').val(), data_fim: $('#data_fim_gerar').val(), dias_semana: diasSelecionados }); });
+$('#generate-form').submit(function(e) { e.preventDefault(); const diasSelecionados = []; $('input[name="dias_semana[]"]:checked').each(function() { diasSelecionados.push($(this).val()); }); sendAjaxRequest({ action: 'generate_default', data_inicio: $('#data_inicio_gerar').val(), data_fim: $('#data_fim_gerar').val(), dias_semana: diasSelecionados, horas_selecionadas: $('input[name="horas_selecionadas[]"]:checked').map(function() { return this.value; }).get() }); });
 $('#delete-form').submit(function(e) { e.preventDefault(); const horasSelecionadas = []; $('input[name="horas_apagar[]"]:checked').each(function() { horasSelecionadas.push($(this).val()); }); sendAjaxRequest({ action: 'delete_specific_default', data_inicio: $('#data_inicio_apagar').val(), data_fim: $('#data_fim_apagar').val(), horas: horasSelecionadas }); });
 $('#form-disponivel').submit(function(e) { e.preventDefault(); sendAjaxRequest({ action: 'edit', id: $('#eventId').val(), data: $('#data').val(), hora: $('#hora').val() }); });
 $('#confirmBtn').click(function() { sendAjaxRequest({ action: 'confirmar', id: $('#eventId').val() }); });
@@ -178,21 +171,15 @@ $('#cancel-by-psicologa-form').submit(function(e) {
     sendAjaxRequest({ action: 'cancel_by_psicologa', id: $('#eventId').val(), justificativa: $('#justificativa_psicologa').val() });
 });
 
+
 $('#filtro-relatorio-form').on('submit', function(e) {
     e.preventDefault();
-    $('#resultado_relatorio').html('<p>Carregando relatório...</p>');
-    
-    $.ajax({
-        url: LaravelConfig.rotas.relatorio,
-        method: 'POST',
-        data: $(this).serialize(), // Envia automaticamente _token, aluno_nome, aluno_matricula, etc.
-        success: function(response) {
-            $('#resultado_relatorio').html(response);
-        },
-        error: function(xhr) {
-            console.error("Erro retornado pelo servidor:", xhr.responseText);
-            $('#resultado_relatorio').html('<span style="color: var(--danger-color);">Erro ao processar relatório.</span>');
-        }
+    $('#resultado_relatorio').text('Carregando relatório…');
+    Operacoes.ajax({
+        grupo: 'relatorio', leitura: true, url: LaravelConfig.rotas.relatorio,
+        data: $(this).serialize(), botoes: '#filtro-relatorio-form button[type="submit"]', texto: 'Gerando relatório…',
+        sucesso(response) { $('#resultado_relatorio').html(response); },
+        erro(message) { $('#resultado_relatorio').text(message); }
     });
 });
 
@@ -277,7 +264,7 @@ function abrirAcoesHoje(botao) {
     const matricula = botao.getAttribute('data-matricula');
     const isPast = botao.getAttribute('data-ispast') === '1';
 
-    $('#eventId').val(id);
+    $('#eventId').val(id).data('versao', botao.getAttribute('data-versao'));
     $('#justificativaTexto, #agendadoNome, #agendadoMatricula, #agendadoStatus').text('');
     
     $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #prontuarioBtn').hide();

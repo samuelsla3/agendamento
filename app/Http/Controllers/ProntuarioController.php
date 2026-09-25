@@ -31,7 +31,11 @@ class ProntuarioController extends Controller
                     ->orderBy('data_sessao', 'desc')
                     ->get();
 
-        return view('prontuarios.show', compact('aluno', 'sessoes'));
+        return response()
+    ->view('prontuarios.show', compact('aluno', 'sessoes'))
+    ->header('Cache-Control', 'no-store, private')
+    ->header('Pragma', 'no-cache')
+    ->header('Expires', '0');
     }
 
     public function validarSenha(Request $request)
@@ -51,7 +55,20 @@ class ProntuarioController extends Controller
         $senhaBanco = !empty($user->senha) ? $user->senha : $user->password;
 
         // Valida tanto por Hash quanto por texto puro
-        $senhaValida = Hash::check($request->senha, $senhaBanco) || ($request->senha === $senhaBanco);
+        // Aceita somente uma senha que corresponda ao hash armazenado.
+$senhaValida = false;
+
+if (is_string($senhaBanco) && $senhaBanco !== '') {
+    try {
+        $senhaValida = Hash::check(
+            $request->input('senha'),
+            $senhaBanco
+        );
+    } catch (\RuntimeException $e) {
+        // Hash inválido ou incompatível: recusa o acesso.
+        $senhaValida = false;
+    }
+}
 
         if ($senhaValida && !empty($senhaBanco)) {
             session(['prontuario_autorizado' => true]);

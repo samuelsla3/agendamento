@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prontuário - {{ $aluno->nome ?? $aluno->name }}</title>
     @vite('resources/css/app.css')
+<script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
 
@@ -34,8 +35,9 @@
     <div class="bg-white p-6 rounded-lg shadow mb-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">Registrar Nova Sessão</h3>
         
-        <form action="{{ route('prontuarios.store', $aluno->id) }}" method="POST">
+        <form data-texto-envio="Processando registro…" action="{{ route('prontuarios.store', $aluno->id) }}" method="POST">
             @csrf
+            @include('partials.operacao')
 
             <div class="mb-4">
                 <label for="data_sessao" class="block text-sm font-medium text-gray-700 mb-1">Data da Sessão</label>
@@ -72,24 +74,18 @@
                             Registrado em {{ $sessao->created_at ? $sessao->created_at->format('d/m/Y H:i') : '' }}
                         </span>
 
-                        <button
-    type="button"
-    data-sessao="{{ json_encode([
-        'id' => $sessao->id,
-        'data' => \Carbon\Carbon::parse($sessao->data_sessao)->format('Y-m-d'),
-        'anotacoes' => $sessao->anotacoes,
-    ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) }}"
-    onclick="abrirModalEdicao(this)"
-    class="text-amber-500 hover:text-amber-700 p-1 rounded transition"
-    title="Editar Sessão"
->
+                        <button type="button" 
+        data-sessao="{{ json_encode(['id' => $sessao->id, 'data' => \Carbon\Carbon::parse($sessao->data_sessao)->format('Y-m-d'), 'anotacoes' => $sessao->anotacoes], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) }}" onclick="abrirModalEdicao(this)" 
+        class="text-amber-500 hover:text-amber-700 p-1 rounded transition" 
+        title="Editar Sessão">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
     </svg>
 </button>
 
-                        <form action="{{ route('prontuarios.destroy', $sessao->id) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja apagar este registro?')">
+                        <form data-texto-envio="Processando registro…" action="{{ route('prontuarios.destroy', $sessao->id) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja apagar este registro?')">
                             @csrf
+            @include('partials.operacao')
                             @method('DELETE')
                             <button type="submit" class="text-red-500 hover:text-red-700 p-1 rounded transition" title="Apagar Sessão">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -117,8 +113,9 @@
     <div class="bg-white p-6 rounded-lg max-w-lg w-full shadow-xl">
         <h3 class="text-lg font-bold text-gray-800 mb-4">Editar Registro da Sessão</h3>
         
-        <form id="formEditarSessao" method="POST">
+        <form data-texto-envio="Processando registro…" id="formEditarSessao" method="POST">
             @csrf
+            @include('partials.operacao')
             @method('PUT')
 
             <div class="mb-4">
@@ -154,8 +151,9 @@
             Por medida de segurança e sigilo profissional, digite a sua senha de acesso para visualizar o prontuário.
         </p>
 
-        <form action="{{ route('prontuarios.validar-senha') }}" method="POST">
+        <form data-texto-envio="Processando registro…" action="{{ route('prontuarios.validar-senha') }}" method="POST">
             @csrf
+            @include('partials.operacao')
             
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Senha da Psicóloga</label>
@@ -175,18 +173,13 @@
 
 <script>
 function abrirModalEdicao(botao) {
-    const sessao = JSON.parse(botao.dataset.sessao);
-
-    document.getElementById('formEditarSessao').action =
-        '/prontuarios/sessao/' + sessao.id;
-
-    document.getElementById('edit_data_sessao').value = sessao.data;
-
-    document.getElementById('edit_anotacoes').value =
-        sessao.anotacoes ?? '';
-
+    const {id, data, anotacoes} = JSON.parse(botao.dataset.sessao);
+    document.getElementById('formEditarSessao').action = '/prontuarios/sessao/' + id;
+    
+    document.getElementById('edit_data_sessao').value = data;
+    document.getElementById('edit_anotacoes').value = anotacoes;
+    
     const modal = document.getElementById('modalEditarSessao');
-
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 }

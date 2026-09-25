@@ -13,6 +13,7 @@
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/pt-br.js'></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ time() }}">
+<script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
 </head>
 <body>
 
@@ -24,6 +25,7 @@
                 
                 <form action="{{ route('logout') }}" method="POST" style="display: inline;">
                     @csrf
+            @include('partials.operacao')
                     <button type="submit" class="btn btn-danger">Sair</button>
                 </form>
             @else
@@ -144,6 +146,6 @@
     };
 </script>
 
-<script src="{{ asset('js/aluno.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('js/aluno.js') }}?v=20260924-1"></script>
 </body>
 </html>

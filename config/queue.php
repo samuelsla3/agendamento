@@ -30,6 +30,14 @@ return [
     */
 
     'connections' => [
+        'avisos' => [
+            'driver' => 'database',
+            'connection' => null, // Mesma conexão padrão de horarios e avisos_email.
+            'table' => 'jobs',
+            'queue' => 'emails',
+            'retry_after' => 120,
+            'after_commit' => false,
+        ],
 
         'sync' => [
             'driver' => 'sync',
@@ -84,6 +92,14 @@ return [
         'failover' => [
             'driver' => 'failover',
             'connections' => [
+        'avisos' => [
+            'driver' => 'database',
+            'connection' => null, // Mesma conexão padrão de horarios e avisos_email.
+            'table' => 'jobs',
+            'queue' => 'emails',
+            'retry_after' => 120,
+            'after_commit' => false,
+        ],
                 'database',
                 'deferred',
             ],
