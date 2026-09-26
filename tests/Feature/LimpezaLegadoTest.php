@@ -152,34 +152,34 @@ class LimpezaLegadoTest extends TestCase
         ]);
 
         $this->actingAs($this->usuario())->withSession(['usuario_tipo' => 'psicologa']);
-        $this->post('/agenda/relatorio', ['ordenar_por' => 'nome_asc'])
+        $this->post('/agenda/relatorio', ['situacao' => 'todos', 'ordenar_por' => 'nome_asc'])
             ->assertOk()->assertSee('Total de registros encontrados: 2')
             ->assertSeeInOrder(['Aluno Alfa', 'Aluno Beta'])->assertSee('Atendimento Realizado')
             ->assertSee('Cancelado pelo Aluno')->assertSee('26/09/2026 às 14:00')
             ->assertDontSee('24/09/2026 às 17:35');
-        $this->post('/agenda/relatorio', ['aluno_matricula' => '11111111111'])
+        $this->post('/agenda/relatorio', ['situacao' => 'todos', 'aluno_matricula' => '11111111111'])
             ->assertOk()->assertSee('Aluno Alfa')->assertDontSee('Aluno Beta');
-        $this->post('/agenda/relatorio', ['data_inicio' => '2026-09-26', 'data_fim' => '2026-09-26'])
+        $this->post('/agenda/relatorio', ['situacao' => 'todos', 'data_inicio' => '2026-09-26', 'data_fim' => '2026-09-26'])
             ->assertOk()->assertSee('Aluno Beta')->assertDontSee('Aluno Alfa');
-        $this->post('/agenda/relatorio', ['aluno_nome' => 'Inexistente'])
+        $this->post('/agenda/relatorio', ['situacao' => 'todos', 'aluno_nome' => 'Inexistente'])
             ->assertOk()->assertSee('Nenhum agendamento encontrado');
 
         // A ordem de cancelamento é diferente da ordem dos horários marcados.
-        $this->post('/agenda/relatorio', ['ordenar_por' => 'data_asc'])
+        $this->post('/agenda/relatorio', ['situacao' => 'todos', 'ordenar_por' => 'data_asc'])
             ->assertOk()->assertSeeInOrder(['Aluno Alfa', 'Aluno Beta']);
-        $this->post('/agenda/relatorio', ['ordenar_por' => 'data_desc'])
+        $this->post('/agenda/relatorio', ['situacao' => 'todos', 'ordenar_por' => 'data_desc'])
             ->assertOk()->assertSeeInOrder(['Aluno Beta', 'Aluno Alfa']);
 
         DB::table('registros_atendimentos')->insert([
             'id_horario_original' => 3, 'nome' => 'Aluno Legado', 'matricula' => '33333333333',
             'status' => 'Cancelado pelo Aluno', 'data_registro' => '2026-09-26 18:00:00',
         ]);
-        $this->post('/agenda/relatorio', ['ordenar_por' => 'data_asc'])
+        $this->post('/agenda/relatorio', ['situacao' => 'todos', 'ordenar_por' => 'data_asc'])
             ->assertOk()->assertSeeInOrder(['Aluno Alfa', 'Aluno Beta', 'Aluno Legado'])
             ->assertSee('Data/hora não preservadas neste registro antigo');
-        $this->post('/agenda/relatorio', ['ordenar_por' => 'data_desc'])
+        $this->post('/agenda/relatorio', ['situacao' => 'todos', 'ordenar_por' => 'data_desc'])
             ->assertOk()->assertSeeInOrder(['Aluno Beta', 'Aluno Alfa', 'Aluno Legado']);
-        $this->post('/agenda/relatorio', ['data_inicio' => '2026-09-26', 'data_fim' => '2026-09-26'])
+        $this->post('/agenda/relatorio', ['situacao' => 'todos', 'data_inicio' => '2026-09-26', 'data_fim' => '2026-09-26'])
             ->assertOk()->assertSee('Aluno Beta')->assertDontSee('Aluno Legado');
     }
 }

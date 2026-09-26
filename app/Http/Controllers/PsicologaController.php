@@ -205,114 +205,167 @@ if (
         return response()->json(['status' => 'error', 'message' => 'Ação inválida.']);
     }
 
-        public function gerarRelatorio(Request $request)
+            public function gerarRelatorio(Request $request)
     {
         if (!auth()->check() || auth()->user()->tipo !== 'psicologa') {
             return response('Acesso negado.', 403);
         }
 
+        // Validação fora do try: dados inválidos devem retornar 422, não 500.
+        $filtros = $request->validate([
+            'aluno_nome' => ['nullable', 'string', 'max:255'],
+            'aluno_matricula' => ['nullable', 'string', 'max:100'],
+            'data_inicio' => ['nullable', 'date_format:Y-m-d'],
+            'data_fim' => array_merge(['nullable', 'date_format:Y-m-d'],
+                $request->filled('data_inicio') ? ['after_or_equal:data_inicio'] : []),
+            'situacao' => ['nullable', 'in:realizados,todos,cancelados_aluno,cancelados_psicologa,cancelados'],
+            'ordenar_por' => ['nullable', 'in:data_asc,data_desc,nome_asc,situacao_asc'],
+        ], [
+            'data_fim.after_or_equal' => 'A data final deve ser igual ou posterior à data inicial.',
+            'data_inicio.date_format' => 'Informe uma data inicial válida.',
+            'data_fim.date_format' => 'Informe uma data final válida.',
+            'situacao.in' => 'Selecione uma situação válida.',
+        ]);
+
         try {
-            $nome = $request->filled('aluno_nome') ? $request->input('aluno_nome') : null;
-            $matricula = $request->filled('aluno_matricula') ? $request->input('aluno_matricula') : null;
-            $dataInicio = $request->input('data_inicio');
-            $dataFim = $request->input('data_fim');
-            $ordenarPor = $request->input('ordenar_por', 'data_desc');
+            $nome = trim($filtros['aluno_nome'] ?? '');
+            $matricula = trim($filtros['aluno_matricula'] ?? '');
+            $dataInicio = $filtros['data_inicio'] ?? null;
+            $dataFim = $filtros['data_fim'] ?? null;
+            $situacao = $filtros['situacao'] ?? 'realizados';
+            $ordenarPor = $filtros['ordenar_por'] ?? 'data_desc';
+            $rotulos = [
+                'realizados' => 'Atendimentos realizados',
+                'todos' => 'Todos os registros',
+                'cancelados_aluno' => 'Cancelados pelo aluno',
+                'cancelados_psicologa' => 'Cancelados pela psicóloga',
+                'cancelados' => 'Todos os cancelados',
+            ];
+            $statusPorFiltro = [
+                'realizados' => ['Realizado'],
+                'cancelados_aluno' => ['Cancelado pelo Aluno'],
+                'cancelados_psicologa' => ['Cancelado pela Psicóloga'],
+                'cancelados' => ['Cancelado pelo Aluno', 'Cancelado pela Psicóloga'],
+            ];
 
-            $query = DB::table('registros_atendimentos')
-                ->when($nome, function ($query, $nome) {
-                    $nomeTermo = '%' . mb_strtolower($nome, 'UTF-8') . '%';
-                    return $query->whereRaw('LOWER(nome) LIKE ?', [$nomeTermo]);
-                })
-                ->when($matricula, function ($query, $matricula) {
-                    return $query->where('matricula', 'like', "%{$matricula}%");
-                })
-                ->when($dataInicio, function ($query, $dataInicio) {
-                    return $query->where('data_atendimento', '>=', $dataInicio);
-                })
-                ->when($dataFim, function ($query, $dataFim) {
-                    return $query->where('data_atendimento', '<=', $dataFim);
-                });
-
-            switch ($ordenarPor) {
-                case 'data_asc':
-                    $query->orderByRaw('data_atendimento IS NULL ASC')
-                        ->orderBy('data_atendimento', 'asc')
-                        ->orderBy('hora_atendimento', 'asc');
-                    break;
-                case 'nome_asc':
-                    $query->orderBy('nome', 'asc');
-                    break;
-                case 'situacao_asc':
-                    $query->orderBy('status', 'asc');
-                    break;
-                case 'data_desc':
-                default:
-                    $query->orderByRaw('data_atendimento IS NULL ASC')
-                        ->orderBy('data_atendimento', 'desc')
-                        ->orderBy('hora_atendimento', 'desc');
-                    break;
+            $query = DB::table('registros_atendimentos');
+            if ($nome !== '') {
+                $query->whereRaw('LOWER(nome) LIKE ?', ['%' . mb_strtolower($nome, 'UTF-8') . '%']);
+            }
+            if ($matricula !== '') {
+                // Preserva a pesquisa por trecho de matrícula já existente.
+                $query->where('matricula', 'like', '%' . $matricula . '%');
+            }
+            if ($dataInicio) {
+                $query->where('data_atendimento', '>=', $dataInicio);
+            }
+            if ($dataFim) {
+                $query->where('data_atendimento', '<=', $dataFim);
+            }
+            if ($situacao !== 'todos') {
+                $query->whereIn('status', $statusPorFiltro[$situacao]);
             }
 
-            $registros = $query->get();
+            switch ($ordenarPor) {
+                case 'nome_asc':
+                    $query->orderBy('nome');
+                    break;
+                case 'situacao_asc':
+                    $query->orderBy('status');
+                    break;
+                default:
+                    $direcao = $ordenarPor === 'data_asc' ? 'asc' : 'desc';
+                    $query->orderByRaw('data_atendimento IS NULL ASC')
+                        ->orderBy('data_atendimento', $direcao)
+                        ->orderBy('hora_atendimento', $direcao);
+            }
+            $registros = $query->orderBy('id')->get();
 
-            $dataInicioFormatada = $dataInicio ? \Carbon\Carbon::parse($dataInicio)->format('d/m/Y') : 'N/A';
-            $dataFimFormatada = $dataFim ? \Carbon\Carbon::parse($dataFim)->format('d/m/Y') : 'N/A';
-            $periodoStr = "Período dos atendimentos marcados: {$dataInicioFormatada} a {$dataFimFormatada}";
+            if ($dataInicio && $dataFim) {
+                $periodoStr = 'Período selecionado: ' . Carbon::parse($dataInicio)->format('d/m/Y')
+                    . ' a ' . Carbon::parse($dataFim)->format('d/m/Y');
+            } elseif ($dataInicio) {
+                $periodoStr = 'Período selecionado: a partir de ' . Carbon::parse($dataInicio)->format('d/m/Y');
+            } elseif ($dataFim) {
+                $periodoStr = 'Período selecionado: até ' . Carbon::parse($dataFim)->format('d/m/Y');
+            } else {
+                $periodoStr = 'Período: todos os registros';
+            }
 
-            return $this->renderTabelaFallback($registros, $periodoStr);
+            // As contagens partem do MESMO resultado da tabela, após todos os filtros.
+            $realizados = $registros->filter(fn ($reg) => $reg->status === 'Realizado');
+            $matriculas = $realizados->map(fn ($reg) => trim((string) ($reg->matricula ?? '')));
+            $indicadores = [
+                'atendimentos' => $realizados->count(),
+                'alunos' => $matriculas->filter(fn ($valor) => $valor !== '')->uniqueStrict()->count(),
+                'sem_matricula' => $matriculas->filter(fn ($valor) => $valor === '')->count(),
+            ];
+            $avisos = [];
+            if ($dataInicio || $dataFim) {
+                $avisos[] = 'O período considera a data marcada. Registros sem essa data ficam fora do resultado.';
+            } elseif ($registros->contains(fn ($reg) => empty($reg->data_atendimento))) {
+                $avisos[] = 'Este resultado inclui registros antigos sem data marcada preservada.';
+            }
+            if ($indicadores['sem_matricula'] > 0) {
+                $avisos[] = $indicadores['sem_matricula'] . ' atendimento(s) realizado(s) sem matrícula: '
+                    . 'incluído(s) no total de atendimentos, mas não no total de alunos distintos.';
+            }
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'erro' => $e->getMessage(),
-                'linha' => $e->getLine()
-            ], 500);
+            return $this->renderTabelaFallback($registros, $periodoStr, $indicadores, [
+                'situacao' => $rotulos[$situacao],
+                'aluno' => 'Nome contém: ' . ($nome !== '' ? $nome : 'qualquer nome')
+                    . ' | Matrícula contém: ' . ($matricula !== '' ? $matricula : 'qualquer matrícula'),
+                'avisos' => implode(' ', $avisos),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+            return response()->json(['erro' => 'Não foi possível gerar o relatório. Tente novamente.'], 500);
         }
     }
 
-    private function renderTabelaFallback($registros, $periodoStr)
+    private function renderTabelaFallback($registros, $periodoStr, array $indicadores, array $contexto)
     {
+        $html = '<div id="resumo-relatorio">';
+        $html .= '<p id="indicadores-relatorio" style="font-size:18px;font-weight:bold;color:#00833D;">'
+            . 'Atendimentos realizados: ' . $indicadores['atendimentos']
+            . ' · Alunos atendidos: ' . $indicadores['alunos'] . '</p>';
+        $html .= '<p id="total-registros-relatorio">Total de registros encontrados: ' . $registros->count() . '</p>';
+        // Metadados do resultado para o PDF; os seletores já mostram os filtros na tela.
+        $html .= '<p id="periodo-relatorio" hidden>' . e($periodoStr) . '</p>';
+        $html .= '<p id="situacao-relatorio" hidden>Situação: ' . e($contexto['situacao']) . '</p>';
+        $html .= '<p id="aluno-relatorio" hidden>' . e($contexto['aluno']) . '</p>';
+        $html .= '<p id="avisos-relatorio" style="color:#555;">' . e($contexto['avisos']) . '</p></div>';
+
         if ($registros->isEmpty()) {
-            return "<p style='color: #555;'>Nenhum agendamento encontrado para os filtros aplicados.</p>";
+            return $html . '<p id="sem-resultados">Nenhum agendamento encontrado para os filtros aplicados.</p>';
         }
 
-        $html = "<h3>Total de registros encontrados: " . $registros->count() . "</h3>";
-        $html .= "<p id='periodo-relatorio' style='font-style: italic; color: #555;'>{$periodoStr}</p>";
-        
-        $html .= "<table id='tabela-relatorio' style='width: 100%; border-collapse: collapse; margin-top: 15px;'>
-                    <thead style='background-color: #f2f2f2;'>
-                        <tr>
-                            <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Aluno</th>
-                            <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Matrícula</th>
-                            <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Data e hora marcadas</th>
-                            <th style='padding: 8px; border: 1px solid #ddd; text-align: left;'>Situação</th>
-                        </tr>
-                    </thead>
-                    <tbody>";
-
+        $html .= '<table id="tabela-relatorio" style="width:100%;border-collapse:collapse;margin-top:15px;">'
+            . '<thead style="background-color:#f2f2f2;"><tr>';
+        foreach (['Aluno', 'Matrícula', 'Data e hora marcadas', 'Situação'] as $coluna) {
+            $html .= '<th style="padding:8px;border:1px solid #ddd;text-align:left;">' . $coluna . '</th>';
+        }
+        $html .= '</tr></thead><tbody>';
         foreach ($registros as $reg) {
             $situacao = $reg->status === 'Realizado' ? 'Atendimento Realizado' : $reg->status;
-            $statusClass = $reg->status === 'Realizado' ? 'color: #00833D;' : 'color: #dc3545;';
-            
-            // O relatório usa a reserva histórica, nunca a vaga atual.
+            $cor = $reg->status === 'Realizado' ? '#00833D' : '#555';
+            if (in_array($reg->status, ['Cancelado pelo Aluno', 'Cancelado pela Psicóloga'], true)) {
+                $cor = '#b42318';
+            }
+            // Nunca reconstrói a data usando uma vaga que pode ter sido reutilizada.
             if (!empty($reg->data_atendimento) && !empty($reg->hora_atendimento)) {
-                $dataHoraAtendimento = Carbon::parse($reg->data_atendimento)->format('d/m/Y')
+                $dataHora = Carbon::parse($reg->data_atendimento)->format('d/m/Y')
                     . ' às ' . Carbon::parse($reg->hora_atendimento)->format('H:i');
             } else {
-                $dataHoraAtendimento = 'Data/hora não preservadas neste registro antigo';
+                $dataHora = 'Data/hora não preservadas neste registro antigo';
             }
-            
-            $nomeExibir = $reg->nome ?? $reg->nome_aluno ?? 'Não informado';
-            $matriculaExibir = $reg->matricula ?? $reg->matricula_aluno ?? 'N/A';
-
-            $html .= "<tr>
-                        <td style='padding: 8px; border: 1px solid #ddd;'>{$nomeExibir}</td>
-                        <td style='padding: 8px; border: 1px solid #ddd;'>{$matriculaExibir}</td>
-                        <td style='padding: 8px; border: 1px solid #ddd;'>{$dataHoraAtendimento}</td>
-                        <td style='padding: 8px; border: 1px solid #ddd;'><strong style='{$statusClass}'>{$situacao}</strong></td>
-                    </tr>";
+            $html .= '<tr>';
+            foreach ([$reg->nome ?? 'Não informado', $reg->matricula ?? 'Não informada', $dataHora] as $valor) {
+                $html .= '<td style="padding:8px;border:1px solid #ddd;">' . e($valor) . '</td>';
+            }
+            $html .= '<td style="padding:8px;border:1px solid #ddd;"><strong style="color:' . $cor . ';">'
+                . e($situacao) . '</strong></td></tr>';
         }
-
-        $html .= "</tbody></table>";
-        return $html;
+        return $html . '</tbody></table>';
     }
 }

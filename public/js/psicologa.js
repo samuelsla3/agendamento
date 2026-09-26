@@ -185,35 +185,135 @@ $('#cancel-by-psicologa-form').submit(function(e) {
 });
 
 
-$('#filtro-relatorio-form').on('submit', function(e) {
-    e.preventDefault();
-    $('#resultado_relatorio').text('Carregando relatório…');
-    Operacoes.ajax({
-        grupo: 'relatorio', leitura: true, url: LaravelConfig.rotas.relatorio,
-        data: $(this).serialize(), botoes: '#filtro-relatorio-form button[type="submit"]', texto: 'Gerando relatório…',
-        sucesso(response) { $('#resultado_relatorio').html(response); },
-        erro(message) { $('#resultado_relatorio').text(message); }
-    });
-});
+(() => {
+    const form = $('#filtro-relatorio-form');
+    const resultado = $('#resultado_relatorio');
+    const exportar = $('#exportar-pdf-btn');
+    const gerar = $('#filtro-relatorio-form button[type="submit"]');
+    let requisicao = null;
+    let versao = 0;
+    let filtrosGerados = null;
+    exportar.prop('disabled', true);
 
-$('#exportar-pdf-btn').on('click', function() {
-    const { jsPDF } = window.jspdf; 
-    const doc = new jsPDF(); 
-    const tabela = document.getElementById('tabela-relatorio'); 
-    const semResultados = document.getElementById('sem-resultados'); 
-    if (!tabela && !semResultados) { alert('Gere um relatório primeiro!'); return; } 
-    const totalPagesExp = '{total_pages_count_string}'; 
-    const addHeaderAndFooter = (data) => { doc.setFontSize(18); doc.setTextColor(40); doc.setFont('helvetica', 'bold'); doc.text('Relatório de Histórico', doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' }); doc.setFontSize(11); doc.setTextColor(100); doc.setFont('helvetica', 'normal'); doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')}`, doc.internal.pageSize.getWidth() - 14, 22, { align: 'right' }); let str = `Página ${data.pageNumber}`; if (typeof doc.putTotalPages === 'function') { str += ` de ${totalPagesExp}`; } doc.setFontSize(10); doc.text(str, data.settings.margin.left, doc.internal.pageSize.getHeight() - 10); }; 
-    if (tabela) { 
-        doc.autoTable({ html: '#tabela-relatorio', startY: 30, theme: 'grid', headStyles: { fillColor: [0, 131, 61], textColor: [255, 255, 255], fontStyle: 'bold' }, alternateRowStyles: { fillColor: [240, 240, 240] }, didDrawPage: addHeaderAndFooter, margin: { top: 30 } }); 
-    } else if (semResultados) { 
-        addHeaderAndFooter({ pageNumber: 1, settings: { margin: { left: 14 } } }); 
-        const texto = semResultados.innerText.replace(/\s+/g, ' ').trim(); 
-        doc.text(doc.splitTextToSize(texto, 180), 14, 45); 
-    } 
-    if (typeof doc.putTotalPages === 'function') { doc.putTotalPages(totalPagesExp); } 
-    doc.save('relatorio_historico_alunos.pdf'); 
-});
+    form.on('input change', 'input, select', function () {
+        versao++;
+        if (requisicao) requisicao.abort();
+        requisicao = null;
+        gerar.prop('disabled', false).text('Gerar Relatório');
+        filtrosGerados = null;
+        exportar.prop('disabled', true);
+        resultado.empty().append($('<p>').text('Filtros alterados. Clique em Gerar Relatório para atualizar.'));
+    });
+
+    form.on('submit', function (e) {
+        e.preventDefault();
+        const atual = ++versao;
+        if (requisicao) requisicao.abort();
+        const filtros = form.serialize();
+        gerar.prop('disabled', true).text('Gerando relatório…');
+        filtrosGerados = null;
+        exportar.prop('disabled', true);
+        resultado.html('<p>Carregando relatório...</p>');
+        requisicao = $.ajax({
+            url: LaravelConfig.rotas.relatorio,
+            method: 'POST',
+            data: filtros,
+            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': LaravelConfig.csrfToken },
+            dataType: 'html',
+            success: function (response) {
+                if (atual !== versao || form.serialize() !== filtros) return;
+                resultado.html(response);
+                filtrosGerados = filtros;
+                exportar.prop('disabled', !document.getElementById('resumo-relatorio'));
+            },
+            error: function (xhr, status) {
+                if (status === 'abort' || atual !== versao) return;
+                let dados = xhr.responseJSON;
+                if (!dados) {
+                    try { dados = JSON.parse(xhr.responseText); } catch (_) { dados = {}; }
+                }
+                let mensagem = 'Não foi possível gerar o relatório. Tente novamente.';
+                if (xhr.status === 422 && dados.errors) {
+                    mensagem = Object.values(dados.errors).flat().join(' ');
+                } else if (xhr.status === 419) {
+                    mensagem = 'Sua sessão expirou. Recarregue a página e entre novamente.';
+                } else if (xhr.status === 401 || xhr.status === 403) {
+                    mensagem = 'Acesso não autorizado. Entre novamente com a conta da psicóloga.';
+                }
+                resultado.empty().append($('<p>').css('color', '#b42318').text(mensagem));
+            },
+            complete: function () {
+                if (atual === versao) {
+                    requisicao = null;
+                    gerar.prop('disabled', false).text('Gerar Relatório');
+                }
+            }
+        });
+    });
+
+    exportar.on('click', function () {
+        if (!filtrosGerados || form.serialize() !== filtrosGerados || !document.getElementById('resumo-relatorio')) {
+            alert('Gere o relatório com os filtros atuais antes de exportar.');
+            return;
+        }
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            alert('A biblioteca de PDF não carregou. Recarregue a página.');
+            return;
+        }
+        const doc = new window.jspdf.jsPDF();
+        const tabela = document.getElementById('tabela-relatorio');
+        if (tabela && typeof doc.autoTable !== 'function') {
+            alert('A biblioteca de tabelas do PDF não carregou. Recarregue a página.');
+            return;
+        }
+        const texto = id => (document.getElementById(id)?.textContent || '').replace(/\s+/g, ' ').trim();
+        const largura = doc.internal.pageSize.getWidth();
+        const altura = doc.internal.pageSize.getHeight();
+        const margem = 14;
+        const larguraTexto = largura - margem * 2;
+        const totalPagesExp = '{total_pages_count_string}';
+        // Captura o resultado renderizado, jamais os valores de outro pedido.
+        const metadados = [
+            texto('indicadores-relatorio'), texto('total-registros-relatorio'),
+            texto('periodo-relatorio'), texto('situacao-relatorio'), texto('aluno-relatorio'),
+            'Indicadores: somente realizados; alunos distintos por matrícula, dentro dos filtros.',
+            texto('avisos-relatorio')
+        ].filter(Boolean);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        const linhas = metadados.flatMap(linha => doc.splitTextToSize(linha, larguraTexto));
+        const inicioTabela = 34 + linhas.length * 4.2 + 5;
+        const emitido = new Date().toLocaleString('pt-BR');
+        const desenharCabecalho = pagina => {
+            doc.setTextColor(40);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.text('Relatório de Atendimentos', margem, 18);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.text('Emitido em: ' + emitido, margem, 25);
+            linhas.forEach((linha, i) => doc.text(linha, margem, 34 + i * 4.2));
+            doc.setFontSize(9);
+            const total = typeof doc.putTotalPages === 'function' ? ' de ' + totalPagesExp : '';
+            doc.text('Página ' + pagina + total, margem, altura - 10);
+        };
+        if (tabela) {
+            doc.autoTable({
+                html: '#tabela-relatorio', startY: inicioTabela,
+                margin: { top: inicioTabela, right: margem, bottom: 20, left: margem },
+                theme: 'grid', styles: { fontSize: 9, overflow: 'linebreak' },
+                headStyles: { fillColor: [0, 131, 61], textColor: [255, 255, 255] },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+                didDrawPage: data => desenharCabecalho(data.pageNumber)
+            });
+        } else {
+            desenharCabecalho(1);
+            doc.text(doc.splitTextToSize(texto('sem-resultados'), larguraTexto), margem, inicioTabela + 5);
+        }
+        if (typeof doc.putTotalPages === 'function') doc.putTotalPages(totalPagesExp);
+        doc.save('relatorio_atendimentos.pdf');
+    });
+})();
 
 function switchTab(type) {
     const blocoForm = document.getElementById('generate-form');

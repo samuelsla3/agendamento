@@ -152,19 +152,19 @@
             <div id='calendar'></div>
         </section>
         
-        <section id="relatorio-container" class="content-section">
-            <h2>Relatório de Histórico de Alunos</h2>
+                <section id="relatorio-container" class="content-section">
+            <h2>Relatório de Atendimentos</h2>
             <form id="filtro-relatorio-form">
                 @csrf
-            @include('partials.operacao')
+                @include('partials.operacao')
                 <div class="form-row">
                     <div class="form-group">
                         <label for="aluno_nome">Nome do Aluno:</label>
-        <input type="text" id="aluno_nome" name="aluno_nome" placeholder="Digite o nome...">
+        <input type="text" id="aluno_nome" name="aluno_nome" maxlength="255" placeholder="Digite o nome...">
     </div>
     <div class="form-group">
                         <label for="aluno_matricula">Matrícula do Aluno:</label>
-                        <input type="text" id="aluno_matricula" name="aluno_matricula">
+                        <input type="text" id="aluno_matricula" name="aluno_matricula" maxlength="100" placeholder="Matrícula ou trecho dela">
                     </div>
                     <div class="form-group">
                         <label for="data_inicio">Período de:</label>
@@ -175,19 +175,29 @@
                         <input type="date" id="data_fim" name="data_fim">
                     </div>
                     <div class="form-group">
+                        <label for="situacao">Situação:</label>
+                        <select id="situacao" name="situacao">
+                            <option value="realizados" selected>Atendimentos realizados</option>
+                            <option value="todos">Todos os registros</option>
+                            <option value="cancelados_aluno">Cancelados pelo aluno</option>
+                            <option value="cancelados_psicologa">Cancelados pela psicóloga</option>
+                            <option value="cancelados">Todos os cancelados</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                     <label for="ordenar_por">Ordenar por:</label>
                     <select id="ordenar_por" name="ordenar_por">
                         <option value="data_asc">Data e Hora (Mais antigos primeiro)</option>
                         <option value="data_desc" selected>Data e Hora (Mais recentes primeiro)</option>
                         <option value="nome_asc">Nome do Aluno (A-Z)</option>
-                        <option value="situacao_asc">Situação (Confirmados primeiro)</option>
+                        <option value="situacao_asc">Situação (A-Z)</option>
                     </select>
                 </div>
                 </div>
                 <button type="submit" class="btn btn-primary">Gerar Relatório</button>
-                <button type="button" id="exportar-pdf-btn" class="btn btn-success">Exportar para PDF</button>
+                <button type="button" id="exportar-pdf-btn" disabled class="btn btn-success">Exportar para PDF</button>
             </form>
-            <div id="resultado_relatorio" style="margin-top: 20px;"></div>
+            <div id="resultado_relatorio" style="margin-top: 20px;" aria-live="polite"><p>Selecione os filtros e clique em Gerar Relatório.</p></div>
         </section> 
 
         <div id="modal" class="modal">
