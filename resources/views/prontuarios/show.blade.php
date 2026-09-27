@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @include('partials.favicon')
     <title>Prontuário - {{ $aluno->nome ?? $aluno->name }}</title>
     @vite('resources/css/app.css')
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>

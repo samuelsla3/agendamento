@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @include('partials.favicon')
     <title>Login do Aluno</title>
     <link rel="stylesheet" href="{{ asset('css/auth.css') }}?v={{ time() }}">
     <!-- Ícones do Bootstrap para os olhos -->
@@ -64,6 +65,17 @@
                 <i class="bi bi-eye-slash toggle-password" id="toggleIcon" onclick="toggleSenha()"></i>
             </div>
         </div>
+
+        <div style="text-align: right; margin-top: 8px;">
+    <a
+        href="https://suap.ifba.edu.br/comum/solicitar_trocar_senha/"
+        target="_blank"
+        rel="noopener noreferrer"
+        style="font-size: 14px; color: inherit; text-decoration: underline;"
+    >
+        Esqueceu sua senha?
+    </a>
+</div>
         
         <button type="submit" class="btn">Entrar</button>
         
