@@ -115,10 +115,10 @@
             @if($ultimosCancelamentos->isEmpty())
                 <p style="text-align: center;">Nenhum cancelamento recente.</p>
             @else
-                <div style="display: flex; gap: 30px; justify-content: space-between; flex-wrap: wrap;">
+                <div class="cancelamentos-grid" style="display: flex; gap: 30px; justify-content: space-between; flex-wrap: wrap;">
                     
                     @foreach ($ultimosCancelamentos->chunk(5) as $bloco)
-                        <div style="flex: 1; min-width: 300px; max-width: 48%; text-align: left;">
+                        <div class="cancelamentos-coluna" style="flex: 1; min-width: 300px; max-width: 48%; text-align: left;">
                             <ul class="cancelamentos-lista">
                                 @foreach ($bloco as $cancelamento)
                                     @php
@@ -272,7 +272,7 @@
                     
                     <div class="form-group" style="margin-top: 15px;">
                         <label><strong>Selecionar Horários de Atendimento:</strong></label>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 5px;">
+                        <div class="horarios-checkbox-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 5px;">
                             <label><input type="checkbox" name="horas_selecionadas[]" value="09:00:00" checked> 09:00</label>
                             <label><input type="checkbox" name="horas_selecionadas[]" value="10:00:00" checked> 10:00</label>
                             <label><input type="checkbox" name="horas_selecionadas[]" value="11:00:00" checked> 11:00</label>
@@ -324,7 +324,7 @@
                 <p><strong>Selecionar horários a serem apagados:</strong></p>
                 
                 <!-- Opção Selecionar Todos -->
-                <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #00833D;">
+                <label class="selecionar-todos" style="display: block; font-weight: bold; margin-bottom: 8px; color: #00833D;">
                     <input type="checkbox" id="selecionarTodosHoras" onchange="toggleTodosHorarios(this)"> 
                     [ Selecionar Todos os Horários ]
                 </label>
@@ -549,7 +549,7 @@
         };
     </script>
 
-    <script src="{{ asset('js/psicologa.js') }}?v=20260925-1"></script>
+    <script src="{{ asset('js/psicologa.js') }}?v=20260927-mobile-2"></script>
 
 </body>
 </html>

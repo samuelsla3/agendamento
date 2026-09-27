@@ -55,18 +55,18 @@
 
         <div class="form-group">
             <label for="matricula">Matrícula</label>
-            <input type="text" id="matricula" name="matricula" value="{{ old('matricula') }}" placeholder="Digite sua matrícula" required />
+            <input type="text" id="matricula" name="matricula" autocomplete="username" inputmode="numeric" value="{{ old('matricula') }}" placeholder="Digite sua matrícula" required />
         </div>
 
         <div class="form-group">
             <label for="senha">Senha</label>
             <div class="password-wrapper">
-                <input type="password" id="senha" name="senha" placeholder="Digite sua senha do SUAP" required>
+                <input type="password" id="senha" name="senha" autocomplete="current-password" placeholder="Digite sua senha do SUAP" required>
                 <i class="bi bi-eye-slash toggle-password" id="toggleIcon" onclick="toggleSenha()"></i>
             </div>
         </div>
 
-        <div style="text-align: right; margin-top: 8px;">
+        <div class="auth-recovery" style="text-align: right; margin-top: 8px;">
     <a
         href="https://suap.ifba.edu.br/comum/solicitar_trocar_senha/"
         target="_blank"

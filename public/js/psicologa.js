@@ -47,7 +47,29 @@ if (props.confirmado == 1) {
             };
         }
     });
+    const telaPequena = window.matchMedia('(max-width: 767px)');
+    const opcoesCelular = {
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listWeek,timeGridDay' },
+        buttonText: { today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia', list: 'Lista' },
+        noEventsContent: 'Nenhum horário nesta semana. Use as setas para consultar outro período.',
+        height: 'auto',
+        dayMaxEvents: 3,
+        eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false }
+    };
+    // Guarda os valores originais, incluindo os padrões do FullCalendar.
+    const opcoesComputador = Object.fromEntries(
+        Object.keys(opcoesCelular).map(chave => [chave, calendar.getOption(chave)])
+    );
+    function adaptarCalendario() {
+        calendar.batchRendering(() => {
+            const opcoes = telaPequena.matches ? opcoesCelular : opcoesComputador;
+            Object.entries(opcoes).forEach(([chave, valor]) => calendar.setOption(chave, valor));
+            calendar.changeView(telaPequena.matches ? 'listWeek' : 'dayGridMonth');
+        });
+    }
+    if (telaPequena.matches) adaptarCalendario();
     calendar.render();
+    telaPequena.addEventListener('change', adaptarCalendario);
     window.refreshCalendar = function() { calendar.refetchEvents(); }
 });
 
@@ -223,6 +245,7 @@ $('#cancel-by-psicologa-form').submit(function(e) {
             success: function (response) {
                 if (atual !== versao || form.serialize() !== filtros) return;
                 resultado.html(response);
+                adaptarTabelaRelatorio();
                 filtrosGerados = filtros;
                 exportar.prop('disabled', !document.getElementById('resumo-relatorio'));
             },
@@ -411,3 +434,17 @@ function abrirAcoesHoje(botao) {
 
     $('#modal').addClass('is-visible');
 }
+
+// A tabela recebe rolagem própria apenas no celular. Ao ampliar, a marcação
+// original é restaurada, inclusive se o relatório já estiver na tela.
+function adaptarTabelaRelatorio() {
+    const tabela = $('#resultado_relatorio #tabela-relatorio');
+    if (!tabela.length) return;
+    const envolvida = tabela.parent().hasClass('relatorio-table-scroll');
+    if (window.matchMedia('(max-width: 767px)').matches && !envolvida) {
+        tabela.wrap('<div class="relatorio-table-scroll table-responsive-wrapper" tabindex="0" role="region" aria-label="Tabela do relatório, deslize para ver todas as colunas"></div>');
+    } else if (!window.matchMedia('(max-width: 767px)').matches && envolvida) {
+        tabela.unwrap();
+    }
+}
+window.matchMedia('(max-width: 767px)').addEventListener('change', adaptarTabelaRelatorio);

@@ -12,6 +12,18 @@
         .btn-link { display: block; margin-top: 15px; color: #555; text-decoration: none; }
     </style>
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
+    <style>
+      @media (max-width: 767px) {
+        *, *::before, *::after { box-sizing: border-box; }
+        body { height: auto; min-height: 100vh; min-height: 100dvh; padding: 16px; }
+        .card { width: 100%; min-width: 0; margin: auto; padding: 28px 20px; overflow-wrap: anywhere; }
+        h1, h2 { font-size: 24px; line-height: 1.3; }
+        p { line-height: 1.6; }
+        button, .btn-link, .card > a { min-height: 44px; font-size: 16px; }
+        .btn-danger { width: 100%; padding: 14px; }
+        .btn-link, .card > a { display: flex; align-items: center; justify-content: center; }
+      }
+    </style>
 </head>
 <body>
     <div class="card">

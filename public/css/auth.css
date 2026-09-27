@@ -94,3 +94,30 @@ input:focus, select:focus {
 .auth-link a:hover {
     text-decoration: underline;
 }
+@media (max-width: 767px) {
+/* Formulário acessível em telas pequenas e com teclado aberto. */
+*, *::before, *::after { box-sizing: border-box; }
+body { height: auto; min-height: 100vh; min-height: 100dvh; padding: 24px 16px; }
+.auth-container { flex: 0 1 400px; min-width: 0; margin: auto; padding: 32px; }
+input, select, button { font-family: inherit; font-size: 16px; }
+input[type="text"], input[type="password"], input[type="email"], input[type="date"], select {
+    min-height: 48px; width: 100%; max-width: 100%; padding: 12px;
+    border: 1px solid #ced4da; border-radius: 6px;
+}
+.password-wrapper input { padding-right: 54px; }
+.password-wrapper .toggle-password {
+    display: flex; align-items: center; justify-content: center;
+    right: 2px; top: 2px; width: 44px; height: 44px; padding: 0;
+    background: transparent; border: 0; border-radius: 4px;
+}
+.btn { min-height: 48px; }
+.auth-recovery { display: flex; justify-content: flex-end; margin-top: 4px; }
+.auth-recovery a { min-height: 44px; display: inline-flex; align-items: center; color: #00642e !important; font-size: 14px; text-decoration: underline; }
+a:focus-visible, button:focus-visible { outline: 3px solid #0284c7; outline-offset: 2px; }
+@media (max-width: 480px) {
+    .auth-container { padding: 28px 22px; }
+    h2 { font-size: 24px; margin-bottom: 24px; }
+}
+@media (max-height: 540px) { body { align-items: flex-start; padding-block: 12px; } }
+
+}

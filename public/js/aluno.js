@@ -62,7 +62,29 @@ document.addEventListener('DOMContentLoaded', function() {
             };
         }
     });
+    const telaPequena = window.matchMedia('(max-width: 767px)');
+    const opcoesCelular = {
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listWeek,timeGridDay' },
+        buttonText: { today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia', list: 'Lista' },
+        noEventsContent: 'Nenhum horário nesta semana. Use as setas para consultar outro período.',
+        height: 'auto',
+        dayMaxEvents: 3,
+        eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false }
+    };
+    // Guarda os valores originais, incluindo os padrões do FullCalendar.
+    const opcoesComputador = Object.fromEntries(
+        Object.keys(opcoesCelular).map(chave => [chave, calendar.getOption(chave)])
+    );
+    function adaptarCalendario() {
+        calendar.batchRendering(() => {
+            const opcoes = telaPequena.matches ? opcoesCelular : opcoesComputador;
+            Object.entries(opcoes).forEach(([chave, valor]) => calendar.setOption(chave, valor));
+            calendar.changeView(telaPequena.matches ? 'listWeek' : 'dayGridMonth');
+        });
+    }
+    if (telaPequena.matches) adaptarCalendario();
     calendar.render();
+    telaPequena.addEventListener('change', adaptarCalendario);
     window.refreshCalendar = function() { location.reload(); }
 });
 

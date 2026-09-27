@@ -150,6 +150,6 @@
     };
 </script>
 
-<script src="{{ asset('js/aluno.js') }}?v=20260924-1"></script>
+<script src="{{ asset('js/aluno.js') }}?v=20260927-mobile-2"></script>
 </body>
 </html>
