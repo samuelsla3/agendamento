@@ -29,6 +29,9 @@ class ProntuarioController extends Controller
 
         $sessoes = ProntuarioSessao::where('aluno_id', $aluno->id)
                     ->orderBy('data_sessao', 'desc')
+                    ->orderByRaw('hora_sessao IS NULL ASC')
+                    ->orderBy('hora_sessao', 'desc')
+                    ->orderBy('id', 'desc')
                     ->get();
 
         return response()
@@ -91,10 +94,14 @@ if (is_string($senhaBanco) && $senhaBanco !== '') {
 
     public function store(Request $request, $alunoId)
     {
-        $request->validate([
+        $dados = $request->validate([
             'anotacoes' => 'required|string',
-            'data_sessao' => 'required|date',
+            'data_sessao' => 'required|date_format:Y-m-d',
+            'hora_sessao' => 'required|date_format:H:i',
             'horario_id' => 'nullable|exists:horarios,id',
+        ], [
+            'hora_sessao.required' => 'Informe o horário da sessão.',
+            'hora_sessao.date_format' => 'Informe um horário válido no formato hora e minuto.',
         ]);
 
         ProntuarioSessao::create([
@@ -102,6 +109,7 @@ if (is_string($senhaBanco) && $senhaBanco !== '') {
             'horario_id' => $request->horario_id,
             'anotacoes' => $request->anotacoes,
             'data_sessao' => $request->data_sessao,
+            'hora_sessao' => $dados['hora_sessao'].':00',
         ]);
 
         return redirect()->back()->with('sucesso', 'Anotação registrada com sucesso!');
@@ -109,16 +117,24 @@ if (is_string($senhaBanco) && $senhaBanco !== '') {
 
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $dados = $request->validate([
             'anotacoes' => 'required|string',
-            'data_sessao' => 'required|date',
+            'data_sessao' => 'required|date_format:Y-m-d',
+            // Permite manter registros antigos sem horário conhecido.
+            'hora_sessao' => 'sometimes|nullable|date_format:H:i',
+        ], [
+            'hora_sessao.date_format' => 'Informe um horário válido no formato hora e minuto.',
         ]);
 
         $sessao = ProntuarioSessao::findOrFail($id);
-        $sessao->update([
+        $alteracoes = [
             'anotacoes' => $request->anotacoes,
             'data_sessao' => $request->data_sessao,
-        ]);
+        ];
+        if (array_key_exists('hora_sessao', $dados)) {
+            $alteracoes['hora_sessao'] = !empty($dados['hora_sessao']) ? $dados['hora_sessao'].':00' : null;
+        }
+        $sessao->update($alteracoes);
 
         return redirect()->back()->with('sucesso', 'Sessão atualizada com sucesso!');
     }

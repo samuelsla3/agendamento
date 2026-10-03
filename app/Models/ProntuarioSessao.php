@@ -13,6 +13,7 @@ class ProntuarioSessao extends Model
         'horario_id',
         'anotacoes',
         'data_sessao',
+        'hora_sessao',
     ];
 
     protected $casts = [
