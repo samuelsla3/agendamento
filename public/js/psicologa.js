@@ -182,7 +182,7 @@ function sendAjaxRequest(data) {
     }
     const textos = {confirmar: 'Concluindo…', cancel_by_psicologa: 'Cancelando…',
         generate_default: 'Gerando horários…', generate_individual: 'Criando horário…',
-        edit: 'Salvando…', delete: 'Excluindo…', delete_specific_default: 'Excluindo horários…'};
+        edit: 'Salvando…', delete: 'Excluindo…', delete_specific_default: 'Cancelando horários…'};
     return Operacoes.ajax({
         grupo: 'agenda', url: LaravelConfig.rotas.acao, data, navegar: true,
         botoes: '#generate-form button[type="submit"], #individual-form button[type="submit"], #delete-form button[type="submit"], #form-disponivel button[type="submit"], #cancel-by-psicologa-form button[type="submit"], #confirmBtn, #deleteBtn',
@@ -193,7 +193,27 @@ function sendAjaxRequest(data) {
 }
 
 $('#generate-form').submit(function(e) { e.preventDefault(); const diasSelecionados = []; $('input[name="dias_semana[]"]:checked').each(function() { diasSelecionados.push($(this).val()); }); sendAjaxRequest({ action: 'generate_default', data_inicio: $('#data_inicio_gerar').val(), data_fim: $('#data_fim_gerar').val(), dias_semana: diasSelecionados, horas_selecionadas: $('input[name="horas_selecionadas[]"]:checked').map(function() { return this.value; }).get() }); });
-$('#delete-form').submit(function(e) { e.preventDefault(); const horasSelecionadas = []; $('input[name="horas_apagar[]"]:checked').each(function() { horasSelecionadas.push($(this).val()); }); sendAjaxRequest({ action: 'delete_specific_default', data_inicio: $('#data_inicio_apagar').val(), data_fim: $('#data_fim_apagar').val(), horas: horasSelecionadas }); });
+$('#delete-form').submit(function(e) {
+    e.preventDefault();
+    const horasSelecionadas = $('input[name="horas_apagar[]"]:checked').map(function() { return this.value; }).get();
+    if (!horasSelecionadas.length) {
+        alert('Selecione pelo menos um horário para cancelar.');
+        return;
+    }
+    const inicio = $('#data_inicio_apagar').val();
+    const fim = $('#data_fim_apagar').val();
+    if (!inicio || !fim || fim < inicio) {
+        alert('Informe um período válido. A data final deve ser igual ou posterior à inicial.');
+        return;
+    }
+    const formatarData = data => data.split('-').reverse().join('/');
+    const horas = horasSelecionadas.map(hora => hora.slice(0, 5)).join(', ');
+    if (!confirm(`Cancelar horários de ${formatarData(inicio)} a ${formatarData(fim)}, às ${horas}?\n\nAs vagas vazias serão apagadas e os agendamentos serão cancelados e retirados da agenda. A justificativa será enviada por e-mail aos alunos com contato válido.\n\nHorários passados e atendimentos realizados serão mantidos.`)) return;
+    sendAjaxRequest({
+        action: 'delete_specific_default', data_inicio: inicio, data_fim: fim,
+        horas: horasSelecionadas, justificativa: $('#justificativa_bloco').val().trim()
+    });
+});
 $('#form-disponivel').submit(function(e) { e.preventDefault(); sendAjaxRequest({ action: 'edit', id: $('#eventId').val(), data: $('#data').val(), hora: $('#hora').val() }); });
 $('#confirmBtn').click(function() { sendAjaxRequest({ action: 'confirmar', id: $('#eventId').val() }); });
 $('#deleteBtn').click(function() { if (confirm('Tem certeza que deseja excluir este horário?')) { sendAjaxRequest({ action: 'delete', id: $('#eventId').val() }); } });

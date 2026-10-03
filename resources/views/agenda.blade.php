@@ -33,7 +33,7 @@
     <div class="container">
         <div class="action-buttons-group">
             <button type="button" class="btn btn-primary" onclick="$('#generateModal').addClass('is-visible')">Gerar Horário(s)</button>
-            <button type="button" class="btn btn-danger" onclick="$('#deleteModal').addClass('is-visible')">Apagar Horários Futuros</button>
+            <button type="button" class="btn btn-danger" onclick="$('#deleteModal').addClass('is-visible')">Cancelar Horários</button>
             <button type="button" 
         onclick="abrirModalBuscaProntuario(); return false;" 
         class="btn btn-info text-white font-semibold px-4 py-2 rounded-lg shadow">
@@ -332,21 +332,23 @@
         <div id="deleteModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeModal()">&times;</span>
-        <h3>Apagar Horários Disponíveis</h3>
+        <h3>Cancelar Horários</h3>
 
         <!-- Alerta sobre agendamentos existentes -->
         <div class="alert alert-warning" style="background-color: #fff3cd; border: 1px solid #ffeba2; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px;">
-            <strong>Atenção:</strong> Caso algum dos horários no período selecionado já esteja <strong>agendado por um aluno</strong>, o ideal é realizar o <strong>cancelamento</strong> (individual ou em bloco) para que o discente seja notificado por e-mail.
+            Os horários vazios serão apagados. Os agendamentos serão cancelados e retirados da agenda,
+            com envio da justificativa aos alunos que tiverem e-mail válido cadastrado.
+            <strong>Horários passados e atendimentos realizados serão mantidos.</strong>
         </div>
 
         <form id="delete-form">
             <div class="form-row">
-                <div class="form-group"><label for="data_inicio_apagar">Apagar de:</label><input type="date" id="data_inicio_apagar" required></div>
+                <div class="form-group"><label for="data_inicio_apagar">Período de:</label><input type="date" id="data_inicio_apagar" required></div>
                 <div class="form-group"><label for="data_fim_apagar">Até:</label><input type="date" id="data_fim_apagar" required></div>
             </div>
 
             <div class="form-group checkbox-group">
-                <p><strong>Selecionar horários a serem apagados:</strong></p>
+                <p><strong>Selecionar horários a cancelar:</strong></p>
 
                 <!-- Opção Selecionar Todos -->
                 <label class="selecionar-todos" style="display: block; font-weight: bold; margin-bottom: 8px; color: #00833D;">
@@ -363,7 +365,14 @@
                 <label><input type="checkbox" class="hora-checkbox" name="horas_apagar[]" value="16:00:00"> 16:00</label>
             </div>
 
-            <button type="submit" class="btn btn-danger">Apagar Horários Selecionados</button>
+            <div class="form-group">
+                <label for="justificativa_bloco">Justificativa aos alunos:</label>
+                <textarea id="justificativa_bloco" name="justificativa" rows="4" maxlength="2000"
+                    aria-describedby="justificativa_bloco_ajuda"
+                    placeholder="Informe o motivo do cancelamento..."></textarea>
+                <small id="justificativa_bloco_ajuda">Obrigatória se houver alunos agendados. A mesma justificativa será enviada a cada aluno.</small>
+            </div>
+            <button type="submit" class="btn btn-danger">Cancelar Horários Selecionados</button>
         </form>
     </div>
 </div>
@@ -574,7 +583,7 @@
         };
     </script>
 
-    <script src="{{ asset('js/psicologa.js') }}?v=20261003-aluno-unico-1"></script>
+    <script src="{{ asset('js/psicologa.js') }}?v=20261003-cancelamento-bloco-1"></script>
 
 </body>
 </html>

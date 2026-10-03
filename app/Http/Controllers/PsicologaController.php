@@ -129,6 +129,7 @@ if (
     // A rota usa RequisicaoUnica: todas as escritas de agenda são serializadas.
     public function processarAcao(Request $request)
     {
+        abort_unless(auth()->check() && auth()->user()->tipo === 'psicologa', 403);
         $action = $request->input('action');
         if (in_array($action, ['confirmar', 'cancel_by_psicologa', 'delete', 'edit'])) {
             $request->validate(['id' => 'required|integer', 'versao' => 'required|string|size:64']);
@@ -150,21 +151,9 @@ if (
                 abort_if((int) $horario->disponivel !== 0 || (int) $horario->confirmado === 1, 409, 'Atendimento já encerrado ou vaga sem reserva.');
                 $request->validate(['justificativa' => 'nullable|string']);
                 $justificativa = $request->input('justificativa') ?: 'Motivos operacionais.';
-                $aluno = Usuario::where('matricula', $horario->matricula)->first();
-                $nome = $horario->nome ?? $aluno?->nome ?? 'Discente';
-                $token = $horario->token_cancelamento;
-                RegistroAtendimento::create(['id_horario_original' => $horario->id,
-                    'data_atendimento' => $horario->data, 'hora_atendimento' => $horario->hora, 'nome' => $nome,
-                    'matricula' => $horario->matricula, 'status' => 'Cancelado pela Psicóloga',
-                    'observacao' => 'Motivo: '.$justificativa, 'data_registro' => now()]);
+                $this->registrarCancelamentoPelaPsicologa($horario, $justificativa);
                 $horario->update(['disponivel' => 1, 'nome' => null, 'matricula' => null, 'confirmado' => 0,
                     'justificativa_cancelamento' => $justificativa, 'token_cancelamento' => null]);
-                if ($aluno && $aluno->email) {
-                    AvisosEmail::registrar('cancelado:'.$token, $aluno->email,
-                        'Setor de Psicologia IFBA: Sua consulta foi cancelada',
-                        'Olá, '.e($nome).'!<br><br>Sua consulta em '.Carbon::parse($horario->data)->format('d/m/Y')
-                        .' às '.Carbon::parse($horario->hora)->format('H:i').' foi cancelada.<br><strong>Motivo:</strong> '.e($justificativa));
-                }
                 return response()->json(['status' => 'success', 'message' => 'Agendamento cancelado. A notificação será enviada por e-mail quando houver contato cadastrado.']);
 
             case 'delete':
@@ -175,12 +164,71 @@ if (
                 return response()->json(['status' => 'success', 'message' => 'Horário excluído com sucesso.']);
 
             case 'delete_specific_default':
-                $request->validate(['data_inicio' => 'required|date', 'data_fim' => 'required|date|after_or_equal:data_inicio',
-                    'horas' => 'required|array|min:1', 'horas.*' => 'date_format:H:i:s']);
-                $removidos = Horario::where('disponivel', 1)->whereNull('nome')
-                    ->whereBetween('data', [$request->data_inicio, $request->data_fim])
-                    ->whereIn('hora', $request->horas)->delete();
-                return response()->json(['status' => 'success', 'message' => "{$removidos} horários foram apagados com sucesso."]);
+                // Mantém o identificador da ação para compatibilidade com a interface existente.
+                $dados = $request->validate([
+                    'data_inicio' => 'required|date_format:Y-m-d',
+                    'data_fim' => 'required|date_format:Y-m-d|after_or_equal:data_inicio',
+                    'horas' => 'required|array|min:1',
+                    'horas.*' => 'required|date_format:H:i:s',
+                    'justificativa' => 'nullable|string|max:2000',
+                ]);
+                return DB::transaction(function () use ($dados) {
+                    $agora = now();
+                    $horarios = Horario::with('usuario')
+                        ->whereBetween('data', [$dados['data_inicio'], $dados['data_fim']])
+                        ->whereIn('hora', array_unique($dados['horas']))
+                        ->where(function ($q) {
+                            $q->where('confirmado', 0)->orWhereNull('confirmado');
+                        })
+                        ->where(function ($q) use ($agora) {
+                            $q->where('data', '>', $agora->toDateString())
+                                ->orWhere(function ($hoje) use ($agora) {
+                                    $hoje->where('data', $agora->toDateString())
+                                        ->where('hora', '>', $agora->format('H:i:s'));
+                                });
+                        })
+                        ->orderBy('id')->lockForUpdate()->get();
+
+                    $justificativa = trim($dados['justificativa'] ?? '');
+                    $temReserva = $horarios->contains(fn ($item) => (int) $item->disponivel === 0);
+                    if ($temReserva && $justificativa === '') {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'justificativa' => 'Informe a justificativa: há alunos agendados nos horários selecionados. Nenhum horário foi alterado.',
+                        ]);
+                    }
+
+                    $vazios = $cancelados = $avisos = $preservados = 0;
+                    foreach ($horarios as $item) {
+                        $semNome = trim((string) $item->nome) === '';
+                        $semMatricula = trim((string) $item->matricula) === '';
+                        if ((int) $item->disponivel === 1 && $semNome && $semMatricula) {
+                            $item->delete();
+                            $vazios++;
+                        } elseif ((int) $item->disponivel === 0 && !$semMatricula) {
+                            // Histórico e aviso são gravados antes de retirar a vaga da agenda.
+                            $avisos += (int) $this->registrarCancelamentoPelaPsicologa($item, $justificativa);
+                            $item->delete();
+                            $cancelados++;
+                        } else {
+                            // Não apaga silenciosamente reservas com dados inconsistentes.
+                            $preservados++;
+                        }
+                    }
+
+                    $mensagem = "Horários vazios apagados: {$vazios}. Agendamentos cancelados e retirados da agenda: {$cancelados}.";
+                    if ($cancelados > 0) {
+                        $semEmail = $cancelados - $avisos;
+                        $mensagem .= " Notificações por e-mail solicitadas: {$avisos}.";
+                        if ($semEmail > 0) {
+                            $mensagem .= " Sem e-mail válido cadastrado: {$semEmail}. Avise esses alunos por outro meio.";
+                        }
+                    }
+                    if ($preservados > 0) {
+                        $mensagem .= " Horários mantidos por inconsistência no cadastro da reserva: {$preservados}. Confira a agenda.";
+                    }
+                    $mensagem .= ' Horários passados e atendimentos realizados foram mantidos.';
+                    return response()->json(['status' => 'success', 'message' => $mensagem]);
+                });
 
             case 'generate_default':
                 $request->validate(['data_inicio' => 'required|date', 'data_fim' => 'required|date|after_or_equal:data_inicio',
@@ -219,6 +267,38 @@ if (
                 return response()->json(['status' => 'success', 'message' => 'Horário atualizado com sucesso.']);
         }
         return response()->json(['status' => 'error', 'message' => 'Ação inválida.']);
+    }
+
+    /** Chamado dentro da transação da agenda, antes de liberar ou excluir a vaga. */
+    private function registrarCancelamentoPelaPsicologa(Horario $horario, string $justificativa): bool
+    {
+        $aluno = $horario->usuario;
+        $nome = $horario->nome ?? $aluno?->nome ?? 'Discente';
+        RegistroAtendimento::create([
+            'id_horario_original' => $horario->id,
+            'data_atendimento' => $horario->data,
+            'hora_atendimento' => $horario->hora,
+            'nome' => $nome,
+            'matricula' => $horario->matricula,
+            'status' => 'Cancelado pela Psicóloga',
+            'observacao' => 'Motivo: '.$justificativa,
+            'data_registro' => now(),
+        ]);
+
+        $email = trim((string) ($aluno?->email ?? ''));
+        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return false;
+        }
+
+        // Reservas antigas sem token também precisam de uma chave distinta por reserva.
+        $reserva = $horario->token_cancelamento
+            ?: 'legado:'.$horario->id.':'.$horario->versao();
+        AvisosEmail::registrar('cancelado:'.$reserva, $email,
+            'Setor de Psicologia IFBA: Sua consulta foi cancelada',
+            'Olá, '.e($nome).'!<br><br>Sua consulta em '.Carbon::parse($horario->data)->format('d/m/Y')
+            .' às '.Carbon::parse($horario->hora)->format('H:i')
+            .' foi cancelada.<br><strong>Motivo:</strong> '.nl2br(e($justificativa)));
+        return true;
     }
 
     // Catálogo encontrado na tabela turmas do banco do projeto SCAAE.
