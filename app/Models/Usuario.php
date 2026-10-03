@@ -31,17 +31,24 @@ class Usuario extends Authenticatable
         return $this->senha;
     }
 
-    public function getTurmaFormatadaAttribute(): string
+    public static function formatarTurma(?string $codigo): string
 {
-    if (empty($this->turma_codigo)) {
+    $codigo = trim($codigo ?? '');
+
+    if ($codigo === '') {
         return 'Não informada';
     }
 
-    // Se o código tiver 7 ou mais caracteres (ex: 20261.4.18.1I), pega só os últimos 7 ("4.18.1I")
-    if (strlen($this->turma_codigo) >= 7) {
-        return substr($this->turma_codigo, -7);
-    }
+    // Exemplo: 20261.4.18.1I → 4.18.1I
+    return preg_replace(
+        '/^\d{4}[12]\.(?=\d+\.\d+\.[A-Za-z0-9]+$)/',
+        '',
+        $codigo
+    ) ?? $codigo;
+}
 
-    return $this->turma_codigo;
+public function getTurmaFormatadaAttribute(): string
+{
+    return self::formatarTurma($this->turma_codigo);
 }
 }

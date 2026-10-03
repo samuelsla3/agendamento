@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Usuario;
 use App\Services\SuapService;
 use App\Services\Suap\EmailPessoalService;
+use App\Services\Suap\TurmaAlunoService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -20,7 +21,7 @@ class AuthController extends Controller
         return view('login');
     }
 
-    public function logar(Request $request, SuapService $suapService, EmailPessoalService $emailService)
+    public function logar(Request $request, SuapService $suapService, EmailPessoalService $emailService, TurmaAlunoService $turmaService)
     {
         $credenciais = $request->validate([
             'matricula' => 'required|string',
@@ -44,36 +45,11 @@ $dadosSuap = $token
 // Caso contrário, segue para o login local existente abaixo.
 if ($token && is_array($dadosSuap) && !empty($dadosSuap)) {
 
-            // Extrai situação e tenta resgatar a turma do payload principal
+            // Extrai a situação do vínculo; turma será consultada após as validações.
             $situacaoVinculo = $dadosSuap['vinculo']['situacao'] 
                             ?? $dadosSuap['situacao'] 
                             ?? $dadosSuap['tipo_vinculo'] 
                             ?? null;
-
-            $turmaAtual = $dadosSuap['vinculo']['turma_atual'] 
-                       ?? $dadosSuap['turma_atual'] 
-                       ?? $dadosSuap['turma'] 
-                       ?? null;
-
-            // Se não veio no payload principal, tenta buscar no endpoint acadêmico do SUAP
-            if (empty($turmaAtual) && method_exists($suapService, 'obterTurmaAtual')) {
-                $turmaAtual = $suapService->obterTurmaAtual($token);
-            }
-
-            // FALLBACK INTELIGENTE: Se a API não entregar a turma, infere pelo ano e curso (INF x MAM)
-            if (empty($turmaAtual) && !empty($matricula)) {
-                $anoIngresso = substr($matricula, 0, 4); // Pega o ano inicial da matrícula (Ex: '2023')
-                $curso = strtoupper($dadosSuap['vinculo']['curso'] ?? '');
-
-                // Mapeia entre os dois cursos do campus (Informática = 18 / INF | Meio Ambiente = 28 / MAM)
-                if (str_contains($curso, 'MEIO AMBIENTE') || str_contains($curso, '28') || str_contains($curso, 'MAM')) {
-                    $siglaCurso = 'MAM';
-                } else {
-                    $siglaCurso = 'INF'; // Padrão Informática (18 / INF)
-                }
-
-                $turmaAtual = "{$anoIngresso} - {$siglaCurso}";
-            }
 
             Log::info('Login SUAP: dados recebidos.');
 
@@ -119,6 +95,15 @@ if ($token && is_array($dadosSuap) && !empty($dadosSuap)) {
                     ])->withInput($request->only('matricula'));
                 }
             }
+
+            // Consulta confirmada no SUAP; em caso de falha, conserva o cadastro.
+            // Não infere turma usando o ano da matrícula ou o nome do curso.
+            $turmaAtual = $turmaService->resolver(
+                $dadosSuap,
+                $matricula,
+                $senha,
+                $usuarioExistente?->turma_codigo
+            );
 
             // Salva ou atualiza no banco local
             $usuario = Usuario::updateOrCreate(

@@ -6,13 +6,13 @@
     @include('partials.favicon')
     <title>Agenda da Psicóloga</title>
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
-    
+
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/pt-br.js'></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-    
+
     <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ time() }}">
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
 </head>
@@ -40,7 +40,7 @@
     Prontuários e Acompanhamento
 </button>
         </div>
-        
+
         <section class="content-section agenda-hoje-section">
             <div class="agenda-hoje-header">
                 <h2>Agenda de Hoje - {{ \Carbon\Carbon::today()->format('d/m/Y') }}</h2>
@@ -60,6 +60,7 @@
                             <tr>
                                 <th>Horário</th>
                                 <th>Aluno</th>
+                                <th>Turma</th>
                                 <th>Matrícula</th>
                                 <th>Status Interno</th>
                                 <th style="text-align: center;">Ações</th>
@@ -78,6 +79,9 @@
                                         {{ $agendamento->nome ?? 'Não informado' }}
                                     </td>
                                     <td class="col-matricula">
+    {{ $agendamento->usuario?->turma_formatada ?? 'Não informada' }}
+</td>
+                                    <td class="col-matricula">
                                         {{ $agendamento->matricula ?? 'N/A' }}
                                     </td>
                                     <td>
@@ -92,11 +96,12 @@
                                                 class="btn-acoes-hoje"
                                                 data-id="{{ $agendamento->id }}"
                                                 data-versao="{{ $agendamento->versao() }}"
-                                                data-alunoid="{{ $agendamento->aluno_id ?? optional($agendamento->aluno)->id ?? $agendamento->user_id ?? '' }}"
+                                                data-alunoid="{{ $agendamento->usuario?->id ?? '' }}"
                                                 data-disponivel="{{ $agendamento->disponivel }}"
                                                 data-confirmado="{{ $agendamento->confirmado }}"
                                                 data-nome="{{ $agendamento->nome ?? optional($agendamento->aluno)->name ?? 'Não informado' }}"
                                                 data-matricula="{{ $agendamento->matricula ?? optional($agendamento->aluno)->matricula ?? 'N/A' }}"
+                                                data-turma="{{ $agendamento->usuario?->turma_formatada ?? 'Não informada' }}"
                                                 data-ispast="0"
                                                 onclick="abrirAcoesHoje(this)">
                                             Operar
@@ -116,7 +121,7 @@
                 <p style="text-align: center;">Nenhum cancelamento recente.</p>
             @else
                 <div class="cancelamentos-grid" style="display: flex; gap: 30px; justify-content: space-between; flex-wrap: wrap;">
-                    
+
                     @foreach ($ultimosCancelamentos->chunk(5) as $bloco)
                         <div class="cancelamentos-coluna" style="flex: 1; min-width: 300px; max-width: 48%; text-align: left;">
                             <ul class="cancelamentos-lista">
@@ -128,15 +133,15 @@
                                             : 'Data/hora não preservadas neste registro antigo';
                                         $momento_cancelamento = \Carbon\Carbon::parse($cancelamento->data_registro)->format('d/m/Y \à\s H:i');
                                     @endphp
-                                    
+
                                     <li style="margin-bottom: 15px;">
                                         <strong>Aluno:</strong> {{ $cancelamento->nome_aluno ?? 'Não informado' }} 
-                                        ({{ $cancelamento->matricula_aluno ?? 'N/A' }})<br>
-                                        
+                                        ({{ $cancelamento->turma_formatada_aluno }} - {{ $cancelamento->matricula_aluno ?? 'N/A' }})<br>
+
                                         <strong>Horário Cancelado:</strong> {{ $horario_cancelado }}<br>
-                                        
+
                                         <strong>Cancelado em:</strong> {{ $momento_cancelamento }}<br>
-                                        
+
                                         <strong>Justificativa:</strong> "{{ $cancelamento->observacao ?? 'Sem justificativa.' }}"
                                     </li>
                                 @endforeach
@@ -152,7 +157,7 @@
             <h2>Agenda de Horários</h2>
             <div id='calendar'></div>
         </section>
-        
+
                 <section id="relatorio-container" class="content-section">
             <h2>Relatório de Atendimentos</h2>
             <form id="filtro-relatorio-form">
@@ -161,9 +166,28 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="aluno_nome">Nome do Aluno:</label>
-        <input type="text" id="aluno_nome" name="aluno_nome" maxlength="255" placeholder="Digite o nome...">
+                        <input type="text" id="aluno_nome" name="aluno_nome" maxlength="255"
+                            autocomplete="off" placeholder="Todos - digite ou selecione"
+                            list="alunos-relatorio">
+                        <input type="hidden" id="aluno_id" name="aluno_id" value="">
+                        <datalist id="alunos-relatorio">
+                            @foreach($alunos as $aluno)
+                                <option value="{{ $aluno->nome }} ({{ $aluno->matricula ?? 'N/A' }})"
+                                    data-aluno-id="{{ $aluno->id }}"></option>
+                            @endforeach
+                        </datalist>
     </div>
     <div class="form-group">
+                        <label for="turma">Turma:</label>
+                        <input type="text" id="turma" name="turma" list="turmas-relatorio"
+                            maxlength="50" autocomplete="off" placeholder="Todas - digite ou selecione">
+                        <datalist id="turmas-relatorio">
+                            @foreach($turmasRelatorio as $turma)
+                                <option value="{{ $turma }}"></option>
+                            @endforeach
+                        </datalist>
+                    </div>
+                    <div class="form-group">
                         <label for="aluno_matricula">Matrícula do Aluno:</label>
                         <input type="text" id="aluno_matricula" name="aluno_matricula" maxlength="100" placeholder="Matrícula ou trecho dela">
                     </div>
@@ -205,29 +229,30 @@
             <div class="modal-content">
                 <span class="close-btn" onclick="closeModal()">&times;</span>
                 <h3 id="modalTitle"></h3>
-                
+
                 <div id="justificativaInfo" style="display:none;" class="cancelamentos-lista">
                     <li>
                         <strong>Cancelamento anterior:</strong>
                         <p id="justificativaTexto" style="margin: 5px 0 0 0;"></p>
                     </li>
                 </div>
-                
+
                 <div id="agendadoInfo" style="display:none; text-align: left; margin-bottom: 20px;">
                     <p><strong>Agendado por:</strong> <span id="agendadoNome"></span></p>
+                    <p><strong>Turma:</strong> <span id="agendadoTurma"></span></p>
                     <p><strong>Matrícula:</strong> <span id="agendadoMatricula"></span></p>
                     <p><strong>Status:</strong> <span id="agendadoStatus"></span></p>
                 </div>
-                
+
                 <form id="form-disponivel" style="display:none;">
                     <div class="form-group"><label for="data">Data:</label><input type="date" id="data" name="data" required></div>
                     <div class="form-group"><label for="hora">Hora:</label><input type="time" id="hora" name="hora" required></div>
                     <button type="submit" class="btn btn-primary">Salvar</button>
                 </form>
-                
+
                 <div id="action-buttons" class="action-buttons-group">
     <input type="hidden" id="eventId">
-    
+
     <a id="prontuarioBtn" href="#" target="_blank" class="btn btn-info" style="display:none; background-color: #0284c7; border-color: #0284c7; color: #fff; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-weight: bold;">
         Acessar Prontuário
     </a>
@@ -243,7 +268,7 @@
         <div id="generateModal" class="modal">
             <div class="modal-content" style="max-width: 500px;">
                 <span class="close-btn" onclick="closeModal()">&times;</span>
-                
+
                 <div class="modal-tabs" style="display: flex; margin-bottom: 20px; border-bottom: 2px solid #e9ecef;">
                     <button type="button" class="tab-btn active" onclick="switchTab('bloco')" 
                     style="flex: 1; padding: 10px; border: none; background: none; font-weight: bold; 
@@ -258,7 +283,7 @@
                         <div class="form-group"><label for="data_inicio_gerar">Período de:</label><input type="date" id="data_inicio_gerar" required></div>
                         <div class="form-group"><label for="data_fim_gerar">Até:</label><input type="date" id="data_fim_gerar" required></div>
                     </div>
-                    
+
                     <div class="form-group checkbox-group">
                         <p><strong>Selecionar dias da semana:</strong></p>
                         <label><input type="checkbox" name="dias_semana[]" value="1"> Seg</label>
@@ -269,7 +294,7 @@
                         <label><input type="checkbox" name="dias_semana[]" value="6"> Sáb</label>
                         <label><input type="checkbox" name="dias_semana[]" value="7"> Dom</label>
                     </div>
-                    
+
                     <div class="form-group" style="margin-top: 15px;">
                         <label><strong>Selecionar Horários de Atendimento:</strong></label>
                         <div class="horarios-checkbox-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 5px;">
@@ -286,7 +311,7 @@
 
                 <form id="individual-form" class="tab-content" style="display: none;">
                     <p style="color: #6c757d; font-size: 0.9rem; margin-bottom: 15px;">Crie um único horário avulso para um dia específico na agenda.</p>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="data_individual">Data do Atendimento:</label>
@@ -297,18 +322,18 @@
                             <input type="time" id="hora_individual" required disabled>
                         </div>
                     </div>
-                    
+
                     <button type="submit" class="btn btn-success" 
                     style="margin-top: 20px; width: 100%; background-color: #00833D; border-color: #00833D;">Criar Horário Único</button>
                 </form>
             </div>
         </div>
-        
+
         <div id="deleteModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeModal()">&times;</span>
         <h3>Apagar Horários Disponíveis</h3>
-        
+
         <!-- Alerta sobre agendamentos existentes -->
         <div class="alert alert-warning" style="background-color: #fff3cd; border: 1px solid #ffeba2; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px;">
             <strong>Atenção:</strong> Caso algum dos horários no período selecionado já esteja <strong>agendado por um aluno</strong>, o ideal é realizar o <strong>cancelamento</strong> (individual ou em bloco) para que o discente seja notificado por e-mail.
@@ -319,10 +344,10 @@
                 <div class="form-group"><label for="data_inicio_apagar">Apagar de:</label><input type="date" id="data_inicio_apagar" required></div>
                 <div class="form-group"><label for="data_fim_apagar">Até:</label><input type="date" id="data_fim_apagar" required></div>
             </div>
-            
+
             <div class="form-group checkbox-group">
                 <p><strong>Selecionar horários a serem apagados:</strong></p>
-                
+
                 <!-- Opção Selecionar Todos -->
                 <label class="selecionar-todos" style="display: block; font-weight: bold; margin-bottom: 8px; color: #00833D;">
                     <input type="checkbox" id="selecionarTodosHoras" onchange="toggleTodosHorarios(this)"> 
@@ -337,12 +362,12 @@
                 <label><input type="checkbox" class="hora-checkbox" name="horas_apagar[]" value="15:00:00"> 15:00</label>
                 <label><input type="checkbox" class="hora-checkbox" name="horas_apagar[]" value="16:00:00"> 16:00</label>
             </div>
-            
+
             <button type="submit" class="btn btn-danger">Apagar Horários Selecionados</button>
         </form>
     </div>
 </div>
-        
+
         <div id="cancelByPsicologaModal" class="modal">
             <div class="modal-content">
                 <span class="close-btn" onclick="closeModal()">&times;</span>
@@ -362,14 +387,14 @@
     <!-- MODAL DE BUSCA DE PRONTUÁRIO COM FILTRO POR DIGITAÇÃO -->
     <div id="modalBuscaProntuario" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); z-index: 99999; align-items: center; justify-content: center;">
         <div style="background: #fff; width: 100%; max-width: 420px; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.3); font-family: sans-serif; margin: 20px;">
-            
+
             <div style="background-color: #f3f4f6; color: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="margin: 0; font-size: 18px; font-weight: bold; color: #111827;">Buscar Prontuário</h3>
                 <button type="button" onclick="fecharModalBuscaProntuario()" style="background: transparent; border: none; color: #374151; font-size: 22px; cursor: pointer; font-weight: bold;">&times;</button>
             </div>
 
             <form onsubmit="redirecionarParaProntuario(event)" style="padding: 24px;">
-                
+
                 <!-- CAMPO PARA DIGITAR O NOME/MATRÍCULA DO ALUNO -->
                 <div style="margin-bottom: 12px;">
                     <label for="inputFiltroAluno" style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">
@@ -382,10 +407,10 @@
                     <label for="selectAlunoProntuario" style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
                         Selecione o Aluno
                     </label>
-                    
+
                     <select id="selectAlunoProntuario" class="form-select" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;" required size="5">
                         <option value="" disabled selected>Escolha um aluno na lista abaixo...</option>
-                        
+
                         @if(isset($alunos) && $alunos->count() > 0)
                             @foreach($alunos as $aluno)
                                 <option value="{{ $aluno->id }}" data-search="{{ strtolower($aluno->nome . ' ' . $aluno->matricula) }}">
@@ -414,7 +439,7 @@
     <!-- MODAL DE SENHA DE ACESSO -->
     <div id="modalSenhaProntuario" style="display: {{ session('pedir_senha') || $errors->has('senha') ? 'flex' : 'none' }}; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); z-index: 100000; align-items: center; justify-content: center;">
         <div style="background: #fff; width: 100%; max-width: 400px; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.3); font-family: sans-serif; margin: 20px;">
-            
+
             <div style="background-color: #f3f4f6; color: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="margin: 0; font-size: 16px; font-weight: bold; color: #111827;">Acesso Restrito ao Prontuário</h3>
                 <button type="button" onclick="fecharModalSenhaProntuario()" style="background: transparent; border: none; color: #374151; font-size: 22px; cursor: pointer; font-weight: bold;">&times;</button>
@@ -432,7 +457,7 @@
                         Sua Senha
                     </label>
                     <input type="password" id="senhaProntuarioInput" name="senha" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box;" placeholder="••••••••" required autofocus>
-                    
+
                     @error('senha')
                         <span style="color: #ef4444; font-size: 12px; margin-top: 6px; display: block;">{{ $message }}</span>
                     @enderror
@@ -493,7 +518,7 @@
             if (options[i].disabled && options[i].value === "") continue;
 
             const textoBusca = options[i].getAttribute('data-search') || options[i].text.toLowerCase();
-            
+
             if (textoBusca.includes(termo)) {
                 options[i].style.display = "";
             } else {
@@ -504,10 +529,10 @@
 
     function redirecionarParaProntuario(e) {
         if (e) e.preventDefault();
-        
+
         const select = document.getElementById('selectAlunoProntuario');
         const alunoId = select ? select.value : null;
-        
+
         if (alunoId) {
             window.location.href = '/prontuarios/aluno/' + alunoId;
         } else {
@@ -530,7 +555,7 @@
             const master = document.getElementById('selecionarTodosHoras');
             const total = document.querySelectorAll('.hora-checkbox').length;
             const marcados = document.querySelectorAll('.hora-checkbox:checked').length;
-            
+
             if (master) {
                 master.checked = (total === marcados);
             }
@@ -549,7 +574,7 @@
         };
     </script>
 
-    <script src="{{ asset('js/psicologa.js') }}?v=20260927-mobile-2"></script>
+    <script src="{{ asset('js/psicologa.js') }}?v=20261003-aluno-unico-1"></script>
 
 </body>
 </html>

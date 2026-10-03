@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const props = rawEventData.extendedProps;
             let className = 'evento-disponivel-psicologa';
             let statusTexto = 'Disponível';
-            
+
             let horarioOriginal = '';
             if (rawEventData.start) {
                 const partesHora = rawEventData.start.split('T')[1]; 
@@ -86,7 +86,7 @@ function openModal(event) {
     );
 
     $('#eventId').val(event.id).data('versao', props.versao);
-    $('#justificativaTexto, #agendadoNome, #agendadoMatricula, #agendadoStatus').text('');
+    $('#justificativaTexto, #agendadoNome, #agendadoTurma, #agendadoMatricula, #agendadoStatus').text('');
     $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #prontuarioBtn').hide();
 
     if (disponivel && !confirmado) {
@@ -102,7 +102,8 @@ function openModal(event) {
 
         if (teveCancelamento) {
             const nome = props.nome || props.aluno_nome;
-            let aviso = nome ? `A reserva anterior de ${nome}` : 'A reserva anterior';
+            const turma = props.turma_formatada || 'Não informada';
+            let aviso = nome ? `A reserva anterior de ${nome} (${turma})` : 'A reserva anterior';
 
             if (statusAnterior === 'Cancelado pelo Aluno') {
                 aviso += ' foi cancelada pelo próprio aluno.';
@@ -135,6 +136,7 @@ if (props.justificativa_cancelamento) {
         $('#modalTitle').text('Detalhes do Agendamento');
         $('#agendadoInfo').show();
         $('#agendadoNome').text(props.nome || props.aluno_nome || 'N/A');
+        $('#agendadoTurma').text(props.turma_formatada || 'Não informada');
         $('#agendadoMatricula').text(props.matricula || props.aluno_matricula || 'N/A');
 
         const alunoId = props.aluno_id || props.user_id;
@@ -209,6 +211,20 @@ $('#cancel-by-psicologa-form').submit(function(e) {
 
 (() => {
     const form = $('#filtro-relatorio-form');
+    const pesquisaAluno = document.getElementById('aluno_nome');
+    const selecaoAluno = document.getElementById('aluno_id');
+    const sugestoesAlunos = document.getElementById('alunos-relatorio');
+    const alunosPorOpcao = new Map(Array.from(sugestoesAlunos?.options || []).map(opcao => [
+        opcao.value, opcao.dataset.alunoId
+    ]));
+    const sincronizarAluno = () => {
+        if (!pesquisaAluno || !selecaoAluno) return;
+        // Só uma opção completa identifica um aluno. Texto livre continua sendo busca por nome.
+        selecaoAluno.value = alunosPorOpcao.get(pesquisaAluno.value) || '';
+    };
+    pesquisaAluno?.addEventListener('input', sincronizarAluno);
+    pesquisaAluno?.addEventListener('change', sincronizarAluno);
+    sincronizarAluno();
     const resultado = $('#resultado_relatorio');
     const exportar = $('#exportar-pdf-btn');
     const gerar = $('#filtro-relatorio-form button[type="submit"]');
@@ -229,6 +245,7 @@ $('#cancel-by-psicologa-form').submit(function(e) {
 
     form.on('submit', function (e) {
         e.preventDefault();
+        sincronizarAluno();
         const atual = ++versao;
         if (requisicao) requisicao.abort();
         const filtros = form.serialize();
@@ -299,6 +316,7 @@ $('#cancel-by-psicologa-form').submit(function(e) {
         const metadados = [
             texto('indicadores-relatorio'), texto('total-registros-relatorio'),
             texto('periodo-relatorio'), texto('situacao-relatorio'), texto('aluno-relatorio'),
+            texto('turma-relatorio'),
             'Indicadores: somente realizados; alunos distintos por matrícula, dentro dos filtros.',
             texto('avisos-relatorio')
         ].filter(Boolean);
@@ -351,7 +369,7 @@ function switchTab(type) {
     if (type === 'bloco') {
         buttons[0].style.color = '#00833D';
         buttons[0].style.borderBottom = '3px solid #00833D';
-        
+
         blocoForm.style.display = 'block';
         individualForm.style.display = 'none';
 
@@ -360,7 +378,7 @@ function switchTab(type) {
     } else {
         buttons[1].style.color = '#00833D';
         buttons[1].style.borderBottom = '3px solid #00833D';
-        
+
         blocoForm.style.display = 'none';
         individualForm.style.display = 'block';
 
@@ -398,17 +416,19 @@ function abrirAcoesHoje(botao) {
     const confirmado = parseInt(botao.getAttribute('data-confirmado'));
     const nome = botao.getAttribute('data-nome');
     const matricula = botao.getAttribute('data-matricula');
+    const turma = botao.getAttribute('data-turma') || 'Não informada';
     const isPast = botao.getAttribute('data-ispast') === '1';
 
     $('#eventId').val(id).data('versao', botao.getAttribute('data-versao'));
-    $('#justificativaTexto, #agendadoNome, #agendadoMatricula, #agendadoStatus').text('');
-    
+    $('#justificativaTexto, #agendadoNome, #agendadoTurma, #agendadoMatricula, #agendadoStatus').text('');
+
     $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #prontuarioBtn').hide();
 
     $('#modalTitle').text('Detalhes do Agendamento');
     $('#agendadoInfo').show();
-    
+
     $('#agendadoNome').text(nome);
+    $('#agendadoTurma').text(turma);
     $('#agendadoMatricula').text(matricula);
     $('#agendadoStatus').text('Agendado').css('color', '#d97706');
 

@@ -19,28 +19,34 @@ public function index()
     }
 
     $hoje = \Carbon\Carbon::today()->toDateString();
-    $agendamentosHoje = Horario::where('data', $hoje)
-        ->where('disponivel', 0)
-        ->orderBy('hora', 'asc')
-        ->get();
+    $agendamentosHoje = Horario::with('usuario')
+    ->where('data', $hoje)
+    ->where('disponivel', 0)
+    ->orderBy('hora', 'asc')
+    ->get();
 
     // Filtra para exibir apenas os cancelamentos cujos horários originais continuam disponíveis (disponivel = 1)
     $ultimosCancelamentos = DB::table('registros_atendimentos as ra')
-        ->join('horarios as h', 'ra.id_horario_original', '=', 'h.id')
-        ->where('ra.status', 'Cancelado pelo Aluno')
-        ->where('h.disponivel', 1)
-        ->select('ra.*')
-        ->orderBy('ra.data_registro', 'desc')
-        ->take(10)
-        ->get();
+    ->join('horarios as h', 'ra.id_horario_original', '=', 'h.id')
+    ->leftJoin('usuarios as u', 'ra.matricula', '=', 'u.matricula')
+    ->where('ra.status', 'Cancelado pelo Aluno')
+    ->where('h.disponivel', 1)
+    ->select('ra.*', 'u.turma_codigo as turma_codigo_aluno')
+    ->orderBy('ra.data_registro', 'desc')
+    ->take(10)
+    ->get();
 
     $ultimosCancelamentos = collect($ultimosCancelamentos)->map(function ($cancelamento) {
-        
+
         $cancelamento->nome_aluno = $cancelamento->nome ?? $cancelamento->nome_aluno ?? 'Não informado';
         $cancelamento->matricula_aluno = $cancelamento->matricula ?? $cancelamento->matricula_aluno ?? 'N/A';
-        
+
+        $cancelamento->turma_formatada_aluno = Usuario::formatarTurma(
+    $cancelamento->turma_codigo_aluno ?? null
+);
+
         // data_atendimento e hora_atendimento vêm de ra.*, sem consultar a vaga atual.
-        
+
         return $cancelamento;
     });
 
@@ -48,29 +54,38 @@ public function index()
         ->orderBy('nome', 'asc')
         ->get();
 
-    return view('agenda', compact('ultimosCancelamentos', 'agendamentosHoje', 'alunos'));
+    $turmasRelatorio = $this->listarTurmasRelatorio($alunos->pluck('turma_codigo'));
+
+    return view('agenda', compact('ultimosCancelamentos', 'agendamentosHoje', 'alunos', 'turmasRelatorio'));
 }
 
     public function listarEventos()
     {
-        $horarios = Horario::all();
+        abort_unless(auth()->check() && auth()->user()->tipo === 'psicologa', 403);
+
+        $horarios = Horario::with('usuario')->get();
         $eventos = [];
 
         foreach ($horarios as $row) {
             $dataHoraReservaAnterior = null;
             $nome = $row->nome;
             $matricula = $row->matricula;
+            $turmaCodigo = $row->usuario?->turma_codigo;
             $statusReal = $row->confirmado ? 'Confirmado' : 'Agendado';
 
             if ($row->disponivel == 1 && !empty($row->justificativa_cancelamento)) {
-                $historico = DB::table('registros_atendimentos')
-                    ->where('id_horario_original', $row->id)
-                    ->orderBy('data_registro', 'desc')
+                $historico = DB::table('registros_atendimentos as ra')
+                    ->leftJoin('usuarios as u', 'ra.matricula', '=', 'u.matricula')
+                    ->select('ra.*', 'u.turma_codigo as turma_codigo_aluno')
+                    ->where('ra.id_horario_original', $row->id)
+                    ->orderBy('ra.data_registro', 'desc')
                     ->first();
 
                 if ($historico) {
                     $nome = $historico->nome ?? $historico->nome_aluno ?? $nome;
                     $matricula = $historico->matricula ?? $historico->matricula_aluno ?? $matricula;
+                    // A vaga liberada pode estar sem aluno; usa a matrícula do histórico.
+                    $turmaCodigo = $historico->turma_codigo_aluno ?? null;
                     $statusReal = $historico->status; 
                     // Usa a data e a hora preservadas no histórico do atendimento.
 if (
@@ -98,6 +113,7 @@ if (
                     'disponivel' => (int)$row->disponivel,
                     'nome' => $nome,
                     'matricula' => $matricula,
+                    'turma_formatada' => $this->normalizarTurmaRelatorio($turmaCodigo) ?: 'Não informada',
                     'confirmado' => (int)$row->confirmado,
                     'justificativa_cancelamento' => $row->justificativa_cancelamento,
                     'status_real' => $statusReal,
@@ -205,7 +221,32 @@ if (
         return response()->json(['status' => 'error', 'message' => 'Ação inválida.']);
     }
 
-            public function gerarRelatorio(Request $request)
+    // Catálogo encontrado na tabela turmas do banco do projeto SCAAE.
+    // Somado às turmas do cadastro local, sem importar o banco do outro projeto.
+    private function listarTurmasRelatorio($codigos): array
+    {
+        $catalogo = [
+            '1.18.1I', '2.18.1I', '3.18.1I', '4.18.1I',
+            '1.18.2I', '2.18.2I', '3.18.2I', '4.18.2I',
+            '1.28.1I', '2.28.1I', '3.28.1I', '4.28.1I',
+            '1.28.2I', '2.28.2I', '3.28.2I', '4.28.2I',
+        ];
+
+        return collect($catalogo)->merge(collect($codigos)->map(
+            fn ($codigo) => $this->normalizarTurmaRelatorio($codigo)
+        ))->filter(fn ($codigo) => $codigo !== '')->unique()->sort(SORT_NATURAL)->values()->all();
+    }
+
+    private function normalizarTurmaRelatorio(?string $codigo): string
+    {
+        $codigo = mb_strtoupper(trim($codigo ?? ''), 'UTF-8');
+        // SUAP: 20261.4.18.1I -> 4.18.1I, mantendo turmas de outros formatos.
+        $codigo = preg_replace('/^\d{4}[12]\.(?=\d+\.\d+\.[A-Z0-9]+$)/', '', $codigo);
+        // Catálogo do outro projeto: 4181I -> 4.18.1I.
+        return preg_replace('/^([1-4])(18|28)([12]I)$/', '$1.$2.$3', $codigo);
+    }
+
+    public function gerarRelatorio(Request $request)
     {
         if (!auth()->check() || auth()->user()->tipo !== 'psicologa') {
             return response('Acesso negado.', 403);
@@ -214,6 +255,8 @@ if (
         // Validação fora do try: dados inválidos devem retornar 422, não 500.
         $filtros = $request->validate([
             'aluno_nome' => ['nullable', 'string', 'max:255'],
+            'aluno_id' => ['nullable', 'integer', 'exists:usuarios,id'],
+            'turma' => ['nullable', 'string', 'max:50'],
             'aluno_matricula' => ['nullable', 'string', 'max:100'],
             'data_inicio' => ['nullable', 'date_format:Y-m-d'],
             'data_fim' => array_merge(['nullable', 'date_format:Y-m-d'],
@@ -225,10 +268,21 @@ if (
             'data_inicio.date_format' => 'Informe uma data inicial válida.',
             'data_fim.date_format' => 'Informe uma data final válida.',
             'situacao.in' => 'Selecione uma situação válida.',
+            'aluno_id.integer' => 'Selecione um aluno válido na lista.',
+            'aluno_id.exists' => 'O aluno selecionado não está mais cadastrado. Recarregue a página.',
         ]);
 
         try {
             $nome = trim($filtros['aluno_nome'] ?? '');
+            $alunoSelecionado = !empty($filtros['aluno_id'])
+                ? Usuario::select('id', 'nome', 'matricula')->find($filtros['aluno_id'])
+                : null;
+            if (!empty($filtros['aluno_id']) && !$alunoSelecionado) {
+                return response()->json(['errors' => ['aluno_id' => [
+                    'O aluno selecionado não está mais cadastrado. Recarregue a página.',
+                ]]], 422);
+            }
+            $turma = $this->normalizarTurmaRelatorio($filtros['turma'] ?? null);
             $matricula = trim($filtros['aluno_matricula'] ?? '');
             $dataInicio = $filtros['data_inicio'] ?? null;
             $dataFim = $filtros['data_fim'] ?? null;
@@ -248,38 +302,58 @@ if (
                 'cancelados' => ['Cancelado pelo Aluno', 'Cancelado pela Psicóloga'],
             ];
 
-            $query = DB::table('registros_atendimentos');
-            if ($nome !== '') {
-                $query->whereRaw('LOWER(nome) LIKE ?', ['%' . mb_strtolower($nome, 'UTF-8') . '%']);
+            $query = DB::table('registros_atendimentos as ra')
+                ->leftJoin('usuarios as u', 'ra.matricula', '=', 'u.matricula')
+                ->select('ra.*', 'u.turma_codigo as turma_codigo_aluno');
+            $turmaExata = false;
+            if ($turma !== '') {
+                $codigos = Usuario::whereNotNull('turma_codigo')->distinct()->pluck('turma_codigo');
+                $turmaExata = in_array($turma, $this->listarTurmasRelatorio($codigos), true);
+                // Código completo: turma específica. Texto parcial: início do código formatado.
+                // Ex.: 3 encontra terceiros anos; 3.18 encontra os terceiros anos do curso 18.
+                $correspondentes = $codigos->filter(function ($codigo) use ($turma, $turmaExata) {
+                    $formatada = $this->normalizarTurmaRelatorio($codigo);
+                    return $turmaExata
+                        ? $formatada === $turma
+                        : str_starts_with($formatada, $turma);
+                })->values()->all();
+                // Mantém parâmetros no SQL; entrada sem correspondências gera resultado vazio.
+                $query->whereIn('u.turma_codigo', $correspondentes);
+            }
+            if ($alunoSelecionado) {
+                // Seleção exata evita misturar homônimos e mantém o histórico mesmo após mudança de nome.
+                $query->where('u.id', $alunoSelecionado->id);
+            } elseif ($nome !== '') {
+                $query->whereRaw('LOWER(ra.nome) LIKE ?', ['%' . mb_strtolower($nome, 'UTF-8') . '%']);
             }
             if ($matricula !== '') {
                 // Preserva a pesquisa por trecho de matrícula já existente.
-                $query->where('matricula', 'like', '%' . $matricula . '%');
+                $query->where('ra.matricula', 'like', '%' . $matricula . '%');
             }
             if ($dataInicio) {
-                $query->where('data_atendimento', '>=', $dataInicio);
+                $query->where('ra.data_atendimento', '>=', $dataInicio);
             }
             if ($dataFim) {
-                $query->where('data_atendimento', '<=', $dataFim);
+                $query->where('ra.data_atendimento', '<=', $dataFim);
             }
             if ($situacao !== 'todos') {
-                $query->whereIn('status', $statusPorFiltro[$situacao]);
+                $query->whereIn('ra.status', $statusPorFiltro[$situacao]);
             }
 
             switch ($ordenarPor) {
                 case 'nome_asc':
-                    $query->orderBy('nome');
+                    $query->orderBy('ra.nome');
                     break;
                 case 'situacao_asc':
-                    $query->orderBy('status');
+                    $query->orderBy('ra.status');
                     break;
                 default:
                     $direcao = $ordenarPor === 'data_asc' ? 'asc' : 'desc';
-                    $query->orderByRaw('data_atendimento IS NULL ASC')
-                        ->orderBy('data_atendimento', $direcao)
-                        ->orderBy('hora_atendimento', $direcao);
+                    $query->orderByRaw('ra.data_atendimento IS NULL ASC')
+                        ->orderBy('ra.data_atendimento', $direcao)
+                        ->orderBy('ra.hora_atendimento', $direcao);
             }
-            $registros = $query->orderBy('id')->get();
+            $registros = $query->orderBy('ra.id')->get();
 
             if ($dataInicio && $dataFim) {
                 $periodoStr = 'Período selecionado: ' . Carbon::parse($dataInicio)->format('d/m/Y')
@@ -313,7 +387,10 @@ if (
 
             return $this->renderTabelaFallback($registros, $periodoStr, $indicadores, [
                 'situacao' => $rotulos[$situacao],
-                'aluno' => 'Nome contém: ' . ($nome !== '' ? $nome : 'qualquer nome')
+                'turma' => $turma === '' ? 'Todas' : ($turmaExata ? $turma : 'Começa com ' . $turma),
+                'aluno' => ($alunoSelecionado
+                    ? 'Aluno: ' . $alunoSelecionado->nome . ' | Matrícula: ' . $alunoSelecionado->matricula
+                    : 'Nome contém: ' . ($nome !== '' ? $nome : 'qualquer nome'))
                     . ' | Matrícula contém: ' . ($matricula !== '' ? $matricula : 'qualquer matrícula'),
                 'avisos' => implode(' ', $avisos),
             ]);
@@ -334,6 +411,7 @@ if (
         $html .= '<p id="periodo-relatorio" hidden>' . e($periodoStr) . '</p>';
         $html .= '<p id="situacao-relatorio" hidden>Situação: ' . e($contexto['situacao']) . '</p>';
         $html .= '<p id="aluno-relatorio" hidden>' . e($contexto['aluno']) . '</p>';
+        $html .= '<p id="turma-relatorio" hidden>Turma (cadastro atual): ' . e($contexto['turma']) . '</p>';
         $html .= '<p id="avisos-relatorio" style="color:#555;">' . e($contexto['avisos']) . '</p></div>';
 
         if ($registros->isEmpty()) {
@@ -342,7 +420,7 @@ if (
 
         $html .= '<table id="tabela-relatorio" style="width:100%;border-collapse:collapse;margin-top:15px;">'
             . '<thead style="background-color:#f2f2f2;"><tr>';
-        foreach (['Aluno', 'Matrícula', 'Data e hora marcadas', 'Situação'] as $coluna) {
+        foreach (['Aluno', 'Turma', 'Matrícula', 'Data e hora marcadas', 'Situação'] as $coluna) {
             $html .= '<th style="padding:8px;border:1px solid #ddd;text-align:left;">' . $coluna . '</th>';
         }
         $html .= '</tr></thead><tbody>';
@@ -360,7 +438,9 @@ if (
                 $dataHora = 'Data/hora não preservadas neste registro antigo';
             }
             $html .= '<tr>';
-            foreach ([$reg->nome ?? 'Não informado', $reg->matricula ?? 'Não informada', $dataHora] as $valor) {
+            $turmaAluno = $this->normalizarTurmaRelatorio($reg->turma_codigo_aluno ?? null);
+            foreach ([$reg->nome ?? 'Não informado', $turmaAluno !== '' ? $turmaAluno : 'Não informada',
+                $reg->matricula ?? 'Não informada', $dataHora] as $valor) {
                 $html .= '<td style="padding:8px;border:1px solid #ddd;">' . e($valor) . '</td>';
             }
             $html .= '<td style="padding:8px;border:1px solid #ddd;"><strong style="color:' . $cor . ';">'
