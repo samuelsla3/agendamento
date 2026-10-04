@@ -148,7 +148,7 @@ if (props.justificativa_cancelamento) {
             $('#agendadoStatus').text('Realizado / Concluído').css('color', '#00833D');
         } else {
             $('#agendadoStatus').text('Agendado').css('color', '#d97706');
-            configurarAcoesAtendimento(disponivel, confirmado, isPast);
+            configurarAcoesAtendimento(disponivel, confirmado);
         }
     }
 
@@ -156,12 +156,11 @@ if (props.justificativa_cancelamento) {
 }
 
 // Ambos os modais permitem confirmar uma reserva aberta antes do horário marcado.
-function configurarAcoesAtendimento(disponivel, confirmado, isPast) {
+function configurarAcoesAtendimento(disponivel, confirmado) {
     $('#confirmBtn, #cancelByPsicologaBtn, #deleteBtn').hide();
     if (disponivel || confirmado) return;
     $('#confirmBtn, #cancelByPsicologaBtn').show();
-    // Mantém a regra existente de exclusão apenas de horários futuros.
-    if (!isPast) $('#deleteBtn').show();
+    // Excluir Horário só é exibido no ramo de edição de uma vaga livre.
 }
 
 function closeModal() { 
@@ -441,7 +440,6 @@ function abrirAcoesHoje(botao) {
     const nome = botao.getAttribute('data-nome');
     const matricula = botao.getAttribute('data-matricula');
     const turma = botao.getAttribute('data-turma') || 'Não informada';
-    const isPast = botao.getAttribute('data-ispast') === '1';
 
     $('#eventId').val(id).data('versao', botao.getAttribute('data-versao'));
     $('#justificativaTexto, #agendadoNome, #agendadoTurma, #agendadoMatricula, #agendadoStatus').text('');
@@ -462,7 +460,7 @@ function abrirAcoesHoje(botao) {
         $('#prontuarioBtn').attr('href', '/prontuarios/aluno/' + matricula).css('display', 'inline-block');
     }
 
-    configurarAcoesAtendimento(disponivel === 1, confirmado === 1, isPast);
+    configurarAcoesAtendimento(disponivel === 1, confirmado === 1);
 
     if (confirmado === 1) {
         $('#agendadoStatus').text('Realizado / Concluído').css('color', '#00833D');

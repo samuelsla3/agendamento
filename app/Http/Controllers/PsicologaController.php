@@ -172,6 +172,11 @@ if (
                 return response()->json(['status' => 'success', 'message' => 'Agendamento cancelado. A notificação será enviada por e-mail quando houver contato cadastrado.']);
 
             case 'delete':
+                // Exclusão individual somente para uma vaga realmente livre.
+                // Reserva ocupada deve passar pelo cancelamento, com histórico e aviso.
+                abort_if((int) $horario->disponivel !== 1 || (int) $horario->confirmado === 1
+                    || trim((string) $horario->matricula) !== '' || trim((string) $horario->nome) !== '',
+                    409, 'Somente horários livres podem ser excluídos. Para uma reserva ativa, use Cancelar Agendamento.');
                 if (Carbon::parse($horario->data.' '.$horario->hora)->isPast()) {
                     return response()->json(['status' => 'error', 'message' => 'Não é possível excluir um horário do passado.']);
                 }

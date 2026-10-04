@@ -52,7 +52,7 @@
         class="btn btn-info text-white font-semibold px-4 py-2 rounded-lg shadow">
     Prontuários e Acompanhamento
 </button>
-            <button type="button" class="btn btn-primary" onclick="abrirModalEmergencial()">Atendimento Emergencial</button>
+            <button type="button" class="btn btn-primary" onclick="abrirModalEmergencial()">Atendimento emergencial</button>
         </div>
 
         <section class="content-section agenda-hoje-section">
@@ -656,7 +656,7 @@
         };
     </script>
 
-    <script src="{{ asset('js/psicologa.js') }}?v=20261004-relatorio-agendados-1"></script>
+    <script src="{{ asset('js/psicologa.js') }}?v=20261004-exclusao-livres-1"></script>
     <script src="{{ asset('js/atendimento-emergencial.js') }}?v=20261004-emergencial-1"></script>
 
 </body>

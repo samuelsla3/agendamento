@@ -56,6 +56,7 @@ for (const origem of ['calendario', 'operar']) {
         assert.equal(t.get('#confirmBtn').visivel, true);
         assert.equal(t.get('#cancelByPsicologaBtn').visivel, true);
         assert.equal(t.get('#prontuarioBtn').visivel, true);
+        assert.equal(t.get('#deleteBtn').visivel, false);
         t.get('#confirmBtn').handlers.click();
         assert.equal(t.pedidos[0].data.action, 'confirmar');
         assert.equal(t.pedidos[0].data.id, '1');
@@ -78,4 +79,10 @@ test('calendário: uma vaga livre não pode ser confirmada como atendimento', ()
     const t = tela(); t.abrir('calendario', {disponivel: true});
     assert.equal(t.get('#confirmBtn').visivel, false);
     assert.equal(t.get('#cancelByPsicologaBtn').visivel, false);
+    assert.equal(t.get('#deleteBtn').visivel, true);
+    assert.equal(t.get('#form-disponivel').visivel, true);
+});
+test('calendário: vaga livre passada mantém a restrição de exclusão', () => {
+    const t = tela(); t.abrir('calendario', {disponivel: true, passado: true});
+    assert.equal(t.get('#deleteBtn').visivel, false);
 });
