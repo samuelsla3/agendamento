@@ -10,6 +10,7 @@ use App\Services\Suap\TurmaAlunoService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -106,16 +107,32 @@ if ($token && is_array($dadosSuap) && !empty($dadosSuap)) {
             );
 
             // Salva ou atualiza no banco local
-            $usuario = Usuario::updateOrCreate(
-                ['matricula' => $matricula],
-                [
-                    'nome'         => $nome,
-                    'email'        => $emailFinal,
-                    'turma_codigo' => $turmaAtual,
-                    'tipo'         => 'estudante',
-                    'senha'        => Hash::make($senha)
-                ]
-            );
+            $usuario = DB::transaction(function () use ($matricula, $nome, $emailFinal, $turmaAtual, $senha) {
+                // Apenas a gravação local participa da trava; SUAP fica fora da transação.
+                $trava = DB::table('travas_operacoes')->where('nome', 'agenda')->lockForUpdate()->first();
+                abort_unless($trava, 503, 'Execute as migrations antes de usar o sistema.');
+                $usuario = Usuario::updateOrCreate(
+                    ['matricula' => $matricula],
+                    [
+                        'nome'         => $nome,
+                        'email'        => $emailFinal,
+                        'turma_codigo' => $turmaAtual,
+                        'tipo'         => 'estudante',
+                        'cadastro_provisorio' => false,
+                        'senha'        => Hash::make($senha)
+                    ]
+                );
+
+                // Agendamentos e histórico também guardam uma cópia do nome.
+                // A matrícula identifica a pessoa, inclusive depois do cadastro provisório.
+                // Mantém datas, status, tokens e anotações exatamente como estavam.
+                foreach (['horarios', 'registros_atendimentos'] as $tabela) {
+                    DB::table($tabela)->where('matricula', $usuario->matricula)
+                        ->update(['nome' => $usuario->nome]);
+                }
+
+                return $usuario;
+            });
 
             Auth::login($usuario);
             $request->session()->regenerate();
@@ -138,7 +155,7 @@ if ($token && is_array($dadosSuap) && !empty($dadosSuap)) {
         // ---------------------------------------------------------------------
         $usuarioLocal = Usuario::where('matricula', $matricula)->first();
 
-        if ($usuarioLocal && Hash::check($senha, $usuarioLocal->senha)) {
+        if ($usuarioLocal && !$usuarioLocal->cadastro_provisorio && Hash::check($senha, $usuarioLocal->senha)) {
             Auth::login($usuarioLocal);
             $request->session()->regenerate();
 

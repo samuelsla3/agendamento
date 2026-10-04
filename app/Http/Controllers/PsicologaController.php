@@ -113,6 +113,7 @@ if (
                     'disponivel' => (int)$row->disponivel,
                     'nome' => $nome,
                     'matricula' => $matricula,
+                    'aluno_id' => $row->usuario?->id,
                     'turma_formatada' => $this->normalizarTurmaRelatorio($turmaCodigo) ?: 'Não informada',
                     'confirmado' => (int)$row->confirmado,
                     'justificativa_cancelamento' => $row->justificativa_cancelamento,
@@ -137,6 +138,20 @@ if (
             $horario->conferirVersao($request->input('versao'));
         }
         switch ($action) {
+            case 'atendimento_emergencial':
+                $dados = $request->validate([
+                    'data' => 'required|date_format:Y-m-d', 'hora' => 'required|date_format:H:i',
+                    'aluno_id' => 'nullable|integer',
+                    'matricula' => ['required', 'string', 'max:20', 'regex:/^[0-9]+$/'],
+                    'nome' => 'nullable|string|max:100', 'turma_codigo' => 'nullable|string|max:50',
+                    'email' => 'nullable|string|max:100',
+                ], [
+                    'matricula.regex' => 'Informe a matrícula completa, somente com números.',
+                    'matricula.required' => 'Informe a matrícula do aluno.',
+                ]);
+                $mensagem = app(\App\Services\AtendimentoEmergencial::class)->registrar($dados);
+                return response()->json(['status' => 'success', 'message' => $mensagem]);
+
             case 'confirmar':
                 abort_if((int) $horario->disponivel !== 0 || (int) $horario->confirmado === 1, 409, 'Atendimento já encerrado ou vaga sem reserva.');
                 RegistroAtendimento::create(['id_horario_original' => $horario->id,
@@ -341,7 +356,7 @@ if (
             'data_inicio' => ['nullable', 'date_format:Y-m-d'],
             'data_fim' => array_merge(['nullable', 'date_format:Y-m-d'],
                 $request->filled('data_inicio') ? ['after_or_equal:data_inicio'] : []),
-            'situacao' => ['nullable', 'in:realizados,todos,cancelados_aluno,cancelados_psicologa,cancelados'],
+            'situacao' => ['nullable', 'in:realizados,agendados,todos,cancelados_aluno,cancelados_psicologa,cancelados'],
             'ordenar_por' => ['nullable', 'in:data_asc,data_desc,nome_asc,situacao_asc'],
         ], [
             'data_fim.after_or_equal' => 'A data final deve ser igual ou posterior à data inicial.',
@@ -370,6 +385,7 @@ if (
             $ordenarPor = $filtros['ordenar_por'] ?? 'data_desc';
             $rotulos = [
                 'realizados' => 'Atendimentos realizados',
+                'agendados' => 'Agendados',
                 'todos' => 'Todos os registros',
                 'cancelados_aluno' => 'Cancelados pelo aluno',
                 'cancelados_psicologa' => 'Cancelados pela psicóloga',
@@ -377,12 +393,30 @@ if (
             ];
             $statusPorFiltro = [
                 'realizados' => ['Realizado'],
+                'agendados' => ['Agendado'],
                 'cancelados_aluno' => ['Cancelado pelo Aluno'],
                 'cancelados_psicologa' => ['Cancelado pela Psicóloga'],
                 'cancelados' => ['Cancelado pelo Aluno', 'Cancelado pela Psicóloga'],
             ];
 
-            $query = DB::table('registros_atendimentos as ra')
+            // Encerrados vêm do histórico; reservas ainda abertas vêm da agenda.
+            // Não reconstrói datas antigas a partir de vagas que podem ter sido reutilizadas.
+            $historico = DB::table('registros_atendimentos')
+                ->select('id', 'nome', 'matricula', 'status', 'data_atendimento', 'hora_atendimento')
+                ->selectRaw("'historico' as origem")
+                // Eventuais cópias antigas de Agendado não representam a reserva atual.
+                ->where('status', '<>', 'Agendado');
+            $agendados = DB::table('horarios')
+                ->select('id', 'nome', 'matricula')
+                ->selectRaw("'Agendado' as status, data as data_atendimento, hora as hora_atendimento, 'agenda' as origem")
+                ->where('disponivel', 0)
+                ->where(function ($q) {
+                    $q->where('confirmado', 0)->orWhereNull('confirmado');
+                })
+                ->whereNotNull('matricula')->where('matricula', '<>', '');
+
+            // Uma consulta aplica os mesmos filtros e a mesma ordenação às duas fontes.
+            $query = DB::query()->fromSub($historico->unionAll($agendados), 'ra')
                 ->leftJoin('usuarios as u', 'ra.matricula', '=', 'u.matricula')
                 ->select('ra.*', 'u.turma_codigo as turma_codigo_aluno');
             $turmaExata = false;
@@ -433,7 +467,7 @@ if (
                         ->orderBy('ra.data_atendimento', $direcao)
                         ->orderBy('ra.hora_atendimento', $direcao);
             }
-            $registros = $query->orderBy('ra.id')->get();
+            $registros = $query->orderBy('ra.origem')->orderBy('ra.id')->get();
 
             if ($dataInicio && $dataFim) {
                 $periodoStr = 'Período selecionado: ' . Carbon::parse($dataInicio)->format('d/m/Y')

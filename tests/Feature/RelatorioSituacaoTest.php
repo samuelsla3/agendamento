@@ -3,11 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\Usuario;
+use App\Models\Horario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class RelatorioSituacaoTest extends TestCase
@@ -19,7 +21,7 @@ class RelatorioSituacaoTest extends TestCase
         if (config('database.default') !== 'sqlite'
             || config('database.connections.sqlite.database') !== ':memory:'
             || !empty(config('database.connections.sqlite.url'))) {
-            throw new \RuntimeException('Use phpunit-operacoes.xml com SQLite em memória e limpe o cache de configuração.');
+            throw new \RuntimeException('Use phpunit-relatorio-agendados.xml com SQLite em memória e limpe o cache de configuração.');
         }
     }
 
@@ -42,7 +44,6 @@ class RelatorioSituacaoTest extends TestCase
             ['Aluno Cancelado', '33333333333', 'Cancelado pelo Aluno', '2026-09-04'],
             ['Aluno Remarcado', '44444444444', 'Cancelado pela Psicóloga', '2026-09-05'],
             ['Aluno Antigo', '55555555555', 'Realizado', null],
-            ['Aluno Futuro', '66666666666', 'Agendado', '2026-10-01'],
         ] as $i => [$nome, $matricula, $status, $data]) {
             DB::table('registros_atendimentos')->insert([
                 'id_horario_original' => $i + 1, 'nome' => $nome, 'matricula' => $matricula,
@@ -50,6 +51,9 @@ class RelatorioSituacaoTest extends TestCase
                 'data_atendimento' => $data, 'hora_atendimento' => $data ? '09:00:00' : null,
             ]);
         }
+        Horario::create(['nome' => 'Aluno Futuro', 'matricula' => '66666666666',
+            'data' => '2026-10-01', 'hora' => '09:00:00', 'disponivel' => 0, 'confirmado' => 0,
+            'token_cancelamento' => Str::random(64)]);
     }
 
     public function test_padrao_conta_atendimentos_e_alunos_distintos_sem_cancelados_ou_pendentes(): void
@@ -124,6 +128,84 @@ class RelatorioSituacaoTest extends TestCase
             ->update(['nome' => '<script>alert(1)</script>']);
         $this->post('/agenda/relatorio', ['aluno_nome' => '<script>'])->assertOk()
             ->assertSee('&lt;script&gt;', false)->assertDontSee('<script>', false);
+    }
+
+    public function test_agendados_vem_da_reserva_atual_sem_contar_como_realizados(): void
+    {
+        // Vaga vazia e horário já concluído não são reservas abertas.
+        Horario::create(['data' => '2026-10-01', 'hora' => '10:00:00', 'disponivel' => 1]);
+        Horario::create(['nome' => 'Aluno Alfa', 'matricula' => '11111111111',
+            'data' => '2026-09-01', 'hora' => '09:00:00', 'disponivel' => 0, 'confirmado' => 1]);
+        $this->post('/agenda/relatorio', ['situacao' => 'agendados'])->assertOk()
+            ->assertSee('Total de registros encontrados: 1')->assertSee('Aluno Futuro')
+            ->assertSee('01/10/2026 às 09:00')->assertSee('Situação: Agendados')
+            ->assertSee('Atendimentos realizados: 0 · Alunos atendidos: 0')
+            ->assertDontSee('Aluno Alfa');
+        $this->post('/agenda/relatorio', ['situacao' => 'todos', 'ordenar_por' => 'data_asc'])->assertOk()
+            ->assertSee('Total de registros encontrados: 7')
+            ->assertSeeInOrder(['Aluno Alfa', 'Aluno Beta', 'Aluno Cancelado', 'Aluno Remarcado', 'Aluno Futuro', 'Aluno Antigo']);
+    }
+
+    public function test_filtros_de_nome_matricula_turma_aluno_e_periodo_tambem_valem_para_agendados(): void
+    {
+        $aluno = Usuario::forceCreate(['nome' => 'Aluno Futuro', 'matricula' => '66666666666',
+            'email' => 'aluno@example.test', 'tipo' => 'estudante', 'turma_codigo' => '20261.3.18.1I',
+            'senha' => Hash::make('teste'), 'password' => Hash::make('teste')]);
+        $filtros = ['situacao' => 'agendados', 'aluno_nome' => 'Futuro', 'turma' => '3',
+            'aluno_matricula' => '66666', 'data_inicio' => '2026-10-01', 'data_fim' => '2026-10-01'];
+        $this->post('/agenda/relatorio', $filtros)->assertOk()->assertSee('Total de registros encontrados: 1');
+        $this->post('/agenda/relatorio', array_merge($filtros, ['aluno_id' => $aluno->id]))
+            ->assertOk()->assertSee('Total de registros encontrados: 1');
+        foreach ([['turma' => '4'], ['aluno_nome' => 'Outro'], ['aluno_matricula' => '111'],
+            ['data_inicio' => '2026-10-02', 'data_fim' => '2026-10-02']] as $alteracoes) {
+            $this->post('/agenda/relatorio', array_merge($filtros, $alteracoes))->assertOk()
+                ->assertSee('Total de registros encontrados: 0');
+        }
+    }
+
+    public function test_confirmar_antes_do_horario_transfere_para_realizados_sem_duplicar(): void
+    {
+        $horario = Horario::sole();
+        $horario->update(['data' => now()->addDays(2)->toDateString()]);
+        $this->postJson('/agenda/acao', ['action' => 'confirmar', 'id' => $horario->id,
+            'versao' => $horario->versao(), '_operation_id' => (string) Str::uuid()])
+            ->assertOk()->assertJsonPath('status', 'success');
+        $this->post('/agenda/relatorio', ['situacao' => 'agendados'])->assertOk()
+            ->assertSee('Total de registros encontrados: 0');
+        $this->post('/agenda/relatorio', ['situacao' => 'todos'])->assertOk()
+            ->assertSee('Total de registros encontrados: 7')
+            ->assertSee('Atendimentos realizados: 5 · Alunos atendidos: 4');
+        $this->postJson('/agenda/acao', ['action' => 'confirmar', 'id' => $horario->id,
+            'versao' => $horario->fresh()->versao(), '_operation_id' => (string) Str::uuid()])->assertConflict();
+    }
+
+    public function test_cancelar_retira_dos_agendados_e_mantem_um_registro_no_historico(): void
+    {
+        $horario = Horario::sole();
+        $this->postJson('/agenda/acao', ['action' => 'cancel_by_psicologa', 'id' => $horario->id,
+            'versao' => $horario->versao(), '_operation_id' => (string) Str::uuid(),
+            'justificativa' => 'Teste fictício.'])->assertOk();
+        $this->post('/agenda/relatorio', ['situacao' => 'agendados'])->assertOk()
+            ->assertSee('Total de registros encontrados: 0');
+        $this->post('/agenda/relatorio', ['situacao' => 'todos'])->assertOk()
+            ->assertSee('Total de registros encontrados: 7')
+            ->assertSee('Atendimentos realizados: 4 · Alunos atendidos: 3');
+    }
+
+    public function test_copia_legada_de_agendado_nao_duplica_reserva_nem_reaparece_apos_confirmacao(): void
+    {
+        $horario = Horario::sole();
+        DB::table('registros_atendimentos')->insert(['id_horario_original' => $horario->id,
+            'nome' => $horario->nome, 'matricula' => $horario->matricula, 'status' => 'Agendado',
+            'data_atendimento' => $horario->data, 'hora_atendimento' => $horario->hora, 'data_registro' => now()]);
+        $this->post('/agenda/relatorio', ['situacao' => 'agendados'])->assertOk()
+            ->assertSee('Total de registros encontrados: 1');
+        $this->postJson('/agenda/acao', ['action' => 'confirmar', 'id' => $horario->id,
+            'versao' => $horario->versao(), '_operation_id' => (string) Str::uuid()])->assertOk();
+        $this->post('/agenda/relatorio', ['situacao' => 'agendados'])->assertOk()
+            ->assertSee('Total de registros encontrados: 0');
+        $this->post('/agenda/relatorio', ['situacao' => 'todos'])->assertOk()
+            ->assertSee('Total de registros encontrados: 7');
     }
 
     public function test_aluno_nao_pode_acessar_o_relatorio(): void

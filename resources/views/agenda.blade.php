@@ -14,6 +14,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
 
     <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ time() }}">
+    <style>
+        #emergencial-titulo { padding-right: 24px; }
+        #emergencialModal input[type="email"] {
+            width: 100%; min-height: 44px; padding: 10px; border: 1px solid #ccc;
+            border-radius: 4px; box-sizing: border-box; font: inherit;
+        }
+        #emergencialModal input[readonly] { background-color: #f3f4f6; }
+        #emergencialModal .modal-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+        #emergencialModal p { line-height: 1.5; }
+        @media (max-width: 767px) {
+            #emergencialModal .modal-buttons > .btn { width: 100%; }
+        }
+    </style>
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
 </head>
 <body>
@@ -39,6 +52,7 @@
         class="btn btn-info text-white font-semibold px-4 py-2 rounded-lg shadow">
     Prontuários e Acompanhamento
 </button>
+            <button type="button" class="btn btn-primary" onclick="abrirModalEmergencial()">Atendimento Emergencial</button>
         </div>
 
         <section class="content-section agenda-hoje-section">
@@ -102,7 +116,7 @@
                                                 data-nome="{{ $agendamento->nome ?? optional($agendamento->aluno)->name ?? 'Não informado' }}"
                                                 data-matricula="{{ $agendamento->matricula ?? optional($agendamento->aluno)->matricula ?? 'N/A' }}"
                                                 data-turma="{{ $agendamento->usuario?->turma_formatada ?? 'Não informada' }}"
-                                                data-ispast="0"
+                                                data-ispast="{{ $isPast ? '1' : '0' }}"
                                                 onclick="abrirAcoesHoje(this)">
                                             Operar
                                         </button>
@@ -203,6 +217,7 @@
                         <label for="situacao">Situação:</label>
                         <select id="situacao" name="situacao">
                             <option value="realizados" selected>Atendimentos realizados</option>
+                            <option value="agendados">Agendados</option>
                             <option value="todos">Todos os registros</option>
                             <option value="cancelados_aluno">Cancelados pelo aluno</option>
                             <option value="cancelados_psicologa">Cancelados pela psicóloga</option>
@@ -262,6 +277,64 @@
     <button type="button" id="deleteBtn" class="btn btn-danger">Excluir Horário</button>
     <button type="button" onclick="closeModal()" class="btn btn-secondary">Fechar</button>
 </div>
+            </div>
+        </div>
+
+        <div id="emergencialModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="emergencial-titulo">
+            <div class="modal-content" style="max-width: 560px;">
+                <button type="button" class="close-btn" onclick="closeModal()" aria-label="Fechar">&times;</button>
+                <h2 id="emergencial-titulo">Atendimento emergencial</h2>
+                <form id="emergencial-form" data-fuso="{{ config('app.timezone') }}">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="emergencial-data">Data:</label>
+                            <input type="date" id="emergencial-data" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="emergencial-hora">Hora:</label>
+                            <input type="time" id="emergencial-hora" required step="60">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="emergencial-nome">Nome do aluno:</label>
+                        <input type="text" id="emergencial-nome" list="emergencial-alunos" maxlength="125"
+                            autocomplete="off" placeholder="Digite ou selecione um aluno" required>
+                        <input type="hidden" id="emergencial-aluno-id">
+                        <datalist id="emergencial-alunos">
+                            @foreach($alunos as $aluno)
+                                <option value="{{ $aluno->nome }} ({{ $aluno->matricula }})"
+                                    data-id="{{ $aluno->id }}" data-nome="{{ $aluno->nome }}"
+                                    data-matricula="{{ $aluno->matricula }}"
+                                    data-turma="{{ $aluno->turma_codigo ? $aluno->turma_formatada : '' }}"
+                                    data-email="{{ $aluno->email ?? '' }}"></option>
+                            @endforeach
+                        </datalist>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="emergencial-turma">Turma:</label>
+                            <input type="text" id="emergencial-turma" list="turmas-relatorio" maxlength="50"
+                                autocomplete="off" placeholder="Digite ou selecione a turma completa">
+                        </div>
+                        <div class="form-group">
+                            <label for="emergencial-matricula">Matrícula:</label>
+                            <input type="text" id="emergencial-matricula" inputmode="numeric" pattern="[0-9]+"
+                                maxlength="20" autocomplete="off" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="emergencial-email">E-mail (opcional):</label>
+                        <input type="email" id="emergencial-email" maxlength="100" autocomplete="off">
+                    </div>
+                    <p id="emergencial-aviso" role="status" aria-live="polite">
+                        Selecione um aluno cadastrado ou informe o nome completo e a matrícula de um aluno novo.
+                    </p>
+                    <p>Confira a matrícula: ela vincula este atendimento e o prontuário ao aluno.</p>
+                    <div class="modal-buttons">
+                        <button type="submit" class="btn btn-primary">Registrar atendimento</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">Fechar</button>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -583,7 +656,8 @@
         };
     </script>
 
-    <script src="{{ asset('js/psicologa.js') }}?v=20261003-cancelamento-bloco-1"></script>
+    <script src="{{ asset('js/psicologa.js') }}?v=20261004-relatorio-agendados-1"></script>
+    <script src="{{ asset('js/atendimento-emergencial.js') }}?v=20261004-emergencial-1"></script>
 
 </body>
 </html>

@@ -27,7 +27,7 @@ class ProntuarioSessao extends Model
 
     public function aluno()
     {
-        return $this->belongsTo(User::class, 'aluno_id');
+        return $this->belongsTo(Usuario::class, 'aluno_id');
     }
 
     public function horario()

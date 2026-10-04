@@ -41,7 +41,7 @@
             <p><strong>Aluno:</strong> {{ $aluno->nome ?? $aluno->name }}</p>
             <p><strong>Turma:</strong> {{ $aluno->turma_formatada ?? 'Não informada' }}</p>
             <p><strong>Matrícula:</strong> {{ $aluno->matricula ?? 'Não informada' }}</p>
-            <p><strong>E-mail:</strong> {{ $aluno->email }}</p>
+            <p><strong>E-mail:</strong> {{ $aluno->email ?: 'Não informado' }}</p>
         </div>
     </div>
 

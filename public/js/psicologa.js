@@ -148,20 +148,24 @@ if (props.justificativa_cancelamento) {
             $('#agendadoStatus').text('Realizado / Concluído').css('color', '#00833D');
         } else {
             $('#agendadoStatus').text('Agendado').css('color', '#d97706');
-            $('#cancelByPsicologaBtn').show();
-            if (isPast) {
-                $('#confirmBtn').show();
-            } else {
-                $('#deleteBtn').show();
-            }
+            configurarAcoesAtendimento(disponivel, confirmado, isPast);
         }
     }
 
     $('#modal').addClass('is-visible');
 }
 
+// Ambos os modais permitem confirmar uma reserva aberta antes do horário marcado.
+function configurarAcoesAtendimento(disponivel, confirmado, isPast) {
+    $('#confirmBtn, #cancelByPsicologaBtn, #deleteBtn').hide();
+    if (disponivel || confirmado) return;
+    $('#confirmBtn, #cancelByPsicologaBtn').show();
+    // Mantém a regra existente de exclusão apenas de horários futuros.
+    if (!isPast) $('#deleteBtn').show();
+}
+
 function closeModal() { 
-    $('#modal, #generateModal, #deleteModal, #cancelByPsicologaModal').removeClass('is-visible'); 
+    $('#modal, #generateModal, #deleteModal, #cancelByPsicologaModal, #emergencialModal').removeClass('is-visible');
 }
 
 $(document).on('click', '.close-btn, .btn-secondary', function(e) {
@@ -181,11 +185,11 @@ function sendAjaxRequest(data) {
         data.versao = $('#eventId').data('versao');
     }
     const textos = {confirmar: 'Concluindo…', cancel_by_psicologa: 'Cancelando…',
-        generate_default: 'Gerando horários…', generate_individual: 'Criando horário…',
+        generate_default: 'Gerando horários…', generate_individual: 'Criando horário…', atendimento_emergencial: 'Registrando atendimento…',
         edit: 'Salvando…', delete: 'Excluindo…', delete_specific_default: 'Cancelando horários…'};
     return Operacoes.ajax({
         grupo: 'agenda', url: LaravelConfig.rotas.acao, data, navegar: true,
-        botoes: '#generate-form button[type="submit"], #individual-form button[type="submit"], #delete-form button[type="submit"], #form-disponivel button[type="submit"], #cancel-by-psicologa-form button[type="submit"], #confirmBtn, #deleteBtn',
+        botoes: '#emergencial-form button[type="submit"], #generate-form button[type="submit"], #individual-form button[type="submit"], #delete-form button[type="submit"], #form-disponivel button[type="submit"], #cancel-by-psicologa-form button[type="submit"], #confirmBtn, #deleteBtn',
         texto: textos[data.action] || 'Processando…',
         sucesso(response) { alert(response.message); location.reload(); },
         erro(message) { alert(message); }
@@ -458,18 +462,10 @@ function abrirAcoesHoje(botao) {
         $('#prontuarioBtn').attr('href', '/prontuarios/aluno/' + matricula).css('display', 'inline-block');
     }
 
-    if (isPast) { 
-        $('#confirmBtn').show(); 
-        $('#cancelByPsicologaBtn').hide();
-        $('#deleteBtn').hide();
-    } else {
-        $('#cancelByPsicologaBtn').show();
-        $('#deleteBtn').show();
-    }
+    configurarAcoesAtendimento(disponivel === 1, confirmado === 1, isPast);
 
     if (confirmado === 1) {
-        $('#confirmBtn').hide();
-        $('#agendadoStatus').text('Confirmado').css('color', '#00833D');
+        $('#agendadoStatus').text('Realizado / Concluído').css('color', '#00833D');
     }
 
     $('#modal').addClass('is-visible');

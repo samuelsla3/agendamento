@@ -17,13 +17,16 @@ class Usuario extends Authenticatable
     'matricula',
     'email',
     'turma_codigo',
+    'cadastro_provisorio',
     'senha',
     'tipo',
     'data_nascimento',
     'cidade',
 ];
 
-    protected $hidden = ['senha']; 
+    protected $hidden = ['senha', 'password'];
+
+    protected $casts = ['cadastro_provisorio' => 'boolean'];
 
     
     public function getAuthPassword()
