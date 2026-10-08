@@ -52,6 +52,8 @@ Route::middleware(['auth'])->group(function () {
     ->name('configuracoes.index');
 Route::post('/configuracoes', [\App\Http\Controllers\ConfiguracaoController::class, 'atualizar'])
     ->name('configuracoes.atualizar');
+    Route::post('/configuracoes/aviso', [\App\Http\Controllers\ConfiguracaoController::class, 'atualizarAviso'])
+    ->name('configuracoes.aviso.atualizar');
 
         Route::get('/prontuarios', [ProntuarioController::class, 'index'])->name('prontuarios.index');
         Route::post(

@@ -1,0 +1,39 @@
+.aviso-alunos {
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 18px 20px;
+    margin: 0 0 24px;
+    border: 1px solid #c6decf;
+    border-left: 4px solid #00833d;
+    border-radius: 8px;
+    background: #f0f8f3;
+    color: #263c2d;
+}
+.aviso-alunos .aviso-alunos__titulo {
+    margin: 0 0 10px;
+    color: #00642e;
+    font-size: 18px;
+    text-align: left;
+}
+.aviso-alunos .aviso-alunos__texto {
+    margin: 0;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    line-height: 1.6;
+    text-align: left;
+}
+.aviso-alunos a { color: #00642e; }
+body.login-com-aviso {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+body.login-com-aviso .auth-container {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 480px;
+    margin: auto;
+}
+@media (max-width: 767px) {
+    .aviso-alunos { padding: 16px; }
+}

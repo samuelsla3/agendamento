@@ -36,6 +36,9 @@
     </header>
 
     <div class="container">
+        <div class="container">
+    @include('partials.aviso-alunos')
+    <div id="message-box" class="message-box"></div>
         <div id="message-box" class="message-box"></div>
         
         <section class="content-section">
@@ -105,6 +108,7 @@
         </section>
         @endif
     </div>
+
 
     <div id="agendarModal" class="modal">
         <div class="modal-content">

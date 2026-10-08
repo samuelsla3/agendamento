@@ -14,6 +14,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
 
     <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('css/aviso-alunos.css') }}?v=20261008-1">
     <style>
         #emergencial-titulo { padding-right: 24px; }
         #emergencialModal input[type="email"] {
@@ -49,6 +50,13 @@
     </header>
 
     <div class="container">
+        @if(($avisoPublico ?? null) !== null)
+            <aside class="aviso-alunos" aria-label="Lembrete sobre o aviso aos alunos">
+                <h2 class="aviso-alunos__titulo">Aviso aos alunos ativo</h2>
+                <p class="aviso-alunos__texto">Confira os horários do período informado: use <strong>Cancelar Horários</strong> para remover vagas livres e cancelar reservas, se necessário. Ao retornar, lembre-se de atualizar ou desativar o recado.</p>
+                <p><a href="{{ route('configuracoes.index') }}#aviso-aos-alunos">Editar ou desativar o aviso em Configurações</a></p>
+            </aside>
+        @endif
         <div class="action-buttons-group">
             <button type="button" class="btn btn-primary" onclick="$('#generateModal').addClass('is-visible')">Gerar Horário(s)</button>
             <button type="button" class="btn btn-danger" onclick="$('#deleteModal').addClass('is-visible')">Cancelar Horários</button>
