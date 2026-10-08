@@ -48,6 +48,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/agenda/acao', [PsicologaController::class, 'processarAcao'])->name('agenda.acao')->middleware(RequisicaoUnica::class.':agenda');
         Route::post('/agenda/relatorio', [PsicologaController::class, 'gerarRelatorio'])->name('agenda.relatorio');
 
+        Route::get('/configuracoes', [\App\Http\Controllers\ConfiguracaoController::class, 'index'])
+    ->name('configuracoes.index');
+Route::post('/configuracoes', [\App\Http\Controllers\ConfiguracaoController::class, 'atualizar'])
+    ->name('configuracoes.atualizar');
+
         Route::get('/prontuarios', [ProntuarioController::class, 'index'])->name('prontuarios.index');
         Route::post(
     '/prontuarios/validar-senha',

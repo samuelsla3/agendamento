@@ -9,4 +9,8 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 #aponta para a $signature, e configura a automoção
-Schedule::command('atendimentos:enviar-lembretes')->dailyAt('09:00');
+Schedule::command('atendimentos:enviar-lembretes')
+    ->everyMinute()
+    ->when(fn () => now(config('app.timezone'))->format('H:i')
+        === \App\Models\ConfiguracaoSistema::horarioLembretes())
+    ->withoutOverlapping(60);

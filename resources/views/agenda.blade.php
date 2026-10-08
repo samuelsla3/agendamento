@@ -35,6 +35,11 @@
         <h1>Painel da Psicóloga</h1>
         <div class="user-info">
             <span>{{ session('usuario_nome') }} ({{ ucfirst(auth()->user()->tipo) }})</span>
+            <a href="{{ route('configuracoes.index') }}"
+   class="btn btn-secondary" title="Configurações" aria-label="Abrir configurações"
+   style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:0;text-decoration:none;font-size:24px;">
+    <span aria-hidden="true" style="margin:0;">&#9881;</span>
+</a>
             <form action="{{ route('logout') }}" method="POST" style="display: inline;">
                 @csrf
             @include('partials.operacao')
@@ -136,7 +141,7 @@
             @else
                 <div class="cancelamentos-grid" style="display: flex; gap: 30px; justify-content: space-between; flex-wrap: wrap;">
 
-                    @foreach ($ultimosCancelamentos->chunk(5) as $bloco)
+                    @foreach ($ultimosCancelamentos->split(2) as $bloco)
                         <div class="cancelamentos-coluna" style="flex: 1; min-width: 300px; max-width: 48%; text-align: left;">
                             <ul class="cancelamentos-lista">
                                 @foreach ($bloco as $cancelamento)
@@ -656,7 +661,7 @@
         };
     </script>
 
-    <script src="{{ asset('js/psicologa.js') }}?v=20261004-exclusao-livres-1"></script>
+    <script src="{{ asset('js/psicologa.js') }}?v=20261006-configuracoes-2"></script>
     <script src="{{ asset('js/atendimento-emergencial.js') }}?v=20261004-emergencial-1"></script>
 
 </body>

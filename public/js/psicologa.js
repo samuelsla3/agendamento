@@ -167,7 +167,7 @@ function closeModal() {
     $('#modal, #generateModal, #deleteModal, #cancelByPsicologaModal, #emergencialModal').removeClass('is-visible');
 }
 
-$(document).on('click', '.close-btn, .btn-secondary', function(e) {
+$(document).on('click', '.modal .close-btn, .modal .btn-secondary', function(e) {
     e.preventDefault();
     closeModal();
 });
