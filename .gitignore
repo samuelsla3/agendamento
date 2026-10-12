@@ -32,3 +32,6 @@ Thumbs.db
 *.sql.gz
 *.sql.zip
 /backups/
+
+# Documentos privados do contato com a Psicologia
+/storage/app/contato-psicologia/

@@ -22,6 +22,8 @@
     <link rel="stylesheet" href="{{ asset('css/sugestoes.css') }}?v=20261012-1">
     <script src="{{ asset('js/sugestoes.js') }}?v=20261012-2" defer></script>
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
+    <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261012-1">
+    <script src="{{ asset('js/mensagens.js') }}?v=20261012-1" defer></script>
 </head>
 <body>
 
@@ -34,7 +36,8 @@
                     <button type="button" class="contato-email-link" data-abrir-contato-email aria-controls="contato-email-modal" aria-expanded="false">Alterar e-mail</button>
                 @endif
                 
-                <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+                @include('partials.mensagens-botao')
+            <form action="{{ route('logout') }}" method="POST" style="display: inline;">
                     @csrf
             @include('partials.operacao')
                     <button type="submit" class="btn btn-danger">Sair</button>
@@ -181,5 +184,6 @@
 
 <script src="{{ asset('js/antecedencia-agendamento.js') }}?v=20261008-1"></script>
 <script src="{{ asset('js/aluno.js') }}?v=20261008-faltas-1"></script>
+@include('partials.mensagens-modal')
 </body>
 </html>

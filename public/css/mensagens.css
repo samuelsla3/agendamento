@@ -1,0 +1,97 @@
+.mensagens-acesso { position:relative; display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:9px 13px; border:1px solid #ffffff80; border-radius:7px; color:inherit; background:#ffffff16; font:inherit; cursor:pointer; line-height:1.35; }
+.mensagens-acesso:hover { background:#ffffff30; }
+.mensagens-acesso span { margin:0; }
+.mensagens-badge { display:inline-flex; min-width:18px; height:18px; padding:0 4px; box-sizing:border-box; align-items:center; justify-content:center; background:#b83232; color:white; font-size:11px; font-weight:700; border-radius:12px; }
+.mensagens-badge[hidden] { display:none; }
+.mensagens-modal { box-sizing:border-box; width:min(1080px,calc(100% - 24px)); height:min(780px,calc(100vh - 24px)); height:min(780px,calc(100dvh - 24px)); max-width:none; max-height:none; padding:0; border:0; border-radius:14px; color:#26352c; box-shadow:0 18px 60px #0005; overflow:hidden; }
+.mensagens-modal[open] { display:flex; flex-direction:column; }
+.mensagens-modal::backdrop { background:#0009; }
+.mensagens-modal--aluno { width:min(780px,calc(100% - 24px)); }
+.mensagens-cabecalho-modal { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; background:#edf5ef; padding:18px 22px; flex-shrink:0; border-bottom:1px solid #dce6df; }
+.mensagens-cabecalho-modal h2 { margin:0; color:#285e46; font-size:1.25rem; text-align:left; }
+.mensagens-cabecalho-modal p { margin:5px 0 0; font-size:.85rem; color:#617167; }
+.mensagens-botao-leve { min-height:40px; padding:8px 12px; border:1px solid #b8c9bd; border-radius:7px; background:white; color:#305b41; font:inherit; font-size:.9rem; cursor:pointer; line-height:1.3; }
+.mensagens-botao-leve:hover,.mensagens-botao-leve.ativo { background:#e5efe7; border-color:#5f866a; }
+.mensagens-botao-leve:disabled,.mensagens-acesso:disabled { opacity:.55; cursor:not-allowed; }
+.mensagens-modal button:focus-visible,.mensagens-modal a:focus-visible,.mensagens-modal input:focus-visible,.mensagens-modal textarea:focus-visible { outline:3px solid #3987aa; outline-offset:2px; }
+.mensagens-area { display:flex; min-height:0; flex:1; }
+.mensagens-area[hidden],.mensagens-modal [hidden] { display:none!important; }
+.mensagens-contatos { width:300px; min-width:260px; display:flex; flex-direction:column; padding:14px; gap:10px; border-right:1px solid #dce6df; background:#fafcfb; min-height:0; }
+.mensagens-modos { display:flex; gap:8px; }
+.mensagens-modos button { flex:1; }
+.mensagens-filtros { flex-shrink:0; }
+.mensagens-filtros label,.mensagens-email-area label,.mensagens-bloqueio label { display:block; margin:8px 0 5px; font-size:.85rem; font-weight:600; }
+.mensagens-modal input[type=text],.mensagens-modal input[type=password],.mensagens-modal textarea { display:block; width:100%; min-height:42px; box-sizing:border-box; padding:10px; border:1px solid #bdcbc1; border-radius:7px; background:white; color:#26352c; font:inherit; font-size:16px; }
+.mensagens-filtros-linha { display:flex; gap:8px; }
+.mensagens-filtros-linha > div { flex:1; min-width:0; }
+.mensagens-lista-contatos { overflow:auto; flex:1; min-height:0; }
+.mensagens-contato { width:100%; display:flex; align-items:center; gap:10px; padding:12px 9px; border:0; border-bottom:1px solid #e1e8e3; border-radius:6px; background:transparent; cursor:pointer; text-align:left; color:inherit; }
+.mensagens-contato:hover,.mensagens-contato.ativo { background:#e6efe8; }
+.mensagens-avatar { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#dbe9df; color:#355d42; font-weight:600; flex-shrink:0; }
+.mensagens-contato-texto { min-width:0; flex:1; }
+.mensagens-contato-nome { display:block; font-weight:600; line-height:1.4; overflow-wrap:anywhere; }
+.mensagens-contato-info { display:block; font-size:.77rem; margin-top:4px; color:#69776e; }
+.mensagens-contatos-paginas { display:flex; justify-content:space-between; align-items:center; gap:4px; font-size:.8rem; }
+.mensagens-lista-aviso { margin:0; font-size:.85rem; line-height:1.5; color:#68756c; }
+.mensagens-conversa { min-width:0; flex:1; display:flex; flex-direction:column; background:#f5f8f6; }
+.mensagens-vazio { display:flex; align-items:center; justify-content:center; flex:1; padding:30px; text-align:center; color:#6b776e; }
+.mensagens-conversa-area { display:flex; flex-direction:column; flex:1; min-height:0; }
+.mensagens-destinatario { display:flex; gap:10px; align-items:center; background:white; padding:13px 18px; border-bottom:1px solid #e0e7e2; flex-shrink:0; }
+.mensagens-destinatario h3 { margin:0; color:#315c40; font-size:1rem; overflow-wrap:anywhere; }
+.mensagens-destinatario p { margin:4px 0 0; font-size:.8rem; color:#6a776d; }
+.mensagens-abas { display:flex; gap:8px; padding:9px 18px; background:white; border-bottom:1px solid #e0e7e2; flex-shrink:0; }
+.mensagens-interno-area { display:flex; flex:1; min-height:0; flex-direction:column; }
+.mensagens-historico { flex:1; min-height:0; overflow:auto; padding:18px; overscroll-behavior:contain; }
+.mensagens-anteriores { display:block; margin:0 auto 14px; }
+.mensagens-item { display:flex; justify-content:flex-start; margin:10px 0; }
+.mensagens-item.minha { justify-content:flex-end; }
+.mensagens-balao { max-width:88%; padding:11px 13px; border-radius:12px 12px 12px 3px; border:1px solid #d9e2dc; background:white; box-shadow:0 1px 2px #00000009; }
+.mensagens-item.minha .mensagens-balao { background:#e1efdf; border-color:#c7dbc4; border-radius:12px 12px 3px 12px; }
+.mensagens-conteudo { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.55; font-size:.94rem; }
+.mensagens-hora { display:block; text-align:right; margin-top:7px; font-size:.7rem; color:#6c796e; }
+.mensagens-anexo { display:block; margin:8px 0; padding:9px; background:#ffffff88; border:1px solid #bacdbb; border-radius:6px; color:#285a38; font-size:.85rem; overflow-wrap:anywhere; text-decoration:underline; }
+.mensagens-envio-form { padding:12px 16px; background:white; border-top:1px solid #dde6df; flex-shrink:0; }
+.mensagens-envio-form textarea { min-height:68px; max-height:140px; resize:vertical; line-height:1.45; }
+.mensagens-envio-acoes { display:flex; align-items:center; gap:10px; margin-top:9px; }
+.mensagens-envio-acoes > span { font-size:.75rem; color:#67766c; flex:1; text-align:right; }
+.mensagens-envio-acoes .btn { margin:0; min-height:42px; padding:9px 18px; }
+.mensagens-ajuda { margin:8px 0 0; color:#6c786e; font-size:.75rem; line-height:1.45; }
+.mensagens-selecionados { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.mensagens-arquivo-chip { display:flex; align-items:center; gap:6px; border:1px solid #c8d7cb; border-radius:6px; padding:5px 7px; max-width:100%; background:#f3f8f3; }
+.mensagens-arquivo-chip span { font-size:.77rem; overflow-wrap:anywhere; }
+.mensagens-arquivo-chip button { min-width:32px; min-height:32px; background:transparent; border:0; cursor:pointer; font-size:20px; }
+.mensagens-aviso { margin:10px 16px; padding:10px 12px; background:#e8f2ea; border-radius:6px; color:#285d36; font-size:.86rem; line-height:1.5; overflow-wrap:anywhere; flex-shrink:0; }
+.mensagens-aviso.erro { background:#fff0ef; color:#922d27; }
+.mensagens-envio-form .mensagens-aviso { margin:9px 0; }
+.mensagens-bloqueio { max-width:480px; margin:auto; padding:24px; overflow:auto; }
+.mensagens-bloqueio h3 { color:#315c40; }
+.mensagens-bloqueio p { line-height:1.6; }
+.mensagens-bloqueio .btn { margin-top:18px; }
+.mensagens-email-area { padding:20px; overflow:auto; flex:1; min-height:0; }
+.mensagens-email-area > p { overflow-wrap:anywhere; }
+.mensagens-email-area textarea { margin-top:8px; min-height:180px; resize:vertical; line-height:1.5; }
+.mensagens-email-acoes { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+.mensagens-voltar-contatos { display:none; }
+.mensagens-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+@media(max-width:767px) {
+    .mensagens-modal,.mensagens-modal--aluno { width:calc(100% - 12px); height:calc(100vh - 12px); height:calc(100dvh - 12px); border-radius:10px; }
+    .mensagens-cabecalho-modal { padding:13px; gap:10px; }
+    .mensagens-cabecalho-modal h2 { font-size:1.08rem; }
+    .mensagens-cabecalho-modal p { font-size:.76rem; }
+    .mensagens-cabecalho-modal > button { padding:8px; }
+    .mensagens-contatos { width:100%; min-width:0; border-right:0; box-sizing:border-box; }
+    .mensagens-modal--psicologa .mensagens-conversa { display:none; }
+    .mensagens-modal--psicologa.com-conversa .mensagens-contatos { display:none; }
+    .mensagens-modal--psicologa.com-conversa .mensagens-conversa { display:flex; }
+    .mensagens-voltar-contatos { display:inline-block; }
+    .mensagens-historico { padding:13px; }
+    .mensagens-envio-form { padding:10px; }
+    .mensagens-envio-acoes { gap:6px; }
+    .mensagens-envio-acoes > span { font-size:.67rem; }
+    .mensagens-envio-acoes .btn { padding:9px 14px; }
+    .mensagens-balao { max-width:93%; }
+    .mensagens-ajuda { font-size:.7rem; }
+    .mensagens-modal.teclado-aberto .mensagens-envio-form .mensagens-ajuda { display:none; }
+    .mensagens-email-area { padding:14px; }
+    .mensagens-email-acoes > .btn { width:100%; }
+}

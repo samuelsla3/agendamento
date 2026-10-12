@@ -34,6 +34,17 @@ Route::post('/cancelar-executar/{id}', [CalendarioController::class, 'executarCa
 // Rotas protegidas por login
 Route::middleware(['auth'])->group(function () {
 
+    // Contato privado. Anexos nunca usam o disco publico nem URLs de storage.
+    Route::get('/mensagens/resumo', [\App\Http\Controllers\MensagensController::class, 'resumo'])->name('mensagens.resumo')->middleware('throttle:120,1,mensagens-leitura:');
+    Route::post('/mensagens/desbloquear', [\App\Http\Controllers\MensagensController::class, 'desbloquear'])->name('mensagens.desbloquear')->middleware('throttle:5,30,senha-prontuario:');
+    Route::post('/mensagens/conversas/abrir', [\App\Http\Controllers\MensagensController::class, 'abrir'])->name('mensagens.abrir')->middleware('throttle:30,1,mensagens-abrir:');
+    Route::get('/mensagens/conversas/{conversa}', [\App\Http\Controllers\MensagensController::class, 'historico'])->whereNumber('conversa')->name('mensagens.historico')->middleware('throttle:120,1,mensagens-leitura:');
+    Route::post('/mensagens/conversas/{conversa}/enviar', [\App\Http\Controllers\MensagensController::class, 'enviar'])->whereNumber('conversa')->name('mensagens.enviar');
+    Route::post('/mensagens/conversas/{conversa}/lidas', [\App\Http\Controllers\MensagensController::class, 'lidas'])->whereNumber('conversa')->name('mensagens.lidas')->middleware('throttle:120,1,mensagens-lidas:');
+    Route::get('/mensagens/contatos', [\App\Http\Controllers\MensagensController::class, 'contatos'])->name('mensagens.contatos')->middleware('throttle:120,1,mensagens-leitura:');
+    Route::get('/mensagens/alunos', [\App\Http\Controllers\MensagensController::class, 'alunos'])->name('mensagens.alunos')->middleware('throttle:120,1,mensagens-leitura:');
+    Route::get('/mensagens/anexos/{anexo}', [\App\Http\Controllers\MensagensController::class, 'anexo'])->whereUuid('anexo')->name('mensagens.anexo')->middleware('throttle:30,1,mensagens-anexos:');
+
     Route::post('/sugestoes', [\App\Http\Controllers\SugestaoController::class, 'enviar'])->name('sugestoes.enviar');
 
     Route::get('/dashboard', [AuthController::class, 'redirecionarUsuario'])->name('dashboard');

@@ -30,6 +30,8 @@
         }
     </style>
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
+    <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261012-1">
+    <script src="{{ asset('js/mensagens.js') }}?v=20261012-1" defer></script>
 </head>
 <body>
 
@@ -42,6 +44,7 @@
    style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:0;text-decoration:none;font-size:24px;">
     <span aria-hidden="true" style="margin:0;">&#9881;</span>
 </a>
+            @include('partials.mensagens-botao')
             <form action="{{ route('logout') }}" method="POST" style="display: inline;">
                 @csrf
             @include('partials.operacao')
@@ -712,5 +715,6 @@
     <script src="{{ asset('js/psicologa.js') }}?v=20261008-calendario-1"></script>
     <script src="{{ asset('js/atendimento-emergencial.js') }}?v=20261004-emergencial-1"></script>
 
+@include('partials.mensagens-modal')
 </body>
 </html>

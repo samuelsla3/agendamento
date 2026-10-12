@@ -143,6 +143,7 @@
                     <label for="atendimento_email">E-mail de contato do setor</label>
                     <input type="email" id="atendimento_email" name="atendimento_email" maxlength="100"
                         value="{{ old('atendimento_email', $configuracao->atendimento_email) }}">
+                    <p>Este endereço também é usado pelo atalho de e-mail no contato privado dos alunos. Se estiver vazio, o aluno continuará podendo enviar mensagens no site.</p>
                 </div>
                 <div class="form-group">
                     <label for="atendimento_telefone">Telefone ou ramal</label>

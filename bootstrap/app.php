@@ -18,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
     $exceptions->dontFlash([
-        'anotacoes',
+        'anotacoes', 'texto',
         'senha', 'password', 'password_confirmation', 'senha_atual', 'senha_local',
         'senha_local_confirmation', 'senha_prontuario', 'senha_prontuario_confirmation',
         'nova_senha', 'nova_senha_confirmation', 'codigo',
