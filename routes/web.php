@@ -34,6 +34,8 @@ Route::post('/cancelar-executar/{id}', [CalendarioController::class, 'executarCa
 // Rotas protegidas por login
 Route::middleware(['auth'])->group(function () {
 
+    Route::post('/sugestoes', [\App\Http\Controllers\SugestaoController::class, 'enviar'])->name('sugestoes.enviar');
+
     Route::get('/dashboard', [AuthController::class, 'redirecionarUsuario'])->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -69,6 +71,8 @@ Route::middleware(['auth'])->group(function () {
             ->middleware([RequisicaoUnica::class . ':emails', 'throttle:20,1']);
 
         Route::post('/agenda/relatorio', [PsicologaController::class, 'gerarRelatorio'])->name('agenda.relatorio');
+
+        Route::get('/configuracoes/sugestoes', [\App\Http\Controllers\SugestaoController::class, 'listar'])->name('sugestoes.listar');
 
         Route::get('/configuracoes', [\App\Http\Controllers\ConfiguracaoController::class, 'index'])
     ->name('configuracoes.index');

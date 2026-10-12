@@ -16,7 +16,7 @@
     <h1>Acompanhamento de e-mails</h1>
     <div class="user-info">
         <span>{{ auth()->user()->nome }}</span>
-        <a href="{{ route('psicologa.index') }}" class="btn btn-secondary">Voltar à agenda</a>
+        <a href="{{ route('configuracoes.index') }}#acompanhamento-emails" class="btn btn-secondary">Voltar às configurações</a>
     </div>
 </header>
 <main class="container emails-container">

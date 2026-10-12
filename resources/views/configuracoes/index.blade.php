@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/aviso-alunos.css') }}?v=20261008-1">
     <script src="{{ asset('js/operacoes.js') }}?v=20260924-1" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/sugestoes.css') }}?v=20261012-1">
+    <script src="{{ asset('js/sugestoes.js') }}?v=20261012-2" defer></script>
     <style>
         .config-container { max-width: 720px; }
         .config-card h2 { text-align: left; margin-top: 0; }
@@ -117,7 +119,7 @@
 
         <section class="content-section config-card" id="informacoes-atendimento">
             <h2>Informações sobre o atendimento</h2>
-            <p>Estas informações aparecem no botão <strong>Sobre o atendimento</strong>, na página inicial e no login, inclusive para visitantes. Preencha apenas os campos que deseja divulgar.</p>
+            <p>Estas informações aparecem no botão <strong>Sobre o atendimento</strong>, na página inicial (calendário), para visitantes e alunos logados. Preencha apenas os campos que deseja divulgar.</p>
             <form action="{{ route('configuracoes.informacoes.atualizar') }}" method="POST" data-texto-envio="Salvando informações…">
                 @csrf
                 <input type="hidden" name="versao" value="{{ $configuracao->versao }}">
@@ -243,6 +245,22 @@
                 </div>
             </form>
         </section>
+        <section class="content-section config-card" id="acompanhamento-emails">
+            <h2>Acompanhamento de e-mails</h2>
+            <p>Consulte os envios aos alunos e acompanhe falhas ou mensagens sem confirmação.</p>
+            @if($problemasEmail > 0)
+                <div class="config-aviso config-orientacao" role="status">
+                    <p><strong>{{ $problemasEmail }} {{ $problemasEmail === 1 ? 'aviso precisa de atenção' : 'avisos precisam de atenção' }}.</strong></p>
+                    <p>Há problemas no envio ou mensagens sem confirmação. Os agendamentos e cancelamentos registrados continuam válidos.</p>
+                </div>
+            @else
+                <p>Nenhum aviso precisa de atenção no momento.</p>
+            @endif
+            <div class="config-acoes">
+                <a href="{{ route('emails.index') }}" class="btn btn-primary">Acompanhar os envios</a>
+            </div>
+        </section>
+        @include('partials.sugestoes-psicologa')
     </main>
 </body>
 </html>

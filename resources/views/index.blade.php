@@ -19,6 +19,8 @@
     <script src="{{ asset('js/informacoes-atendimento.js') }}?v=20261008-1" defer></script>
     <link rel="stylesheet" href="{{ asset('css/contato-email.css') }}?v=20261008-1">
     <script src="{{ asset('js/contato-email.js') }}?v=20261008-1" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/sugestoes.css') }}?v=20261012-1">
+    <script src="{{ asset('js/sugestoes.js') }}?v=20261012-2" defer></script>
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
 </head>
 <body>
@@ -126,6 +128,7 @@
             @endif
         </section>
         @endif
+        @include('partials.sugestoes-aluno')
     </div>
 
 

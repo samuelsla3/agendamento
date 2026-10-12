@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ConfiguracaoSistema;
+use App\Services\AvisosEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -15,6 +16,7 @@ class ConfiguracaoController extends Controller
 
         return response()->view('configuracoes.index', [
             'configuracao' => ConfiguracaoSistema::findOrFail(1),
+            'problemasEmail' => AvisosEmail::contarProblemas(),
         ])->header('Cache-Control', 'no-store, private');
     }
 

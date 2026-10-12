@@ -89,14 +89,6 @@
         const texto = form.dataset.textoEnvio || 'Processando…';
         formularios.set(form, bloquear(form.querySelectorAll('button[type="submit"], button:not([type]), input[type="submit"]'), texto));
         form.setAttribute('aria-busy', 'true');
-        let aviso = form.querySelector('[data-andamento-envio]');
-        if (!aviso) {
-            aviso = document.createElement('p');
-            aviso.dataset.andamentoEnvio = '';
-            aviso.setAttribute('role', 'status');
-            form.append(aviso);
-        }
-        aviso.textContent = texto;
     });
     // Restaurar a interface ao voltar pelo histórico; não trocar a chave da operação.
     window.addEventListener('pageshow', () => {

@@ -51,14 +51,6 @@
     </header>
 
     <div class="container">
-        @if(($problemasEmail ?? 0) > 0)
-            <aside class="aviso-alunos" role="status">
-                <h2 class="aviso-alunos__titulo">Avisos por e-mail precisam de atenção</h2>
-                <p>{{ $problemasEmail }} {{ $problemasEmail === 1 ? 'aviso com problema ou envio sem confirmação' : 'avisos com problema ou envio sem confirmação' }}.
-                    Os agendamentos e cancelamentos registrados continuam válidos.</p>
-                <p><a href="{{ route('emails.index') }}">Acompanhar os envios</a></p>
-            </aside>
-        @endif
         @if(($avisoPublico ?? null) !== null)
             <aside class="aviso-alunos" aria-label="Lembrete sobre o aviso aos alunos">
                 <h2 class="aviso-alunos__titulo">Aviso aos alunos ativo</h2>
@@ -75,7 +67,6 @@
     Prontuários e Acompanhamento
 </button>
             <button type="button" class="btn btn-primary" onclick="abrirModalEmergencial()">Atendimento emergencial</button>
-            <a href="{{ route('emails.index') }}" class="btn btn-info" style="text-decoration:none;">E-mails{{ ($problemasEmail ?? 0) > 0 ? ' (' . $problemasEmail . ')' : '' }}</a>
         </div>
 
         <section class="content-section agenda-hoje-section">
