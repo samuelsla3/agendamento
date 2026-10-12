@@ -22,3 +22,13 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Configuracao privada de autorizacao e exportacoes de banco
+.env
+.env.*
+!.env.example
+/bootstrap/cache/*.php
+*.sql
+*.sql.gz
+*.sql.zip
+/backups/

@@ -1,0 +1,40 @@
+.setor-info-acesso { display: flex; justify-content: flex-end; margin: 0 0 16px; }
+body.login-com-informacoes { height: auto; min-height: 100vh; min-height: 100dvh; }
+.setor-info-botao {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 10px 14px; border: 1px solid #b9d5c4; border-radius: 8px;
+    background: #fff; color: #00642e; font: inherit; font-size: 14px;
+    font-weight: 600; cursor: pointer; box-sizing: border-box;
+}
+.setor-info-botao:hover { background: #edf7f0; }
+.setor-info-botao svg { flex-shrink: 0; }
+.setor-info-modal {
+    box-sizing: border-box; width: min(620px, calc(100% - 32px));
+    max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px);
+    padding: 0; border: 0; border-radius: 12px; background: #fff; color: #333;
+    box-shadow: 0 16px 48px #0004; overflow: auto; font: inherit;
+}
+.setor-info-modal::backdrop { background: #0008; }
+.setor-info-cabecalho {
+    display: flex; align-items: center; gap: 12px; padding: 18px 20px;
+    background: #fff; border-bottom: 1px solid #e1e9e4;
+}
+.setor-info-cabecalho h2 { margin: 0; flex: 1; color: #00642e; font-size: 20px; text-align: left; }
+.setor-info-fechar {
+    flex: 0 0 44px; width: 44px; height: 44px; padding: 0; border: 0;
+    border-radius: 6px; background: #f1f4f2; color: #333; font-size: 28px; cursor: pointer;
+}
+.setor-info-conteudo { padding: 8px 20px 20px; }
+.setor-info-secao { padding: 12px 0; border-bottom: 1px solid #e1e9e4; }
+.setor-info-secao:last-child { border-bottom: 0; }
+.setor-info-secao summary { min-height: 32px; cursor: pointer; font-weight: 600; color: #00642e; }
+.setor-info-texto { margin: 12px 0 0; white-space: pre-line; overflow-wrap: anywhere; line-height: 1.6; }
+.setor-info-texto a { color: #00642e; }
+.setor-info-botao:focus-visible, .setor-info-fechar:focus-visible, .setor-info-secao summary:focus-visible {
+    outline: 3px solid #0284c7; outline-offset: 3px;
+}
+@media (max-width: 767px) {
+    .setor-info-cabecalho { padding: 14px 16px; }
+    .setor-info-cabecalho h2 { font-size: 18px; }
+    .setor-info-conteudo { padding-inline: 16px; }
+}

@@ -17,16 +17,16 @@ class EnviarLembretesAtendimento extends Command
             ->whereNotNull('token_cancelamento')->orderBy('id')->chunkById(100, function ($horarios) {
                 foreach ($horarios as $horario) {
                     $aluno = Usuario::where('matricula', $horario->matricula)->first();
-                    if (!$aluno || !$aluno->email) { continue; }
                     $urlCancelamento = URL::temporarySignedRoute('agendamento.cancelarDirect', now()->addHours(48),
                         ['id' => $horario->id, 'token' => $horario->token_cancelamento]);
                     $html = view('emails.confirmacao_atendimento', ['agendamento' => $horario, 'urlCancelamento' => $urlCancelamento])->render();
-                    AvisosEmail::registrar('lembrete:'.$horario->token_cancelamento.':'.$horario->data, $aluno->email,
+                    AvisosEmail::registrar('lembrete:'.$horario->token_cancelamento.':'.$horario->data, (string) ($aluno?->email ?? ''),
                         'Lembrete: Confirmação do seu Atendimento Psicológico Amanhã', $html,
-                        ['horario_id' => $horario->id, 'reserva_hash' => hash('sha256', $horario->token_cancelamento), 'data' => $horario->data]);
+                        ['horario_id' => $horario->id, 'reserva_hash' => hash('sha256', $horario->token_cancelamento), 'data' => $horario->data],
+                        ['nome' => $aluno?->nome ?? $horario->nome, 'matricula' => $horario->matricula, 'data' => $horario->data, 'hora' => $horario->hora]);
                 }
             });
-        $this->info('Processamento de lembretes concluído. Consulte avisos_email para verificar o resultado dos envios. Eventos já registrados não foram duplicados.');
+        $this->info('Processamento de lembretes concluído. Consulte a tela E-mails da psicóloga para verificar o resultado dos envios. Eventos já registrados não foram duplicados.');
         return self::SUCCESS;
     }
 }

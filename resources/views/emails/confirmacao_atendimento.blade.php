@@ -18,8 +18,7 @@
         <p>
     <strong>Data/Horário:</strong> 
     {{ \Carbon\Carbon::parse($agendamento->data)->format('d/m/Y') }} 
-    às {{ \Carbon\Carbon::parse($agendamento->hora)->format('H:i') }}<br>
-    <strong>Local:</strong> Setor de Psicologia / IFBA
+    às {{ \Carbon\Carbon::parse($agendamento->hora)->format('H:i') }}
 </p>
 
         <p>Se você <strong>puder comparecer</strong>, não precisa realizar nenhuma ação!</p>

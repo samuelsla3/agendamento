@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Horario;
 use App\Models\RegistroAtendimento;
+use App\Models\ConfiguracaoSistema;
 use App\Mail\ConfirmacaoAgendamentoMail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -45,9 +46,12 @@ class CalendarioController extends Controller
             'title' => $horaFormatada,
             'start' => $horario->data . 'T' . $horario->hora,
             'extendedProps' => [
+                'inicio_agendamento' => Carbon::parse($horario->data . ' ' . $horario->hora, config('app.timezone'))->toIso8601String(),
                 'disponivel' => (int)$horario->disponivel,
                 'versao' => ($horario->disponivel == 1 || $tipo === 'psicologa' || $ehMeuAgendamento) ? $horario->versao() : null,
                 'confirmado' => (int)($horario->confirmado ?? 0),
+                'situacao_atendimento' => ($tipo === 'psicologa' || $ehMeuAgendamento)
+                    ? $horario->situacao_atendimento : null,
                 
                 // LGPD / SEGURANÇA: 
                 // Se for Psicóloga, exibe tudo. 
@@ -88,7 +92,16 @@ class CalendarioController extends Controller
         $registros = collect($historicoAtivos)->merge($historicoCancelados);
     }
 
-    return view('index', compact('horarios', 'registros'));
+    $antecedenciaAgendamento = ConfiguracaoSistema::antecedenciaAgendamento();
+    $antecedenciaAgendamento['descricao'] = ConfiguracaoSistema::descreverAntecedencia($antecedenciaAgendamento['minutos']);
+    $antecedenciaAgendamento['agora'] = now()->format('Y-m-d\TH:i:s.vP');
+
+    $contatoEmail = auth()->check() && in_array(auth()->user()->tipo, ['estudante', 'aluno'], true)
+        ? \App\Services\VerificacaoEmail::resumo(auth()->user()) : null;
+    $mostrarConfirmacaoEmail = $contatoEmail !== null && !$contatoEmail['confirmado']
+        && (bool) session()->pull('confirmar_email_primeiro_acesso', false);
+    return response()->view('index', compact('horarios', 'registros', 'antecedenciaAgendamento', 'contatoEmail', 'mostrarConfirmacaoEmail'))
+        ->header('Cache-Control', 'no-store')->header('Referrer-Policy', 'no-referrer');
 }
 
 
@@ -107,11 +120,20 @@ class CalendarioController extends Controller
         $hora = Carbon::parse($horario->hora)->format('H:i');
 
         if ($request->input('action') === 'agendar') {
-            if (Carbon::parse($horario->data.' '.$horario->hora)->isPast()) {
+            // Lê a configuração atual e a mantém estável até gravar a reserva.
+            $antecedencia = ConfiguracaoSistema::antecedenciaAgendamento(true);
+            $agora = now();
+            $inicio = Carbon::parse($horario->data . ' ' . $horario->hora, config('app.timezone'));
+            if ($inicio->lt($agora)) {
                 return response()->json(['status' => 'error', 'message' => 'Não é possível agendar um horário que já passou.']);
             }
             if ((int) $horario->disponivel !== 1) {
                 return response()->json(['status' => 'error', 'message' => 'Este horário não está mais disponível.']);
+            }
+            if ($antecedencia['ativa'] && $inicio->lt($agora->copy()->addMinutes($antecedencia['minutos']))) {
+                return response()->json(['status' => 'error', 'message' =>
+                    'É necessário agendar com pelo menos ' . ConfiguracaoSistema::descreverAntecedencia($antecedencia['minutos'])
+                    . ' de antecedência. Atualize a agenda para consultar os horários disponíveis.']);
             }
             if (Horario::where('matricula', $matricula)->where('data', $horario->data)->where('disponivel', 0)->exists()) {
                 return response()->json(['status' => 'error', 'message' => 'Você já possui um atendimento agendado para esta data.']);
@@ -123,8 +145,10 @@ class CalendarioController extends Controller
                 'Setor de Psicologia IFBA: Confirmação de Agendamento',
                 'Olá, <strong>'.e($nome).'</strong>!<br><br>Seu agendamento foi confirmado.<br>'
                 .'<strong>Data:</strong> '.$data.'<br><strong>Hora:</strong> '.$hora
-                .'<br><br>Serviço de Psicologia - IFBA Seabra');
-            return response()->json(['status' => 'success', 'message' => 'Agendamento realizado! A confirmação será enviada por e-mail.']);
+                .'<br><br>Serviço de Psicologia - IFBA Seabra',
+                ['horario_id' => $horario->id, 'reserva_hash' => hash('sha256', $token), 'data' => $horario->data],
+                ['nome' => $nome, 'matricula' => $matricula, 'data' => $horario->data, 'hora' => $horario->hora]);
+            return response()->json(['status' => 'success', 'message' => 'Agendamento realizado! O aviso de confirmação foi registrado para envio por e-mail.']);
         }
 
         abort_unless((string) $horario->matricula === (string) $matricula, 403, 'Você só pode cancelar seu próprio agendamento.');
@@ -140,8 +164,9 @@ class CalendarioController extends Controller
         AvisosEmail::registrar('cancelado:'.$token, (string) $email,
             'Setor de Psicologia IFBA: Cancelamento confirmado',
             'Olá, '.e($nome).'!<br><br>Seu atendimento de '.$data.' às '.$hora.' foi cancelado.'
-            .'<br><br>Serviço de Psicologia - IFBA Seabra');
-        return response()->json(['status' => 'success', 'message' => 'Agendamento cancelado. A confirmação será enviada por e-mail.']);
+            .'<br><br>Serviço de Psicologia - IFBA Seabra', null,
+            ['nome' => $nome, 'matricula' => $matricula, 'data' => $horario->data, 'hora' => $horario->hora]);
+        return response()->json(['status' => 'success', 'message' => 'Agendamento cancelado. O aviso foi registrado para envio por e-mail.']);
     }
 
     public function exibirTelaCancelamento(Request $request, $id)

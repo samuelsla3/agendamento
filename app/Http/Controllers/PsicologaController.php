@@ -56,7 +56,8 @@ public function index()
 
     $turmasRelatorio = $this->listarTurmasRelatorio($alunos->pluck('turma_codigo'));
 
-    return view('agenda', compact('ultimosCancelamentos', 'agendamentosHoje', 'alunos', 'turmasRelatorio'));
+    $problemasEmail = AvisosEmail::contarProblemas();
+    return view('agenda', compact('ultimosCancelamentos', 'agendamentosHoje', 'alunos', 'turmasRelatorio', 'problemasEmail'));
 }
 
     public function listarEventos()
@@ -71,7 +72,7 @@ public function index()
             $nome = $row->nome;
             $matricula = $row->matricula;
             $turmaCodigo = $row->usuario?->turma_codigo;
-            $statusReal = $row->confirmado ? 'Confirmado' : 'Agendado';
+            $statusReal = $row->situacao_atendimento;
 
             if ($row->disponivel == 1 && !empty($row->justificativa_cancelamento)) {
                 $historico = DB::table('registros_atendimentos as ra')
@@ -116,6 +117,8 @@ if (
                     'aluno_id' => $row->usuario?->id,
                     'turma_formatada' => $this->normalizarTurmaRelatorio($turmaCodigo) ?: 'Não informada',
                     'confirmado' => (int)$row->confirmado,
+                    'situacao_atendimento' => $row->situacao_atendimento,
+                    'inicio_agendamento' => Carbon::parse($row->data . ' ' . $row->hora, config('app.timezone'))->toIso8601String(),
                     'justificativa_cancelamento' => $row->justificativa_cancelamento,
                     'status_real' => $statusReal,
                     'data_hora_reserva_anterior' => $dataHoraReservaAnterior
@@ -132,7 +135,7 @@ if (
     {
         abort_unless(auth()->check() && auth()->user()->tipo === 'psicologa', 403);
         $action = $request->input('action');
-        if (in_array($action, ['confirmar', 'cancel_by_psicologa', 'delete', 'edit'])) {
+        if (in_array($action, ['confirmar', 'registrar_falta', 'corrigir_situacao', 'cancel_by_psicologa', 'delete', 'edit'])) {
             $request->validate(['id' => 'required|integer', 'versao' => 'required|string|size:64']);
             $horario = Horario::whereKey($request->input('id'))->lockForUpdate()->firstOrFail();
             $horario->conferirVersao($request->input('versao'));
@@ -153,14 +156,24 @@ if (
                 return response()->json(['status' => 'success', 'message' => $mensagem]);
 
             case 'confirmar':
-                abort_if((int) $horario->disponivel !== 0 || (int) $horario->confirmado === 1, 409, 'Atendimento já encerrado ou vaga sem reserva.');
-                RegistroAtendimento::create(['id_horario_original' => $horario->id,
-                    'data_atendimento' => $horario->data, 'hora_atendimento' => $horario->hora, 'nome' => $horario->nome,
-                    'matricula' => $horario->matricula, 'status' => 'Realizado',
-                    'observacao' => 'Atendimento concluído com sucesso.',
-                    'data_registro' => Carbon::parse($horario->data.' '.$horario->hora)]);
-                $horario->update(['confirmado' => 1, 'token_cancelamento' => null]);
+                app(\App\Services\EncerramentoAtendimento::class)->encerrar(
+                    $horario, 'Realizado', 'Atendimento concluído com sucesso.'
+                );
                 return response()->json(['status' => 'success', 'message' => 'Atendimento concluído e mantido no histórico!']);
+
+            case 'registrar_falta':
+                $dados = $request->validate(['observacao' => 'nullable|string|max:1000']);
+                app(\App\Services\EncerramentoAtendimento::class)->encerrar(
+                    $horario, 'Não compareceu', $dados['observacao'] ?? null
+                );
+                return response()->json(['status' => 'success', 'message' => 'Falta registrada. O atendimento foi encerrado como Não compareceu.']);
+
+            case 'corrigir_situacao':
+                $dados = $request->validate(['situacao' => 'required|in:Realizado,Não compareceu']);
+                app(\App\Services\EncerramentoAtendimento::class)->corrigir(
+                    $horario, $dados['situacao'], (int) auth()->id()
+                );
+                return response()->json(['status' => 'success', 'message' => 'Situação corrigida no calendário e no histórico, sem criar outro atendimento.']);
 
             case 'cancel_by_psicologa':
                 abort_if((int) $horario->disponivel !== 0 || (int) $horario->confirmado === 1, 409, 'Atendimento já encerrado ou vaga sem reserva.');
@@ -169,7 +182,7 @@ if (
                 $this->registrarCancelamentoPelaPsicologa($horario, $justificativa);
                 $horario->update(['disponivel' => 1, 'nome' => null, 'matricula' => null, 'confirmado' => 0,
                     'justificativa_cancelamento' => $justificativa, 'token_cancelamento' => null]);
-                return response()->json(['status' => 'success', 'message' => 'Agendamento cancelado. A notificação será enviada por e-mail quando houver contato cadastrado.']);
+                return response()->json(['status' => 'success', 'message' => 'Agendamento cancelado. O aviso foi registrado separadamente. Confira o envio na tela E-mails.']);
 
             case 'delete':
                 // Exclusão individual somente para uma vaga realmente livre.
@@ -238,7 +251,7 @@ if (
                     $mensagem = "Horários vazios apagados: {$vazios}. Agendamentos cancelados e retirados da agenda: {$cancelados}.";
                     if ($cancelados > 0) {
                         $semEmail = $cancelados - $avisos;
-                        $mensagem .= " Notificações por e-mail solicitadas: {$avisos}.";
+                        $mensagem .= " Avisos com e-mail válido registrados para envio: {$avisos}.";
                         if ($semEmail > 0) {
                             $mensagem .= " Sem e-mail válido cadastrado: {$semEmail}. Avise esses alunos por outro meio.";
                         }
@@ -246,7 +259,7 @@ if (
                     if ($preservados > 0) {
                         $mensagem .= " Horários mantidos por inconsistência no cadastro da reserva: {$preservados}. Confira a agenda.";
                     }
-                    $mensagem .= ' Horários passados e atendimentos realizados foram mantidos.';
+                    $mensagem .= ' Confira o resultado dos envios na tela E-mails. Horários passados e atendimentos encerrados foram mantidos.';
                     return response()->json(['status' => 'success', 'message' => $mensagem]);
                 });
 
@@ -306,9 +319,7 @@ if (
         ]);
 
         $email = trim((string) ($aluno?->email ?? ''));
-        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-            return false;
-        }
+        $emailValido = filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
 
         // Reservas antigas sem token também precisam de uma chave distinta por reserva.
         $reserva = $horario->token_cancelamento
@@ -317,8 +328,9 @@ if (
             'Setor de Psicologia IFBA: Sua consulta foi cancelada',
             'Olá, '.e($nome).'!<br><br>Sua consulta em '.Carbon::parse($horario->data)->format('d/m/Y')
             .' às '.Carbon::parse($horario->hora)->format('H:i')
-            .' foi cancelada.<br><strong>Motivo:</strong> '.nl2br(e($justificativa)));
-        return true;
+            .' foi cancelada.<br><strong>Motivo:</strong> '.nl2br(e($justificativa)), null,
+            ['nome' => $nome, 'matricula' => $horario->matricula, 'data' => $horario->data, 'hora' => $horario->hora]);
+        return $emailValido;
     }
 
     // Catálogo encontrado na tabela turmas do banco do projeto SCAAE.
@@ -361,7 +373,7 @@ if (
             'data_inicio' => ['nullable', 'date_format:Y-m-d'],
             'data_fim' => array_merge(['nullable', 'date_format:Y-m-d'],
                 $request->filled('data_inicio') ? ['after_or_equal:data_inicio'] : []),
-            'situacao' => ['nullable', 'in:realizados,agendados,todos,cancelados_aluno,cancelados_psicologa,cancelados'],
+            'situacao' => ['nullable', 'in:realizados,agendados,nao_compareceu,todos,cancelados_aluno,cancelados_psicologa,cancelados'],
             'ordenar_por' => ['nullable', 'in:data_asc,data_desc,nome_asc,situacao_asc'],
         ], [
             'data_fim.after_or_equal' => 'A data final deve ser igual ou posterior à data inicial.',
@@ -391,6 +403,7 @@ if (
             $rotulos = [
                 'realizados' => 'Atendimentos realizados',
                 'agendados' => 'Agendados',
+                'nao_compareceu' => 'Não compareceu',
                 'todos' => 'Todos os registros',
                 'cancelados_aluno' => 'Cancelados pelo aluno',
                 'cancelados_psicologa' => 'Cancelados pela psicóloga',
@@ -399,6 +412,7 @@ if (
             $statusPorFiltro = [
                 'realizados' => ['Realizado'],
                 'agendados' => ['Agendado'],
+                'nao_compareceu' => ['Não compareceu'],
                 'cancelados_aluno' => ['Cancelado pelo Aluno'],
                 'cancelados_psicologa' => ['Cancelado pela Psicóloga'],
                 'cancelados' => ['Cancelado pelo Aluno', 'Cancelado pela Psicóloga'],
@@ -546,6 +560,9 @@ if (
         foreach ($registros as $reg) {
             $situacao = $reg->status === 'Realizado' ? 'Atendimento Realizado' : $reg->status;
             $cor = $reg->status === 'Realizado' ? '#00833D' : '#555';
+            if ($reg->status === 'Não compareceu') {
+                $cor = '#9a3412';
+            }
             if (in_array($reg->status, ['Cancelado pelo Aluno', 'Cancelado pela Psicóloga'], true)) {
                 $cor = '#b42318';
             }

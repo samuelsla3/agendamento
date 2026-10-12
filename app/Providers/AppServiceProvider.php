@@ -24,5 +24,8 @@ class AppServiceProvider extends ServiceProvider
         View::composer(['login', 'index', 'agenda'], function (\Illuminate\View\View $view) {
             $view->with('avisoPublico', ConfiguracaoSistema::avisoPublico());
         });
+        View::composer(['login', 'index'], function (\Illuminate\View\View $view) {
+            $view->with('informacoesAtendimento', ConfiguracaoSistema::informacoesAtendimento());
+        });
     }
 }

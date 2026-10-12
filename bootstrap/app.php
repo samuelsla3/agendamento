@@ -11,6 +11,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [\App\Http\Middleware\SessaoPsicologa::class]);
         $middleware->alias([
             'verificar.psicologa' => \App\Http\Middleware\VerificarPsicologa::class,
         ]);
@@ -18,7 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
     $exceptions->dontFlash([
         'anotacoes',
-        'senha',
+        'senha', 'password', 'password_confirmation', 'senha_atual', 'senha_local',
+        'senha_local_confirmation', 'senha_prontuario', 'senha_prontuario_confirmation',
+        'nova_senha', 'nova_senha_confirmation', 'codigo',
     ]);
 
     $exceptions->render(function (

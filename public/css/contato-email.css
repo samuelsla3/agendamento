@@ -1,0 +1,20 @@
+.contato-email-link { background:transparent; border:0; color:inherit; text-decoration:underline; cursor:pointer; font:inherit; font-size:.9rem; min-height:44px; padding:8px 4px; }
+.contato-email-modal { border:0; border-radius:12px; padding:24px; width:calc(100% - 32px); max-width:520px; max-height:85vh; max-height:85dvh; box-sizing:border-box; margin:auto; overflow-y:auto; color:#1f2937; box-shadow:0 12px 40px rgba(0,0,0,.25); }
+.contato-email-modal::backdrop { background:rgba(0,0,0,.6); }
+.contato-email-cabecalho { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.contato-email-cabecalho h2 { text-align:left; margin:0; font-size:1.3rem; }
+.contato-email-cabecalho button { border:0; background:transparent; font-size:28px; min-width:44px; min-height:44px; cursor:pointer; }
+.contato-email-modal p { line-height:1.5; overflow-wrap:anywhere; }
+.contato-email-modal label { display:block; font-weight:600; margin:16px 0 6px; }
+.contato-email-modal input[type="email"], .contato-email-modal input[type="text"] { width:100%; min-height:44px; padding:12px; box-sizing:border-box; border:1px solid #9ca3af; border-radius:6px; font:inherit; }
+.contato-email-modal #contato-email-codigo { max-width:220px; font-size:1.3rem; letter-spacing:.2rem; }
+.contato-email-modal .btn { min-height:44px; margin:8px 8px 0 0; }
+.contato-email-ajuda { color:#4b5563; font-size:.92rem; }
+.contato-email-retorno { padding:12px; border-radius:6px; background:#e8f5ec; color:#176536; margin:16px 0; overflow-wrap:anywhere; }
+.contato-email-retorno--erro { background:#fff1f1; color:#9d2020; }
+.contato-email-retorno[hidden], #contato-email-codigo-area[hidden] { display:none; }
+.contato-email-pendente { margin:12px 0; padding:12px 16px; border:1px solid #ead8aa; background:#fff8e8; color:#664b10; border-radius:6px; line-height:1.5; }
+@media (max-width:767px) {
+ .contato-email-modal { padding:18px; }
+ .contato-email-modal .btn { display:block; width:100%; margin-right:0; }
+}

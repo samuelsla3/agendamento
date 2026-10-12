@@ -1,0 +1,19 @@
+.seguranca-container { max-width:720px; }
+.seguranca-container h2 { text-align:left; }
+.seguranca-container p { line-height:1.6; }
+.seguranca-campo-senha { display:flex; align-items:stretch; gap:8px; }
+.seguranca-campo-senha input { flex:1; min-width:0; width:100%; min-height:44px; box-sizing:border-box; }
+.seguranca-campo-senha button { min-height:44px; padding:8px 12px; border:1px solid #9ca3af; border-radius:6px; background:#f3f4f6; color:#1f2937; cursor:pointer; font:inherit; }
+.seguranca-acoes { display:flex; flex-wrap:wrap; gap:12px; margin-top:20px; }
+.seguranca-acoes .btn { min-height:44px; }
+.seguranca-aviso { padding:14px; border-radius:6px; margin:16px 0; line-height:1.5; overflow-wrap:anywhere; }
+.seguranca-erro { background:#fff1f1; color:#9d2020; }
+.seguranca-sucesso { background:#e8f5ec; color:#176536; }
+.seguranca-teste { background:#fff8e8; color:#664b10; }
+.seguranca-opcao { display:flex; align-items:center; gap:12px; min-height:44px; margin:16px 0 8px; cursor:pointer; line-height:1.5; }
+.seguranca-opcao input[type="checkbox"] { width:20px; height:20px; min-height:20px; flex:0 0 20px; padding:0; margin:0; }
+.seguranca-opcao span { flex:1; min-width:0; }
+.seguranca-regras { color:#4b5563; font-size:.95rem; }
+@media (max-width:767px) {
+ .seguranca-acoes .btn { width:100%; box-sizing:border-box; text-align:center; }
+}

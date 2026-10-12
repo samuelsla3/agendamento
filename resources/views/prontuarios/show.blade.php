@@ -3,12 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     @include('partials.favicon')
     <title>Prontuário - {{ $aluno->nome ?? $aluno->name }}</title>
     @vite('resources/css/app.css')
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
+<script src="{{ asset('js/protecao-prontuario.js') }}?v=20261008-1" defer></script>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 min-h-screen"
+    data-prontuario-status="{{ route('prontuarios.acesso.status') }}"
+    data-prontuario-renovar="{{ route('prontuarios.acesso.renovar') }}"
+    data-prontuario-agenda="{{ route('psicologa.index') }}"
+    data-prontuario-login="{{ route('login') }}"
+    data-prontuario-agora="{{ now()->timestamp }}"
+    data-prontuario-expira="{{ session('prontuario_ultimo_acesso') + 60 * config('psicologia.prontuario_inatividade_minutos', 30) }}">
 
 <div class="container mx-auto p-6 max-w-4xl">
 

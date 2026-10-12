@@ -9,6 +9,8 @@
 
     <link rel="stylesheet" href="{{ asset('css/auth.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/aviso-alunos.css') }}?v=20261008-1">
+    <link rel="stylesheet" href="{{ asset('css/informacoes-atendimento.css') }}?v=20261008-1">
+    <script src="{{ asset('js/informacoes-atendimento.js') }}?v=20261008-1" defer></script>
 
     <!-- Ícones do Bootstrap para os olhos -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -42,10 +44,14 @@
     <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
 </head>
 
-<body @class(['login-com-aviso' => ($avisoPublico ?? null) !== null])>
+<body @class([
+    'login-com-aviso' => ($avisoPublico ?? null) !== null,
+    'login-com-informacoes' => !empty($informacoesAtendimento),
+])>
 
     <div class="auth-container">
         @include('partials.aviso-alunos')
+        @include('partials.informacoes-atendimento')
 
         <form
             data-texto-envio="Verificando seus dados. Aguarde..."

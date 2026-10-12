@@ -80,21 +80,20 @@ class AtendimentoEmergencial
             }
 
             $email = trim((string) $aluno->email);
-            $comEmail = filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
-            if ($comEmail) {
-                AvisosEmail::registrar('agendado:'.$token, $email,
+            AvisosEmail::registrar('agendado:'.$token, $email,
                     'Setor de Psicologia IFBA: Confirmação de Agendamento',
                     'Olá, <strong>'.e($aluno->nome).'</strong>!<br><br>Um atendimento foi registrado pela psicóloga.<br>'
                     .'<strong>Data:</strong> '.Carbon::parse($dados['data'])->format('d/m/Y')
                     .'<br><strong>Hora:</strong> '.Carbon::parse($hora)->format('H:i')
-                    .'<br><br>Serviço de Psicologia - IFBA Seabra');
-            }
+                    .'<br><br>Serviço de Psicologia - IFBA Seabra',
+                    ['horario_id' => $horario->id, 'reserva_hash' => hash('sha256', $token), 'data' => $horario->data],
+                    ['nome' => $aluno->nome, 'matricula' => $aluno->matricula, 'data' => $horario->data, 'hora' => $horario->hora]);
 
             $mensagem = 'Atendimento registrado como Agendado. O prontuário já está disponível pelo botão Operar ou pelo calendário.';
             if ($novo) {
                 $mensagem .= ' Cadastro provisório criado; o primeiro login pelo SUAP usará a mesma matrícula.';
             }
-            $mensagem .= $comEmail ? ' Confirmação por e-mail solicitada.' : ' Sem e-mail cadastrado: nenhum aviso foi enviado.';
+            $mensagem .= ' Aviso registrado para acompanhamento em E-mails; o contato precisa estar confirmado pelo aluno para o envio.';
             return $mensagem;
         });
     }

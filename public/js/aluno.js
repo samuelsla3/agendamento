@@ -1,3 +1,9 @@
+const regraAntecedencia = AntecedenciaAgendamento.criar(LaravelConfig.antecedenciaAgendamento);
+
+function inicioAgendamento(event) {
+    return event.extendedProps.inicio_agendamento || event.start;
+}
+
 $.ajaxSetup({
     headers: {
         'X-CSRF-TOKEN': LaravelConfig.csrfToken
@@ -19,12 +25,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // AJUSTE 1: Aplica o cursor de "proibido" (not-allowed) visualmente no calendário
         eventDidMount: function(info) {
             const props = info.event.extendedProps;
-            const isPast = new Date(info.event.start) < new Date();
+            const isPast = regraAntecedencia.estaNoPassado(inicioAgendamento(info.event));
+            const semAntecedencia = props.disponivel == 1 && regraAntecedencia.bloqueia(inicioAgendamento(info.event));
             const ehMeuAgendamento = (LaravelConfig.userTipo === 'estudante' || LaravelConfig.userTipo === 'aluno') && 
                                     (props.matricula_agendada === LaravelConfig.matriculaUsuario || props.matricula === LaravelConfig.matriculaUsuario);
 
             // Se o horário já passou OU se está ocupado por outro aluno, aplica visual de indisponível
-            if (isPast || (props.disponivel != 1 && !ehMeuAgendamento && LaravelConfig.userTipo !== 'psicologa')) {
+            if (isPast || semAntecedencia || (props.disponivel != 1 && !ehMeuAgendamento && LaravelConfig.userTipo !== 'psicologa')) {
                 info.el.style.cursor = 'not-allowed';
                 info.el.style.opacity = '0.6';
             }
@@ -38,11 +45,16 @@ document.addEventListener('DOMContentLoaded', function() {
             let horarioOriginal = eventData.title || ''; 
 
             if (props.disponivel == 1) {
-                className = 'evento-disponivel-aluno';
-                statusTexto = 'Disponível';
+                const semAntecedencia = regraAntecedencia.bloqueia(props.inicio_agendamento || eventData.start);
+                className = semAntecedencia ? 'evento-indisponivel-aluno' : 'evento-disponivel-aluno';
+                statusTexto = semAntecedencia ? 'Prazo para agendar encerrado' : 'Disponível';
             } else if (props.confirmado == 1) {
                 className = 'evento-indisponivel-aluno';
-                statusTexto = 'Atendimento Realizado';
+                const podeVerSituacao = LaravelConfig.userTipo === 'psicologa'
+                    || (LaravelConfig.isLoggedIn && props.matricula_agendada === LaravelConfig.matriculaUsuario);
+                statusTexto = podeVerSituacao
+                    ? (props.situacao_atendimento === 'Não compareceu' ? 'Não compareceu' : 'Atendimento Realizado')
+                    : 'Indisponível';
             } else if ((LaravelConfig.userTipo === 'estudante' || LaravelConfig.userTipo === 'aluno') && props.matricula_agendada === LaravelConfig.matriculaUsuario) {
                 className = 'evento-meu-agendamento';
                 statusTexto = 'Meu Agendamento';
@@ -93,7 +105,7 @@ function openModal(event) {
     const dataHora = new Date(event.start).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'});
     
     // Calcula se o horário do agendamento é anterior ao momento atual
-    const isPast = new Date(event.start) < new Date();
+    const isPast = regraAntecedencia.estaNoPassado(inicioAgendamento(event));
 
     if (!LaravelConfig.isLoggedIn) {
         showMessage('error', "É necessário estar logado.");
@@ -111,6 +123,22 @@ function openModal(event) {
         return;
     }
 
+    if (props.disponivel == 1 && regraAntecedencia.bloqueia(inicioAgendamento(event))) {
+        showMessage('error', regraAntecedencia.mensagem);
+        return;
+    }
+
+    const meuAgendamento = props.matricula_agendada === LaravelConfig.matriculaUsuario
+        || props.matricula === LaravelConfig.matriculaUsuario;
+    if (props.disponivel != 1 && !meuAgendamento) {
+        showMessage('error', 'Este horário já está ocupado.');
+        return;
+    }
+    if (props.situacao_atendimento === 'Não compareceu') {
+        showMessage('error', 'Este atendimento foi encerrado como Não compareceu e não pode ser cancelado.');
+        return;
+    }
+
     // 1. TRAVA DE CONFIRMADO/REALIZADO
     if (props.confirmado == 1 || props.status === 'Realizado') {
         showMessage('error', "Este atendimento já foi realizado e não pode ser cancelado.");
@@ -125,7 +153,8 @@ function openModal(event) {
 
     if (props.disponivel == 1) {
         $('#agendarModal').find('.data-hora').text(dataHora);
-        $('#id_horario_agendar').val(event.id).data('versao', props.versao);
+        $('#id_horario_agendar').val(event.id).data('versao', props.versao)
+            .data('inicio', inicioAgendamento(event));
         $('#agendarModal').addClass('is-visible');
     } else if (props.matricula_agendada === LaravelConfig.matriculaUsuario || props.matricula === LaravelConfig.matriculaUsuario) {
         $('#cancelarModal').find('.data-hora').text(dataHora);
@@ -142,6 +171,17 @@ function showMessage(type, message) { $('#message-box').removeClass('success err
 
 $('#agendar-form').on('submit', function(e) { 
     e.preventDefault(); 
+    const inicio = $('#id_horario_agendar').data('inicio');
+    if (regraAntecedencia.estaNoPassado(inicio)) {
+        closeModal();
+        showMessage('error', 'Não é possível agendar um horário que já passou.');
+        return;
+    }
+    if (regraAntecedencia.bloqueia(inicio)) {
+        closeModal();
+        showMessage('error', regraAntecedencia.mensagem);
+        return;
+    }
     sendAjaxRequest(LaravelConfig.rotas.agendar, { 
         action: 'agendar', 
         id_horario: $('#id_horario_agendar').val(),

@@ -14,6 +14,11 @@
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/pt-br.js'></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('css/aviso-alunos.css') }}?v=20261008-1">
+    <link rel="stylesheet" href="{{ asset('css/informacoes-atendimento.css') }}?v=20261008-1">
+    <script src="{{ asset('js/informacoes-atendimento.js') }}?v=20261008-1" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/contato-email.css') }}?v=20261008-1">
+    <script src="{{ asset('js/contato-email.js') }}?v=20261008-1" defer></script>
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
 </head>
 <body>
@@ -23,6 +28,9 @@
         <div class="user-info">
             @if(auth()->check())
                 <span>{{ auth()->user()->nome }} ({{ auth()->user()->matricula }})</span>
+                @if(($contatoEmail ?? null) !== null)
+                    <button type="button" class="contato-email-link" data-abrir-contato-email aria-controls="contato-email-modal" aria-expanded="false">Alterar e-mail</button>
+                @endif
                 
                 <form action="{{ route('logout') }}" method="POST" style="display: inline;">
                     @csrf
@@ -36,10 +44,15 @@
     </header>
 
     <div class="container">
-        <div class="container">
-    @include('partials.aviso-alunos')
-    <div id="message-box" class="message-box"></div>
+        @include('partials.aviso-alunos')
+        @include('partials.informacoes-atendimento')
         <div id="message-box" class="message-box"></div>
+        @if(($contatoEmail ?? null) !== null && !$contatoEmail['confirmado'])
+            <aside class="contato-email-pendente">
+                Confirme o e-mail que você utiliza para receber os avisos dos agendamentos.
+                <button type="button" class="contato-email-link" data-abrir-contato-email aria-controls="contato-email-modal" aria-expanded="false">Confirmar e-mail</button>
+            </aside>
+        @endif
         
         <section class="content-section">
             <h2>Calendário de Horários Disponíveis</h2>
@@ -47,13 +60,16 @@
     Clique em um horário <strong>disponível</strong> para fazer seu agendamento. 
     @guest É necessário estar logado. @endguest
 </p>
+            @if($antecedenciaAgendamento['ativa'])
+                <p class="instrucao-subtexto">Agende com pelo menos {{ $antecedenciaAgendamento['descricao'] }} de antecedência.</p>
+            @endif
             <div id="calendar"></div>
         </section>
 
         @if(auth()->check() && (auth()->user()->tipo === 'estudante' || auth()->user()->tipo === 'aluno'))
         <section class="content-section">
             <h2>Seu Histórico de Agendamentos</h2>
-            <p class="instrucao-subtexto">(Atendimentos Realizados e Cancelados)</p>
+            <p class="instrucao-subtexto">(Agendamentos, atendimentos realizados, faltas e cancelamentos)</p>
 
             @if(count($registros) > 0)
                 <h3 style="margin-top: 20px; font-size: 1.2em; color: #333;">
@@ -81,6 +97,9 @@
                                 } elseif ($reg->status === 'Realizado') {
                                     $status_texto = 'Atendimento Realizado';
                                     $status_class = 'text-success';
+                                } elseif ($reg->status === 'Não compareceu') {
+                                    $status_texto = 'Não compareceu';
+                                    $status_class = 'text-warning';
                                 } elseif ($reg->status === 'Cancelado pelo Aluno') {
                                     $status_texto = 'Cancelado por Você';
                                     $status_class = 'text-warning';
@@ -109,6 +128,8 @@
         @endif
     </div>
 
+
+    @include('partials.contato-email')
 
     <div id="agendarModal" class="modal">
         <div class="modal-content">
@@ -147,6 +168,7 @@
         matriculaUsuario: "{{ auth()->check() ? auth()->user()->matricula : '' }}",
         csrfToken: "{{ csrf_token() }}",
         horarios: @json($horarios),
+        antecedenciaAgendamento: @json($antecedenciaAgendamento),
         rotas: {
             agendar: "{{ route('agenda.agendar') }}",
             cancelar: "{{ route('agenda.cancelar') }}"
@@ -154,6 +176,7 @@
     };
 </script>
 
-<script src="{{ asset('js/aluno.js') }}?v=20260927-mobile-2"></script>
+<script src="{{ asset('js/antecedencia-agendamento.js') }}?v=20261008-1"></script>
+<script src="{{ asset('js/aluno.js') }}?v=20261008-faltas-1"></script>
 </body>
 </html>

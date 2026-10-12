@@ -13,7 +13,7 @@ Route::get('/', [CalendarioController::class, 'index'])->name('agenda.index');
 
 // Rotas de Autenticação (SUAP + Local)
 Route::get('/login', [AuthController::class, 'mostrarLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'logar'])->name('login.post')->middleware(LoginUnico::class);
+Route::post('/login', [AuthController::class, 'logar'])->name('login.post')->middleware([\App\Http\Middleware\LimitarLogin::class, LoginUnico::class, 'throttle:100,1,login-ip:']);
 
 /* 
  * As rotas de registro foram desativadas pois o aluno 
@@ -37,8 +37,25 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [AuthController::class, 'redirecionarUsuario'])->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+    Route::get('/contato/email', [\App\Http\Controllers\EmailContatoController::class, 'status'])->name('contato.email.status');
+    Route::post('/contato/email/enviar', [\App\Http\Controllers\EmailContatoController::class, 'enviar'])
+        ->name('contato.email.enviar')->middleware([RequisicaoUnica::class . ':agenda', 'throttle:3,10,email-enviar:']);
+    Route::post('/contato/email/confirmar', [\App\Http\Controllers\EmailContatoController::class, 'confirmar'])
+        ->name('contato.email.confirmar')->middleware([RequisicaoUnica::class . ':agenda', 'throttle:10,10,email-confirmar:']);
+
     Route::post('/agendar', [CalendarioController::class, 'processarAcao'])->name('agenda.agendar')->middleware(RequisicaoUnica::class.':agenda');
     Route::post('/cancelar', [CalendarioController::class, 'processarAcao'])->name('agenda.cancelar')->middleware(RequisicaoUnica::class.':agenda');
+
+    Route::middleware(['verificar.psicologa'])->group(function () {
+        Route::get('/seguranca/primeiro-acesso', [\App\Http\Controllers\SegurancaController::class, 'primeiro'])->name('seguranca.primeiro');
+        Route::post('/seguranca/primeiro-acesso', [\App\Http\Controllers\SegurancaController::class, 'cadastrar'])
+            ->name('seguranca.primeiro.salvar')->middleware(['throttle:5,30,senha-inicial:', RequisicaoUnica::class . ':agenda']);
+        Route::get('/configuracoes/seguranca', [\App\Http\Controllers\SegurancaController::class, 'index'])->name('seguranca.index');
+        Route::post('/configuracoes/seguranca/local', [\App\Http\Controllers\SegurancaController::class, 'alterarLocal'])
+            ->name('seguranca.local')->middleware(['throttle:5,30,senha-local:', RequisicaoUnica::class . ':agenda']);
+        Route::post('/configuracoes/seguranca/prontuario', [\App\Http\Controllers\SegurancaController::class, 'alterarProntuario'])
+            ->name('seguranca.prontuario')->middleware(['throttle:5,30,senha-trocar-prontuario:', RequisicaoUnica::class . ':agenda']);
+    });
 
     // Área exclusiva da Psicóloga
     Route::middleware(['verificar.psicologa'])->group(function () {
@@ -46,16 +63,30 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/agenda', [PsicologaController::class, 'index'])->name('psicologa.index');
         Route::get('/agenda/eventos', [PsicologaController::class, 'listarEventos'])->name('agenda.eventos');
         Route::post('/agenda/acao', [PsicologaController::class, 'processarAcao'])->name('agenda.acao')->middleware(RequisicaoUnica::class.':agenda');
+        Route::get('/emails', [\App\Http\Controllers\EmailsController::class, 'index'])->name('emails.index');
+        Route::post('/emails/{aviso}/tentar-novamente', [\App\Http\Controllers\EmailsController::class, 'tentarNovamente'])
+            ->whereNumber('aviso')->name('emails.tentar')
+            ->middleware([RequisicaoUnica::class . ':emails', 'throttle:20,1']);
+
         Route::post('/agenda/relatorio', [PsicologaController::class, 'gerarRelatorio'])->name('agenda.relatorio');
 
         Route::get('/configuracoes', [\App\Http\Controllers\ConfiguracaoController::class, 'index'])
     ->name('configuracoes.index');
+        Route::post('/configuracoes/calendario', [\App\Http\Controllers\ConfiguracaoController::class, 'atualizarCalendario'])
+            ->name('configuracoes.calendario.atualizar');
 Route::post('/configuracoes', [\App\Http\Controllers\ConfiguracaoController::class, 'atualizar'])
     ->name('configuracoes.atualizar');
     Route::post('/configuracoes/aviso', [\App\Http\Controllers\ConfiguracaoController::class, 'atualizarAviso'])
     ->name('configuracoes.aviso.atualizar');
+    Route::post('/configuracoes/antecedencia', [\App\Http\Controllers\ConfiguracaoController::class, 'atualizarAntecedencia'])
+    ->name('configuracoes.antecedencia.atualizar');
+    Route::post('/configuracoes/informacoes', [\App\Http\Controllers\ConfiguracaoController::class, 'atualizarInformacoes'])
+    ->name('configuracoes.informacoes.atualizar');
 
         Route::get('/prontuarios', [ProntuarioController::class, 'index'])->name('prontuarios.index');
+        Route::get('/prontuarios/acesso/status', [ProntuarioController::class, 'statusAcesso'])->name('prontuarios.acesso.status');
+        Route::post('/prontuarios/acesso/renovar', [ProntuarioController::class, 'renovarAcesso'])
+            ->name('prontuarios.acesso.renovar')->middleware('throttle:120,1,atividade-prontuario:');
         Route::post(
     '/prontuarios/validar-senha',
     [ProntuarioController::class, 'validarSenha']

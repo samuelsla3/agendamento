@@ -2,23 +2,16 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\SegurancaPsicologa;
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 class VerificarPsicologa
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  Closure(Request): (Response)  $next
-     */
-    public function handle(\Illuminate\Http\Request $request, \Closure $next)
+    public function handle(Request $request, Closure $next)
     {
-        if (session('usuario_tipo') !== 'psicologa') {
-            return redirect()->route('login')->with('erro', 'Acesso negado.');
-        }
-
+        abort_unless($request->user() && SegurancaPsicologa::sessaoAtual($request, $request->user()), 403,
+            'Acesso restrito à psicóloga autorizada.');
         return $next($request);
     }
 }

@@ -15,6 +15,7 @@
 
     <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('css/aviso-alunos.css') }}?v=20261008-1">
+    <link rel="stylesheet" href="{{ asset('css/preferencias-calendario.css') }}?v=20261008-1">
     <style>
         #emergencial-titulo { padding-right: 24px; }
         #emergencialModal input[type="email"] {
@@ -50,6 +51,14 @@
     </header>
 
     <div class="container">
+        @if(($problemasEmail ?? 0) > 0)
+            <aside class="aviso-alunos" role="status">
+                <h2 class="aviso-alunos__titulo">Avisos por e-mail precisam de atenção</h2>
+                <p>{{ $problemasEmail }} {{ $problemasEmail === 1 ? 'aviso com problema ou envio sem confirmação' : 'avisos com problema ou envio sem confirmação' }}.
+                    Os agendamentos e cancelamentos registrados continuam válidos.</p>
+                <p><a href="{{ route('emails.index') }}">Acompanhar os envios</a></p>
+            </aside>
+        @endif
         @if(($avisoPublico ?? null) !== null)
             <aside class="aviso-alunos" aria-label="Lembrete sobre o aviso aos alunos">
                 <h2 class="aviso-alunos__titulo">Aviso aos alunos ativo</h2>
@@ -66,6 +75,7 @@
     Prontuários e Acompanhamento
 </button>
             <button type="button" class="btn btn-primary" onclick="abrirModalEmergencial()">Atendimento emergencial</button>
+            <a href="{{ route('emails.index') }}" class="btn btn-info" style="text-decoration:none;">E-mails{{ ($problemasEmail ?? 0) > 0 ? ' (' . $problemasEmail . ')' : '' }}</a>
         </div>
 
         <section class="content-section agenda-hoje-section">
@@ -112,8 +122,10 @@
                                         {{ $agendamento->matricula ?? 'N/A' }}
                                     </td>
                                     <td>
-                                        @if($agendamento->confirmado)
-                                            <span class="status-confirmado">Confirmado</span>
+                                        @if($agendamento->situacao_atendimento === 'Não compareceu')
+                                            <span class="status-agendado" style="color:#9a3412;">Não compareceu</span>
+                                        @elseif($agendamento->confirmado)
+                                            <span class="status-confirmado">Realizado</span>
                                         @else
                                             <span class="status-agendado">Agendado</span>
                                         @endif
@@ -126,6 +138,8 @@
                                                 data-alunoid="{{ $agendamento->usuario?->id ?? '' }}"
                                                 data-disponivel="{{ $agendamento->disponivel }}"
                                                 data-confirmado="{{ $agendamento->confirmado }}"
+                                                data-situacao="{{ $agendamento->situacao_atendimento }}"
+                                                data-inicio="{{ \Carbon\Carbon::parse($agendamento->data . ' ' . $agendamento->hora, config('app.timezone'))->toIso8601String() }}"
                                                 data-nome="{{ $agendamento->nome ?? optional($agendamento->aluno)->name ?? 'Não informado' }}"
                                                 data-matricula="{{ $agendamento->matricula ?? optional($agendamento->aluno)->matricula ?? 'N/A' }}"
                                                 data-turma="{{ $agendamento->usuario?->turma_formatada ?? 'Não informada' }}"
@@ -182,6 +196,10 @@
 
         <section class="content-section">
             <h2>Agenda de Horários</h2>
+            <div class="calendario-faixa" id="calendario-faixa" hidden>
+                <button type="button" id="calendario-dia-completo" class="btn btn-secondary" aria-pressed="false" aria-controls="calendar">Mostrar dia completo</button>
+                <p id="calendario-faixa-aviso" role="status" hidden></p>
+            </div>
             <div id='calendar'></div>
         </section>
 
@@ -231,6 +249,7 @@
                         <select id="situacao" name="situacao">
                             <option value="realizados" selected>Atendimentos realizados</option>
                             <option value="agendados">Agendados</option>
+                        <option value="nao_compareceu">Não compareceu</option>
                             <option value="todos">Todos os registros</option>
                             <option value="cancelados_aluno">Cancelados pelo aluno</option>
                             <option value="cancelados_psicologa">Cancelados pela psicóloga</option>
@@ -286,6 +305,8 @@
     </a>
 
     <button type="button" id="confirmBtn" class="btn btn-success" style="display:none;">Confirmar Atendimento</button>
+    <button type="button" id="faltaBtn" class="btn btn-danger" style="display:none;">Registrar falta</button>
+    <button type="button" id="corrigirSituacaoBtn" class="btn btn-primary" style="display:none;">Corrigir situação</button>
     <button type="button" id="cancelByPsicologaBtn" class="btn btn-danger" style="display:none;">Cancelar Agendamento</button>
     <button type="button" id="deleteBtn" class="btn btn-danger">Excluir Horário</button>
     <button type="button" onclick="closeModal()" class="btn btn-secondary">Fechar</button>
@@ -463,6 +484,31 @@
     </div>
 </div>
 
+        <div id="situacaoModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="situacaoTitulo">
+            <div class="modal-content" style="max-width:560px;">
+                <button type="button" class="close-btn" onclick="closeModal()" aria-label="Fechar">&times;</button>
+                <h3 id="situacaoTitulo">Registrar falta</h3>
+                <p>Aluno: <strong id="situacaoAlunoNome"></strong></p>
+                <p id="situacaoAtualTexto"></p>
+                <form id="situacao-form">
+                    <div id="grupoNovaSituacao" class="form-group" style="display:none;">
+                        <label for="novaSituacao">Nova situação:</label>
+                        <select id="novaSituacao">
+                            <option value="Realizado">Atendimento realizado</option>
+                            <option value="Não compareceu">Não compareceu</option>
+                        </select>
+                    </div>
+                    <div id="grupoObservacaoFalta" class="form-group">
+                        <label for="observacaoFalta">Observação administrativa (opcional):</label>
+                        <textarea id="observacaoFalta" maxlength="1000" rows="3" placeholder="Ex.: aluno avisou que não conseguiu chegar."></textarea>
+                        <p style="font-size:0.9rem;">Visível no histórico do aluno. Anotações clínicas devem ser feitas no prontuário.</p>
+                    </div>
+                    <button type="submit" id="salvarSituacaoBtn" class="btn btn-primary">Registrar falta</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Fechar</button>
+                </form>
+            </div>
+        </div>
+
         <div id="cancelByPsicologaModal" class="modal">
             <div class="modal-content">
                 <span class="close-btn" onclick="closeModal()">&times;</span>
@@ -544,14 +590,14 @@
                 @csrf
             @include('partials.operacao')
                 <p style="font-size: 13px; color: #4b5563; margin-top: 0; margin-bottom: 16px;">
-                    Por razões de segurança, digite a sua senha de acesso para visualizar o prontuário.
+                    Digite a senha própria do prontuário, criada no primeiro acesso. O acesso será bloqueado após 30 minutos sem uso do prontuário.
                 </p>
 
                 <div style="margin-bottom: 16px;">
                     <label for="senhaProntuarioInput" style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
-                        Sua Senha
+                        Senha do prontuário
                     </label>
-                    <input type="password" id="senhaProntuarioInput" name="senha" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box;" placeholder="••••••••" required autofocus>
+                    <input type="password" id="senhaProntuarioInput" name="senha" autocomplete="current-password" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box;" placeholder="••••••••" required autofocus>
 
                     @error('senha')
                         <span style="color: #ef4444; font-size: 12px; margin-top: 6px; display: block;">{{ $message }}</span>
@@ -661,6 +707,8 @@
     <script>
         const LaravelConfig = {
             csrfToken: "{{ csrf_token() }}",
+            agora: @json(now()->toIso8601String()),
+            preferenciasCalendario: @json(\App\Models\ConfiguracaoSistema::preferenciasCalendario()),
             rotas: {
                 eventos: "{{ route('agenda.eventos') }}",
                 acao: "{{ route('agenda.acao') }}",
@@ -669,7 +717,8 @@
         };
     </script>
 
-    <script src="{{ asset('js/psicologa.js') }}?v=20261006-configuracoes-2"></script>
+    <script src="{{ asset('js/preferencias-calendario.js') }}?v=20261008-1"></script>
+    <script src="{{ asset('js/psicologa.js') }}?v=20261008-calendario-1"></script>
     <script src="{{ asset('js/atendimento-emergencial.js') }}?v=20261004-emergencial-1"></script>
 
 </body>

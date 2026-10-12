@@ -1,11 +1,28 @@
+// Usa o relógio do servidor para liberar a falta; o backend confere novamente.
+const relogioAgenda = (() => {
+    const servidor = Date.parse(LaravelConfig.agora || '');
+    const monotono = () => typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const recebido = monotono();
+    const base = Number.isFinite(servidor) ? servidor : Date.now();
+    return () => base + monotono() - recebido;
+})();
+function horarioJaIniciou(inicio) {
+    const instante = new Date(inicio).getTime();
+    return Number.isFinite(instante) && instante < relogioAgenda();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
     if (!calendarEl) return;
 
+    const telaPequena = window.matchMedia('(max-width: 767px)');
+    const preferencias = LaravelConfig.preferenciasCalendario || {visualizacao: 'padrao', faixa_ativa: false};
+
     const calendar = new FullCalendar.Calendar(calendarEl, {
         locale: 'pt-br',
-        initialView: 'dayGridMonth',
-        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
+        ...PreferenciasCalendario.opcoesIniciais(preferencias, telaPequena.matches),
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek,timeGridDay' },
+        buttonText: { today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia', list: 'Lista' },
         displayEventTime: false,
         events: {
             url: LaravelConfig.rotas.eventos,
@@ -29,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Substitua o bloco de verificação de status no eventDataTransform por este:
 if (props.confirmado == 1) {
     className = 'evento-indisponivel-psicologa';
-    statusTexto = 'Realizado: ' + (props.nome || 'N/A');
+    statusTexto = (props.situacao_atendimento === 'Não compareceu' ? 'Não compareceu: ' : 'Realizado: ') + (props.nome || 'N/A');
 } else if (props.disponivel == 0) {
     className = 'evento-indisponivel-psicologa'; 
     statusTexto = 'Agendado: ' + (props.nome || 'N/A');
@@ -47,9 +64,8 @@ if (props.confirmado == 1) {
             };
         }
     });
-    const telaPequena = window.matchMedia('(max-width: 767px)');
     const opcoesCelular = {
-        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listWeek,timeGridDay' },
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek,timeGridDay' },
         buttonText: { today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia', list: 'Lista' },
         noEventsContent: 'Nenhum horário nesta semana. Use as setas para consultar outro período.',
         height: 'auto',
@@ -64,10 +80,15 @@ if (props.confirmado == 1) {
         calendar.batchRendering(() => {
             const opcoes = telaPequena.matches ? opcoesCelular : opcoesComputador;
             Object.entries(opcoes).forEach(([chave, valor]) => calendar.setOption(chave, valor));
-            calendar.changeView(telaPequena.matches ? 'listWeek' : 'dayGridMonth');
+            // A escolha é inicial. Com preferência explícita, redimensionar a tela
+            // preserva a visualização que a psicóloga estiver usando naquele momento.
+            if (preferencias.visualizacao === 'padrao') {
+                calendar.changeView(PreferenciasCalendario.visualizacaoInicial(preferencias, telaPequena.matches));
+            }
         });
     }
     if (telaPequena.matches) adaptarCalendario();
+    PreferenciasCalendario.conectar(calendar, preferencias);
     calendar.render();
     telaPequena.addEventListener('change', adaptarCalendario);
     window.refreshCalendar = function() { calendar.refetchEvents(); }
@@ -76,7 +97,7 @@ if (props.confirmado == 1) {
 function openModal(event) {
     const props = event.extendedProps;
     const start = new Date(event.start);
-    const isPast = start < new Date();
+    const isPast = horarioJaIniciou(props.inicio_agendamento || event.start);
     const disponivel = Number(props.disponivel) === 1;
     const confirmado = Number(props.confirmado) === 1;
     const statusAnterior = String(props.status_real || '');
@@ -87,7 +108,7 @@ function openModal(event) {
 
     $('#eventId').val(event.id).data('versao', props.versao);
     $('#justificativaTexto, #agendadoNome, #agendadoTurma, #agendadoMatricula, #agendadoStatus').text('');
-    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #prontuarioBtn').hide();
+    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #prontuarioBtn, #faltaBtn, #corrigirSituacaoBtn').hide();
 
     if (disponivel && !confirmado) {
         $('#modalTitle').text('Editar Horário Disponível');
@@ -144,27 +165,30 @@ if (props.justificativa_cancelamento) {
             $('#prontuarioBtn').attr('href', '/prontuarios/aluno/' + alunoId).css('display', 'inline-block');
         }
 
-        if (confirmado) {
-            $('#agendadoStatus').text('Realizado / Concluído').css('color', '#00833D');
-        } else {
-            $('#agendadoStatus').text('Agendado').css('color', '#d97706');
-            configurarAcoesAtendimento(disponivel, confirmado);
-        }
+        configurarAcoesAtendimento(disponivel, confirmado, isPast, props.situacao_atendimento);
     }
 
     $('#modal').addClass('is-visible');
 }
 
-// Ambos os modais permitem confirmar uma reserva aberta antes do horário marcado.
-function configurarAcoesAtendimento(disponivel, confirmado) {
-    $('#confirmBtn, #cancelByPsicologaBtn, #deleteBtn').hide();
-    if (disponivel || confirmado) return;
+// Ambos os modais compartilham as ações e a identificação da situação final.
+function configurarAcoesAtendimento(disponivel, confirmado, isPast = false, situacaoFinal = '') {
+    $('#confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #faltaBtn, #corrigirSituacaoBtn').hide();
+    const situacao = confirmado ? (situacaoFinal || 'Realizado') : 'Agendado';
+    $('#eventId').data('situacao', situacao);
+    $('#agendadoStatus').text(situacao === 'Realizado' ? 'Realizado / Concluído' : situacao)
+        .css('color', situacao === 'Realizado' ? '#00833D' : '#9a3412');
+    if (disponivel) return;
+    if (confirmado) {
+        $('#corrigirSituacaoBtn').show();
+        return;
+    }
     $('#confirmBtn, #cancelByPsicologaBtn').show();
-    // Excluir Horário só é exibido no ramo de edição de uma vaga livre.
+    if (isPast) $('#faltaBtn').show();
 }
 
 function closeModal() { 
-    $('#modal, #generateModal, #deleteModal, #cancelByPsicologaModal, #emergencialModal').removeClass('is-visible');
+    $('#modal, #generateModal, #deleteModal, #cancelByPsicologaModal, #emergencialModal, #situacaoModal').removeClass('is-visible');
 }
 
 $(document).on('click', '.modal .close-btn, .modal .btn-secondary', function(e) {
@@ -180,15 +204,15 @@ $('.modal').on('click', function(e) {
 
 
 function sendAjaxRequest(data) {
-    if (['confirmar', 'cancel_by_psicologa', 'delete', 'edit'].includes(data.action)) {
+    if (['confirmar', 'registrar_falta', 'corrigir_situacao', 'cancel_by_psicologa', 'delete', 'edit'].includes(data.action)) {
         data.versao = $('#eventId').data('versao');
     }
-    const textos = {confirmar: 'Concluindo…', cancel_by_psicologa: 'Cancelando…',
+    const textos = {registrar_falta: 'Registrando falta…', corrigir_situacao: 'Corrigindo situação…', confirmar: 'Concluindo…', cancel_by_psicologa: 'Cancelando…',
         generate_default: 'Gerando horários…', generate_individual: 'Criando horário…', atendimento_emergencial: 'Registrando atendimento…',
         edit: 'Salvando…', delete: 'Excluindo…', delete_specific_default: 'Cancelando horários…'};
     return Operacoes.ajax({
         grupo: 'agenda', url: LaravelConfig.rotas.acao, data, navegar: true,
-        botoes: '#emergencial-form button[type="submit"], #generate-form button[type="submit"], #individual-form button[type="submit"], #delete-form button[type="submit"], #form-disponivel button[type="submit"], #cancel-by-psicologa-form button[type="submit"], #confirmBtn, #deleteBtn',
+        botoes: '#emergencial-form button[type="submit"], #generate-form button[type="submit"], #individual-form button[type="submit"], #delete-form button[type="submit"], #form-disponivel button[type="submit"], #cancel-by-psicologa-form button[type="submit"], #confirmBtn, #deleteBtn, #faltaBtn, #corrigirSituacaoBtn, #situacao-form button[type="submit"]',
         texto: textos[data.action] || 'Processando…',
         sucesso(response) { alert(response.message); location.reload(); },
         erro(message) { alert(message); }
@@ -211,7 +235,7 @@ $('#delete-form').submit(function(e) {
     }
     const formatarData = data => data.split('-').reverse().join('/');
     const horas = horasSelecionadas.map(hora => hora.slice(0, 5)).join(', ');
-    if (!confirm(`Cancelar horários de ${formatarData(inicio)} a ${formatarData(fim)}, às ${horas}?\n\nAs vagas vazias serão apagadas e os agendamentos serão cancelados e retirados da agenda. A justificativa será enviada por e-mail aos alunos com contato válido.\n\nHorários passados e atendimentos realizados serão mantidos.`)) return;
+    if (!confirm(`Cancelar horários de ${formatarData(inicio)} a ${formatarData(fim)}, às ${horas}?\n\nAs vagas vazias serão apagadas e os agendamentos serão cancelados e retirados da agenda. A justificativa será enviada por e-mail aos alunos com contato válido.\n\nHorários passados e atendimentos encerrados serão mantidos.`)) return;
     sendAjaxRequest({
         action: 'delete_specific_default', data_inicio: inicio, data_fim: fim,
         horas: horasSelecionadas, justificativa: $('#justificativa_bloco').val().trim()
@@ -220,6 +244,43 @@ $('#delete-form').submit(function(e) {
 $('#form-disponivel').submit(function(e) { e.preventDefault(); sendAjaxRequest({ action: 'edit', id: $('#eventId').val(), data: $('#data').val(), hora: $('#hora').val() }); });
 $('#confirmBtn').click(function() { sendAjaxRequest({ action: 'confirmar', id: $('#eventId').val() }); });
 $('#deleteBtn').click(function() { if (confirm('Tem certeza que deseja excluir este horário?')) { sendAjaxRequest({ action: 'delete', id: $('#eventId').val() }); } });
+
+function abrirModalSituacao(correcao) {
+    const atual = $('#eventId').data('situacao');
+    $('#situacao-form').data('action', correcao ? 'corrigir_situacao' : 'registrar_falta');
+    $('#situacaoAlunoNome').text($('#agendadoNome').text());
+    $('#situacaoTitulo').text(correcao ? 'Corrigir situação' : 'Registrar falta');
+    $('#situacaoAtualTexto').text(correcao ? `Situação atual: ${atual}. A alteração ficará registrada.` : 'O atendimento será encerrado como Não compareceu.');
+    $('#observacaoFalta').val('');
+    $('#grupoNovaSituacao').hide();
+    $('#grupoObservacaoFalta').hide();
+    if (correcao) {
+        $('#grupoNovaSituacao').show();
+        $('#novaSituacao').val(atual === 'Não compareceu' ? 'Realizado' : 'Não compareceu');
+    } else {
+        $('#grupoObservacaoFalta').show();
+    }
+    $('#salvarSituacaoBtn').text(correcao ? 'Salvar correção' : 'Registrar falta');
+    $('#situacaoModal').addClass('is-visible');
+}
+$('#faltaBtn').click(function() { abrirModalSituacao(false); });
+$('#corrigirSituacaoBtn').click(function() { abrirModalSituacao(true); });
+$('#situacao-form').submit(function(e) {
+    e.preventDefault();
+    const action = $('#situacao-form').data('action');
+    if (action === 'corrigir_situacao') {
+        const situacao = $('#novaSituacao').val();
+        if (situacao === $('#eventId').data('situacao')) {
+            alert('Escolha uma situação diferente da atual.');
+            return;
+        }
+        if (!confirm(`Alterar a situação deste atendimento para ${situacao}? A correção ficará registrada.`)) return;
+        sendAjaxRequest({action, id: $('#eventId').val(), situacao});
+    } else {
+        if (!confirm('Registrar que o aluno não compareceu? Este atendimento será encerrado com a situação Não compareceu.')) return;
+        sendAjaxRequest({action: 'registrar_falta', id: $('#eventId').val(), observacao: $('#observacaoFalta').val().trim()});
+    }
+});
 
 $('#cancelByPsicologaBtn').click(function() {
     $('#cancelAlunoNome').text($('#agendadoNome').text());
@@ -444,7 +505,7 @@ function abrirAcoesHoje(botao) {
     $('#eventId').val(id).data('versao', botao.getAttribute('data-versao'));
     $('#justificativaTexto, #agendadoNome, #agendadoTurma, #agendadoMatricula, #agendadoStatus').text('');
 
-    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #prontuarioBtn').hide();
+    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #prontuarioBtn, #faltaBtn, #corrigirSituacaoBtn').hide();
 
     $('#modalTitle').text('Detalhes do Agendamento');
     $('#agendadoInfo').show();
@@ -460,11 +521,8 @@ function abrirAcoesHoje(botao) {
         $('#prontuarioBtn').attr('href', '/prontuarios/aluno/' + matricula).css('display', 'inline-block');
     }
 
-    configurarAcoesAtendimento(disponivel === 1, confirmado === 1);
-
-    if (confirmado === 1) {
-        $('#agendadoStatus').text('Realizado / Concluído').css('color', '#00833D');
-    }
+    configurarAcoesAtendimento(disponivel === 1, confirmado === 1,
+        horarioJaIniciou(botao.getAttribute('data-inicio')), botao.getAttribute('data-situacao'));
 
     $('#modal').addClass('is-visible');
 }

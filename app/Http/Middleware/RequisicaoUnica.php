@@ -12,8 +12,7 @@ class RequisicaoUnica
     {
         abort_unless($request->user(), 401);
         if ($grupo === 'prontuario') {
-            abort_unless($request->session()->get('prontuario_autorizado'), 403,
-                'Valide sua senha para acessar o prontuário.');
+            \App\Services\AcessoProntuario::exigir($request);
         }
         $request->validate(['_operation_id' => 'required|uuid']);
         $chave = hash_hmac('sha256', $request->user()->getAuthIdentifier().'|'
@@ -25,6 +24,12 @@ class RequisicaoUnica
             // Agenda do campus: serializa somente as escritas curtas, nunca SMTP/SUAP.
             $trava = DB::table('travas_operacoes')->where('nome', $grupo)->lockForUpdate()->first();
             abort_unless($trava, 503, 'Execute as migrations antes de usar o sistema.');
+            if ($grupo === 'prontuario') {
+                // Revalida sob trava do usuário: troca/redefinição de senha não pode
+                // correr entre a autorização e uma escrita de prontuário.
+                $usuario = \App\Models\Usuario::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
+                \App\Services\AcessoProntuario::exigir($request, $usuario);
+            }
             $anterior = DB::table('operacoes_http')->where('chave', $chave)->first();
             if ($anterior) {
                 abort_unless(hash_equals($anterior->assinatura, $assinatura), 409,

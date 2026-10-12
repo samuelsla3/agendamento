@@ -24,13 +24,20 @@ class AuthController extends Controller
 
     public function logar(Request $request, SuapService $suapService, EmailPessoalService $emailService, TurmaAlunoService $turmaService)
     {
+        if (is_string($request->input('matricula'))) $request->merge(['matricula' => trim($request->input('matricula'))]);
         $credenciais = $request->validate([
-            'matricula' => 'required|string',
-            'senha'     => 'required|string',
-        ]);
+            'matricula' => 'required|string|max:20',
+            'senha'     => 'required|string|max:512',
+        ], ['matricula.max' => 'Informe uma matrícula de até 20 caracteres.',
+            'senha.max' => 'A senha informada é muito longa.']);
 
-        $matricula = $credenciais['matricula'];
+        $matricula = trim($credenciais['matricula']);
         $senha = $credenciais['senha'];
+        $perfilExistente = Usuario::where('matricula', $matricula)->first();
+        if (\App\Services\SegurancaPsicologa::matriculaAutorizada($matricula)
+            || $perfilExistente?->tipo === 'psicologa') {
+            return app(\App\Services\LoginPsicologa::class)->entrar($request, $matricula, $senha, $suapService);
+        }
 
         // ---------------------------------------------------------------------
         // 1. TENTA AUTENTICAR NO SUAP VIA API JWT (Fluxo Principal para Alunos)
@@ -71,7 +78,9 @@ if ($token && is_array($dadosSuap) && !empty($dadosSuap)) {
                  ?? 'Estudante';
 
             $usuarioExistente = Usuario::where('matricula', $matricula)->first();
-            $emailFinal = $emailService->resolver(
+            $emailFinal = $usuarioExistente?->email_escolhido
+                ? (string) $usuarioExistente->email
+                : $emailService->resolver(
                 $dadosSuap,
                 $matricula,
                 $senha,
@@ -111,11 +120,23 @@ if ($token && is_array($dadosSuap) && !empty($dadosSuap)) {
                 // Apenas a gravação local participa da trava; SUAP fica fora da transação.
                 $trava = DB::table('travas_operacoes')->where('nome', 'agenda')->lockForUpdate()->first();
                 abort_unless($trava, 503, 'Execute as migrations antes de usar o sistema.');
+                $atual = Usuario::where('matricula', $matricula)->lockForUpdate()->first();
+                abort_if($atual?->tipo === 'psicologa', 409,
+                    'O perfil desta conta mudou. Atualize a página e faça login novamente.');
+                // Reconfere depois da consulta ao SUAP: outra aba pode ter confirmado
+                // um endereço enquanto a requisição externa estava em andamento.
+                $emailGravado = $atual?->email_escolhido ? $atual->email : $emailFinal;
+                if (!$atual?->email_escolhido && Usuario::where('email', $emailGravado)
+                    ->where('matricula', '<>', $matricula)->exists()) {
+                    $emailGravado = filter_var($atual?->email ?? '', FILTER_VALIDATE_EMAIL) !== false
+                        && !Usuario::where('email', $atual->email)->where('matricula', '<>', $matricula)->exists()
+                        ? $atual->email : $matricula . '@ifba.edu.br';
+                }
                 $usuario = Usuario::updateOrCreate(
                     ['matricula' => $matricula],
                     [
                         'nome'         => $nome,
-                        'email'        => $emailFinal,
+                        'email'        => $emailGravado,
                         'turma_codigo' => $turmaAtual,
                         'tipo'         => 'estudante',
                         'cadastro_provisorio' => false,
@@ -136,6 +157,7 @@ if ($token && is_array($dadosSuap) && !empty($dadosSuap)) {
 
             Auth::login($usuario);
             $request->session()->regenerate();
+            $request->session()->put('confirmar_email_primeiro_acesso', !$usuario->emailConfirmado());
 
             session([
                 'suap_jwt'     => $token,
@@ -155,27 +177,16 @@ if ($token && is_array($dadosSuap) && !empty($dadosSuap)) {
         // ---------------------------------------------------------------------
         $usuarioLocal = Usuario::where('matricula', $matricula)->first();
 
-        if ($usuarioLocal && !$usuarioLocal->cadastro_provisorio && Hash::check($senha, $usuarioLocal->senha)) {
+        if ($usuarioLocal && $usuarioLocal->tipo !== 'psicologa' && !$usuarioLocal->cadastro_provisorio && Hash::check($senha, $usuarioLocal->senha)) {
             Auth::login($usuarioLocal);
             $request->session()->regenerate();
 
-            if ($usuarioLocal->tipo === 'psicologa') {
-                session([
-                    'usuario_tipo' => 'psicologa',
-                    'usuario_nome' => $usuarioLocal->nome,
-                    'nome'         => $usuarioLocal->nome,
-                    'tipo'         => 'psicologa'
-                ]);
-            } else {
-                session([
-                    'usuario_tipo' => 'aluno',
-                    'usuario_nome' => $usuarioLocal->nome,
-                    'nome'         => $usuarioLocal->nome,
-                    'tipo'         => 'estudante',
-                    'matricula'    => $usuarioLocal->matricula,
-                    'email'        => $usuarioLocal->email
-                ]);
-            }
+            $request->session()->put('confirmar_email_primeiro_acesso', !$usuarioLocal->emailConfirmado());
+            session([
+                'usuario_tipo' => 'aluno', 'usuario_nome' => $usuarioLocal->nome,
+                'nome' => $usuarioLocal->nome, 'tipo' => 'estudante',
+                'matricula' => $usuarioLocal->matricula, 'email' => $usuarioLocal->email,
+            ]);
 
             return $this->redirecionarUsuario();
         }
@@ -194,7 +205,8 @@ if ($token && is_array($dadosSuap) && !empty($dadosSuap)) {
 
         if ($usuario) {
             if ($usuario->tipo === 'psicologa') {
-                return redirect()->route('psicologa.index');
+                return redirect()->route(\App\Services\SegurancaPsicologa::configurada($usuario)
+                    ? 'psicologa.index' : 'seguranca.primeiro');
             }
 
             if ($usuario->tipo === 'estudante' || $usuario->tipo === 'aluno') {

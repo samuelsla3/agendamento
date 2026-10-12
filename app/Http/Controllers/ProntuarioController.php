@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\ProntuarioSessao;
 use App\Models\Usuario;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
 class ProntuarioController extends Controller
 {
@@ -17,11 +15,13 @@ class ProntuarioController extends Controller
 
     public function show(Request $request, $alunoId)
     {
-        if (!session()->get('prontuario_autorizado')) {
+        if (!\App\Services\AcessoProntuario::valido($request, $request->user())) {
             session(['aluno_id_pendente' => $alunoId]);
             
             return redirect()->route('psicologa.index')->with('pedir_senha', true);
         }
+
+        \App\Services\AcessoProntuario::exigir($request);
 
         $aluno = Usuario::where('id', $alunoId)
                         ->orWhere('matricula', $alunoId)
@@ -42,55 +42,37 @@ class ProntuarioController extends Controller
     }
 
     public function validarSenha(Request $request)
-{
-    $request->validate([
-        'senha' => 'required|string',
-    ]);
-
-    $matricula = session('matricula') 
-              ?? session('usuario_matricula') 
-              ?? (Auth::check() ? Auth::user()->matricula : null);
-
-    $user = Usuario::where('matricula', $matricula)->first();
-
-    if ($user) {
-        // Pega a senha que estiver preenchida no banco (senha ou password)
-        $senhaBanco = !empty($user->senha) ? $user->senha : $user->password;
-
-        // Valida tanto por Hash quanto por texto puro
-        // Aceita somente uma senha que corresponda ao hash armazenado.
-$senhaValida = false;
-
-if (is_string($senhaBanco) && $senhaBanco !== '') {
-    try {
-        $senhaValida = Hash::check(
-            $request->input('senha'),
-            $senhaBanco
-        );
-    } catch (\RuntimeException $e) {
-        // Hash inválido ou incompatível: recusa o acesso.
-        $senhaValida = false;
-    }
-}
-
-        if ($senhaValida && !empty($senhaBanco)) {
-            session(['prontuario_autorizado' => true]);
-
-            $alunoId = session('aluno_id_pendente');
-            session()->forget('aluno_id_pendente');
-
-            if ($alunoId) {
-                return redirect()->route('prontuarios.aluno', $alunoId);
-            }
-
-            return redirect()->route('psicologa.index');
+    {
+        $request->validate(['senha' => 'required|string|max:512']);
+        $usuario = Usuario::whereKey($request->user()->id)->firstOrFail();
+        abort_unless(\App\Services\SegurancaPsicologa::sessaoAtual($request, $usuario)
+            && \App\Services\SegurancaPsicologa::configurada($usuario), 403);
+        if (\App\Services\SegurancaPsicologa::conferir($request->input('senha'), $usuario->senha_prontuario)) {
+            $request->session()->regenerate(true);
+            \App\Services\AcessoProntuario::liberar($request, $usuario);
+            $alunoId = $request->session()->pull('aluno_id_pendente');
+            return redirect()->route($alunoId ? 'prontuarios.aluno' : 'psicologa.index', $alunoId ? [$alunoId] : []);
         }
+        \App\Services\AcessoProntuario::bloquear($request);
+        return redirect()->route('psicologa.index')->with('pedir_senha', true)
+            ->withErrors(['senha' => 'Senha do prontuário incorreta. Use a senha específica do prontuário.']);
     }
 
-    return redirect()->route('psicologa.index')
-                     ->with('pedir_senha', true)
-                     ->withErrors(['senha' => 'Senha de acesso incorreta ou não cadastrada.']);
-}
+    public function statusAcesso(Request $request)
+    {
+        $valido = \App\Services\AcessoProntuario::valido($request, $request->user());
+        return response()->json(['valido' => $valido, 'agora' => now()->timestamp,
+            'expira_em' => $valido ? (int) $request->session()->get('prontuario_ultimo_acesso')
+                + 60 * config('psicologia.prontuario_inatividade_minutos', 30) : null])
+            ->header('Cache-Control', 'no-store, private')->header('Referrer-Policy', 'no-referrer');
+    }
+
+    public function renovarAcesso(Request $request)
+    {
+        // A atividade não revive um desbloqueio expirado ou revogado.
+        \App\Services\AcessoProntuario::exigir($request);
+        return $this->statusAcesso($request);
+    }
 
     public function store(Request $request, $alunoId)
     {
