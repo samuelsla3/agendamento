@@ -153,7 +153,9 @@ class CalendarioController extends Controller
 
         abort_unless((string) $horario->matricula === (string) $matricula, 403, 'Você só pode cancelar seu próprio agendamento.');
         abort_if((int) $horario->disponivel !== 0 || (int) $horario->confirmado === 1, 409, 'Este atendimento já foi encerrado.');
-        $request->validate(['justificativa' => 'nullable|string']);
+        $request->validate(['justificativa' => 'nullable|string|max:2000'], [
+            'justificativa.max' => 'A justificativa pode ter até 2.000 caracteres.',
+        ]);
         $token = $horario->token_cancelamento;
         $justificativa = $request->input('justificativa', '') ?? '';
         RegistroAtendimento::create(['id_horario_original' => $horario->id,

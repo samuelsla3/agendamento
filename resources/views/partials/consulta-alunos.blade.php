@@ -1,4 +1,4 @@
-<dialog id="consulta-alunos-modal" class="consulta-alunos" data-lista="{{ route('alunos.consultar') }}" data-detalhe="{{ route('alunos.consultar.detalhe', ['aluno' => '__ID__']) }}">
+<dialog id="consulta-alunos-modal" class="consulta-alunos" data-agenda="{{ route('psicologa.index') }}" data-lista="{{ route('alunos.consultar') }}" data-detalhe="{{ route('alunos.consultar.detalhe', ['aluno' => '__ID__']) }}">
     <header class="consulta-cabecalho">
         <div><h2>Consultar alunos</h2><p>Atendimentos, agendamentos e atalhos por aluno.</p></div>
         <button type="button" class="btn btn-secondary" id="consulta-fechar">Fechar ×</button>

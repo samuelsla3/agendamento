@@ -24,6 +24,7 @@
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
     <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261013-imagens-1">
     <script src="{{ asset('js/mensagens.js') }}?v=20261013-imagens-1" defer></script>
+    <script src="{{ asset('js/limites-texto.js') }}?v=20261013-1" defer></script>
 </head>
 <body>
 
@@ -159,7 +160,8 @@
                 <input type="hidden" name="id_horario" id="id_horario_cancelar">
                 <div class="form-group">
                     <label for="justificativa">Motivo do Cancelamento (Obrigatório):</label>
-                    <textarea id="justificativa" name="justificativa" rows="3" required></textarea>
+                    <textarea id="justificativa" name="justificativa" rows="3" required data-limite-caracteres="2000" data-contador-caracteres="justificativa-contador" aria-describedby="justificativa-contador"></textarea>
+                <p id="justificativa-contador" style="font-size:.85rem;margin-top:6px;color:#56675a;">0 / 2.000 caracteres</p>
                 </div>
                 <button type="submit" class="btn btn-danger">Confirmar Cancelamento</button>
                 <button type="button" onclick="closeModal()" class="btn btn-secondary">Voltar</button>

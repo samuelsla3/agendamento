@@ -77,11 +77,12 @@ class ProntuarioController extends Controller
     public function store(Request $request, $alunoId)
     {
         $dados = $request->validate([
-            'anotacoes' => 'required|string',
+            'anotacoes' => 'required|string|max:50000',
             'data_sessao' => 'required|date_format:Y-m-d',
             'hora_sessao' => 'required|date_format:H:i',
             'horario_id' => 'nullable|exists:horarios,id',
         ], [
+            'anotacoes.max' => 'Cada anotação pode ter até 50.000 caracteres.',
             'hora_sessao.required' => 'Informe o horário da sessão.',
             'hora_sessao.date_format' => 'Informe um horário válido no formato hora e minuto.',
         ]);
@@ -100,11 +101,12 @@ class ProntuarioController extends Controller
     public function update(Request $request, $id)
     {
         $dados = $request->validate([
-            'anotacoes' => 'required|string',
+            'anotacoes' => 'required|string|max:50000',
             'data_sessao' => 'required|date_format:Y-m-d',
             // Permite manter registros antigos sem horário conhecido.
             'hora_sessao' => 'sometimes|nullable|date_format:H:i',
         ], [
+            'anotacoes.max' => 'Cada anotação pode ter até 50.000 caracteres.',
             'hora_sessao.date_format' => 'Informe um horário válido no formato hora e minuto.',
         ]);
 

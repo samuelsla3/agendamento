@@ -4,7 +4,7 @@ $mensagensPsicologa = auth()->user()->tipo === 'psicologa';
 $mensagensDados = [
     'psicologa' => $mensagensPsicologa, 'csrf' => csrf_token(),
     'contexto' => \App\Services\ComunicacaoPrivada::contexto(auth()->user()),
-    'resumo' => route('mensagens.resumo'), 'desbloquear' => route('mensagens.desbloquear'),
+    'consulta' => route('psicologa.index'), 'resumo' => route('mensagens.resumo'), 'desbloquear' => route('mensagens.desbloquear'),
     'abrir' => route('mensagens.abrir'), 'contatos' => route('mensagens.contatos'), 'alunos' => route('mensagens.alunos'),
     'historico' => route('mensagens.historico', ['conversa' => '__ID__']),
     'enviar' => route('mensagens.enviar', ['conversa' => '__ID__']),
@@ -107,12 +107,12 @@ $mensagensDados = [
                     </select>
                     <label for="mensagens-email-onde">Onde abrir</label>
                     <select id="mensagens-email-onde">
-                        <option value="automatico">(Padrão) Aplicativo no celular e navegador no computador</option>
+                        <option value="automatico">Automático — aplicativo no celular e navegador no computador</option>
                         <option value="app">Aplicativo do dispositivo</option>
                         <option value="web">Navegador</option>
                     </select>
                     <label for="mensagens-email-assunto">Assunto</label>
-                    <input type="text" id="mensagens-email-assunto" maxlength="150" value="Contato - Setor de Psicologia IFBA">
+                    <input type="text" id="mensagens-email-assunto" maxlength="150" value="Contato pelo sistema de agendamento">
                     <label for="mensagens-email-texto">Texto do e-mail</label>
                     <textarea id="mensagens-email-texto" rows="8" maxlength="10000" placeholder="Escreva o texto do e-mail."></textarea>
                     <p class="mensagens-ajuda">O botão prepara destinatário, assunto e texto. Confira a conta remetente e envie pelo seu e-mail. Para documentos e informações sensíveis, prefira as mensagens internas. Os anexos da conversa não são incluídos no e-mail.</p>

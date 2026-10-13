@@ -229,7 +229,14 @@
             fecharVisualizador();
             if (selecionada?.id !== Number(conversa.id)) aviso(el('email-aviso'), '');
             selecionada = {...conversa, id: Number(conversa.id), aluno_id: Number(conversa.aluno_id)};
-            el('destinatario-nome').textContent = conversa.nome;
+            const nomeTopo = el('destinatario-nome'); nomeTopo.textContent = conversa.nome;
+            if (dados.psicologa && Number.isSafeInteger(selecionada.aluno_id) && selecionada.aluno_id > 0) {
+                const link = document.createElement('a'); link.textContent = conversa.nome;
+                const consulta = new URL(dados.consulta || '/agenda', window.location.href);
+                consulta.searchParams.set('consultar_aluno', selecionada.aluno_id);
+                link.href = consulta.href; link.dataset.consultarAluno = selecionada.aluno_id;
+                link.className = 'consulta-nome-link'; nomeTopo.replaceChildren(link);
+            }
             el('destinatario-info').textContent = [conversa.turma, conversa.matricula].filter(Boolean).join(' · ');
             el('aba-email').hidden = !conversa.email;
             el('email-destino').textContent = conversa.email || '';
@@ -371,6 +378,16 @@
             return modal.open;
         };
         botoesAbrir.forEach(botao => botao.addEventListener('click', () => abrirModal(botao)));
+        document.addEventListener('click', event => {
+            const botao = event.target.closest('[data-mensagens-aluno]');
+            if (!botao) return;
+            const id = Number(botao.dataset.mensagensAluno);
+            if (!Number.isSafeInteger(id) || id <= 0) return;
+            event.preventDefault();
+            window.MensagensAbrirAluno(id, botao).then(aberto => {
+                if (!aberto) aviso(el('aviso'), 'Conclua o envio atual antes de abrir outra conversa.');
+            });
+        });
         el('fechar').addEventListener('click', fecharModal);
         modal.addEventListener('cancel', event => { event.preventDefault(); fecharModal(); });
         modal.addEventListener('close', () => {

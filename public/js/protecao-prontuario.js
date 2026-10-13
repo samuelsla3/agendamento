@@ -7,7 +7,7 @@
         let base = Number(corpo.dataset.prontuarioAgora) * 1000, marco = performance.now();
         let expira = Number(corpo.dataset.prontuarioExpira) * 1000;
         const agora = () => base + performance.now() - marco;
-        const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+        const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content;
         ['keydown', 'pointerdown', 'input', 'scroll'].forEach(nome => {
             document.addEventListener(nome, evento => {
                 if (evento.isTrusted && document.visibilityState === 'visible') atividade = performance.now() + 1;
@@ -34,7 +34,7 @@
             try {
                 const resposta = await fetch(renovar ? corpo.dataset.prontuarioRenovar : corpo.dataset.prontuarioStatus,
                     {method: renovar ? 'POST' : 'GET', cache: 'no-store', credentials: 'same-origin', signal: abortar.signal,
-                        headers: {Accept: 'application/json', ...(renovar ? {'X-CSRF-TOKEN': csrf} : {})}});
+                        headers: {Accept: 'application/json', ...(renovar ? {'X-CSRF-TOKEN': csrf()} : {})}});
                 if (resposta.redirected || [401, 403, 419].includes(resposta.status)) {
                     bloquear(resposta.status === 401 || resposta.status === 419); return;
                 }

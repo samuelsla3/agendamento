@@ -31,7 +31,7 @@ public function index()
     ->leftJoin('usuarios as u', 'ra.matricula', '=', 'u.matricula')
     ->where('ra.status', 'Cancelado pelo Aluno')
     ->where('h.disponivel', 1)
-    ->select('ra.*', 'u.turma_codigo as turma_codigo_aluno')
+    ->select('ra.*', 'u.turma_codigo as turma_codigo_aluno', 'u.id as aluno_id', 'u.tipo as tipo_aluno')
     ->orderBy('ra.data_registro', 'desc')
     ->take(10)
     ->get();
@@ -72,12 +72,13 @@ public function index()
             $nome = $row->nome;
             $matricula = $row->matricula;
             $turmaCodigo = $row->usuario?->turma_codigo;
+            $alunoId = $row->usuario && in_array($row->usuario->tipo, ['aluno', 'estudante'], true) ? $row->usuario->id : null;
             $statusReal = $row->situacao_atendimento;
 
             if ($row->disponivel == 1 && !empty($row->justificativa_cancelamento)) {
                 $historico = DB::table('registros_atendimentos as ra')
                     ->leftJoin('usuarios as u', 'ra.matricula', '=', 'u.matricula')
-                    ->select('ra.*', 'u.turma_codigo as turma_codigo_aluno')
+                    ->select('ra.*', 'u.turma_codigo as turma_codigo_aluno', 'u.id as aluno_id', 'u.tipo as tipo_aluno')
                     ->where('ra.id_horario_original', $row->id)
                     ->orderBy('ra.data_registro', 'desc')
                     ->first();
@@ -87,6 +88,7 @@ public function index()
                     $matricula = $historico->matricula ?? $historico->matricula_aluno ?? $matricula;
                     // A vaga liberada pode estar sem aluno; usa a matrícula do histórico.
                     $turmaCodigo = $historico->turma_codigo_aluno ?? null;
+                    $alunoId = in_array($historico->tipo_aluno ?? '', ['aluno', 'estudante'], true) ? $historico->aluno_id : null;
                     $statusReal = $historico->status; 
                     // Usa a data e a hora preservadas no histórico do atendimento.
 if (
@@ -114,7 +116,7 @@ if (
                     'disponivel' => (int)$row->disponivel,
                     'nome' => $nome,
                     'matricula' => $matricula,
-                    'aluno_id' => $row->usuario?->id,
+                    'aluno_id' => $alunoId,
                     'turma_formatada' => $this->normalizarTurmaRelatorio($turmaCodigo) ?: 'Não informada',
                     'confirmado' => (int)$row->confirmado,
                     'situacao_atendimento' => $row->situacao_atendimento,
@@ -177,7 +179,9 @@ if (
 
             case 'cancel_by_psicologa':
                 abort_if((int) $horario->disponivel !== 0 || (int) $horario->confirmado === 1, 409, 'Atendimento já encerrado ou vaga sem reserva.');
-                $request->validate(['justificativa' => 'nullable|string']);
+                $request->validate(['justificativa' => 'nullable|string|max:2000'], [
+            'justificativa.max' => 'A justificativa pode ter até 2.000 caracteres.',
+        ]);
                 $justificativa = $request->input('justificativa') ?: 'Motivos operacionais.';
                 $this->registrarCancelamentoPelaPsicologa($horario, $justificativa);
                 $horario->update(['disponivel' => 1, 'nome' => null, 'matricula' => null, 'confirmado' => 0,
@@ -204,7 +208,7 @@ if (
                     'horas' => 'required|array|min:1',
                     'horas.*' => 'required|date_format:H:i:s',
                     'justificativa' => 'nullable|string|max:2000',
-                ]);
+                ], ['justificativa.max' => 'A justificativa pode ter até 2.000 caracteres.']);
                 return DB::transaction(function () use ($dados) {
                     $agora = now();
                     $horarios = Horario::with('usuario')
@@ -437,7 +441,7 @@ if (
             // Uma consulta aplica os mesmos filtros e a mesma ordenação às duas fontes.
             $query = DB::query()->fromSub($historico->unionAll($agendados), 'ra')
                 ->leftJoin('usuarios as u', 'ra.matricula', '=', 'u.matricula')
-                ->select('ra.*', 'u.turma_codigo as turma_codigo_aluno');
+                ->select('ra.*', 'u.turma_codigo as turma_codigo_aluno', 'u.id as aluno_id', 'u.tipo as tipo_aluno');
             $turmaExata = false;
             if ($turma !== '') {
                 $codigos = Usuario::whereNotNull('turma_codigo')->distinct()->pluck('turma_codigo');
@@ -575,7 +579,15 @@ if (
             }
             $html .= '<tr>';
             $turmaAluno = $this->normalizarTurmaRelatorio($reg->turma_codigo_aluno ?? null);
-            foreach ([$reg->nome ?? 'Não informado', $turmaAluno !== '' ? $turmaAluno : 'Não informada',
+            $nomeAluno = e($reg->nome ?? 'Não informado');
+            if (!empty($reg->aluno_id) && in_array($reg->tipo_aluno ?? '', ['aluno', 'estudante'], true)) {
+                $nomeAluno = '<a class="consulta-nome-link" href="'
+                    . e(route('psicologa.index', ['consultar_aluno' => $reg->aluno_id]))
+                    . '" data-consultar-aluno="' . (int) $reg->aluno_id . '">' . $nomeAluno . '</a>';
+            }
+            // O PDF exporta o texto da célula; os links são apenas da interface web.
+            $html .= '<td style="padding:8px;border:1px solid #ddd;">' . $nomeAluno . '</td>';
+            foreach ([$turmaAluno !== '' ? $turmaAluno : 'Não informada',
                 $reg->matricula ?? 'Não informada', $dataHora] as $valor) {
                 $html .= '<td style="padding:8px;border:1px solid #ddd;">' . e($valor) . '</td>';
             }

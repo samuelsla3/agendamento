@@ -94,6 +94,39 @@ if (props.confirmado == 1) {
     window.refreshCalendar = function() { calendar.refetchEvents(); }
 });
 
+// Atalhos com identidade do cadastro; sem inferir aluno por nome.
+function configurarLinksAluno(valor, nomeAnterior = '') {
+    const id = Number(valor), botao = document.getElementById('consultarAlunoBtn');
+    const campo = document.getElementById('agendadoNome');
+    if (botao) { botao.style.display = 'none'; botao.removeAttribute('data-consultar-aluno'); botao.removeAttribute('href'); }
+    if (campo) campo.textContent = campo.textContent;
+    if (!Number.isSafeInteger(id) || id <= 0) return;
+    const base = document.getElementById('consulta-alunos-modal')?.dataset.agenda || '/agenda';
+    const destino = new URL(base, window.location.href); destino.searchParams.set('consultar_aluno', id);
+    function linkNome(nome) {
+        const link = document.createElement('a'); link.textContent = nome;
+        link.href = destino.href; link.dataset.consultarAluno = id; link.className = 'consulta-nome-link'; return link;
+    }
+    if (campo && campo.textContent) campo.replaceChildren(linkNome(campo.textContent));
+    if (botao) { botao.href = destino.href; botao.dataset.consultarAluno = id; botao.style.display = 'inline-block'; }
+    const cancelamento = document.getElementById('justificativaTexto');
+    if (cancelamento && nomeAnterior) {
+        const texto = cancelamento.textContent, inicio = texto.indexOf(nomeAnterior);
+        if (inicio >= 0) cancelamento.replaceChildren(document.createTextNode(texto.slice(0, inicio)),
+            linkNome(nomeAnterior), document.createTextNode(texto.slice(inicio + nomeAnterior.length)));
+    }
+}
+
+function copiarLinkAlunoDoAgendamento(destinoId) {
+    const origem = document.querySelector('#agendadoNome a[data-consultar-aluno]');
+    const destino = document.getElementById(destinoId);
+    if (origem && destino) {
+        const link = document.createElement('a'); link.textContent = destino.textContent;
+        link.href = origem.href; link.dataset.consultarAluno = origem.dataset.consultarAluno;
+        link.className = 'consulta-nome-link'; destino.replaceChildren(link);
+    }
+}
+
 function openModal(event) {
     const props = event.extendedProps;
     const start = new Date(event.start);
@@ -106,9 +139,10 @@ function openModal(event) {
         || statusAnterior.startsWith('Cancelado')
     );
 
+    configurarLinksAluno(null);
     $('#eventId').val(event.id).data('versao', props.versao);
     $('#justificativaTexto, #agendadoNome, #agendadoTurma, #agendadoMatricula, #agendadoStatus').text('');
-    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #prontuarioBtn, #faltaBtn, #corrigirSituacaoBtn').hide();
+    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #prontuarioBtn, #consultarAlunoBtn, #faltaBtn, #corrigirSituacaoBtn').hide();
 
     if (disponivel && !confirmado) {
         $('#modalTitle').text('Editar Horário Disponível');
@@ -168,6 +202,7 @@ if (props.justificativa_cancelamento) {
         configurarAcoesAtendimento(disponivel, confirmado, isPast, props.situacao_atendimento);
     }
 
+    configurarLinksAluno(props.aluno_id || props.user_id, props.nome || props.aluno_nome);
     $('#modal').addClass('is-visible');
 }
 
@@ -249,6 +284,7 @@ function abrirModalSituacao(correcao) {
     const atual = $('#eventId').data('situacao');
     $('#situacao-form').data('action', correcao ? 'corrigir_situacao' : 'registrar_falta');
     $('#situacaoAlunoNome').text($('#agendadoNome').text());
+    copiarLinkAlunoDoAgendamento('situacaoAlunoNome');
     $('#situacaoTitulo').text(correcao ? 'Corrigir situação' : 'Registrar falta');
     $('#situacaoAtualTexto').text(correcao ? `Situação atual: ${atual}. A alteração ficará registrada.` : 'O atendimento será encerrado como Não compareceu.');
     $('#observacaoFalta').val('');
@@ -284,6 +320,7 @@ $('#situacao-form').submit(function(e) {
 
 $('#cancelByPsicologaBtn').click(function() {
     $('#cancelAlunoNome').text($('#agendadoNome').text());
+    copiarLinkAlunoDoAgendamento('cancelAlunoNome');
     $('#cancelByPsicologaModal').addClass('is-visible');
 });
 
@@ -502,10 +539,11 @@ function abrirAcoesHoje(botao) {
     const matricula = botao.getAttribute('data-matricula');
     const turma = botao.getAttribute('data-turma') || 'Não informada';
 
+    configurarLinksAluno(null);
     $('#eventId').val(id).data('versao', botao.getAttribute('data-versao'));
     $('#justificativaTexto, #agendadoNome, #agendadoTurma, #agendadoMatricula, #agendadoStatus').text('');
 
-    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #prontuarioBtn, #faltaBtn, #corrigirSituacaoBtn').hide();
+    $('#justificativaInfo, #agendadoInfo, #form-disponivel, #confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #prontuarioBtn, #consultarAlunoBtn, #faltaBtn, #corrigirSituacaoBtn').hide();
 
     $('#modalTitle').text('Detalhes do Agendamento');
     $('#agendadoInfo').show();
@@ -524,6 +562,7 @@ function abrirAcoesHoje(botao) {
     configurarAcoesAtendimento(disponivel === 1, confirmado === 1,
         horarioJaIniciou(botao.getAttribute('data-inicio')), botao.getAttribute('data-situacao'));
 
+    configurarLinksAluno(alunoId, nome);
     $('#modal').addClass('is-visible');
 }
 

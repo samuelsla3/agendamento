@@ -30,10 +30,11 @@
         }
     </style>
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
-    <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261013-consulta-1">
-    <script src="{{ asset('js/mensagens.js') }}?v=20261013-consulta-1" defer></script>
-    <link rel="stylesheet" href="{{ asset('css/consulta-alunos.css') }}?v=20261013-1">
-    <script src="{{ asset('js/consulta-alunos.js') }}?v=20261013-1" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261013-atalhos-1">
+    <script src="{{ asset('js/mensagens.js') }}?v=20261013-atalhos-1" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/consulta-alunos.css') }}?v=20261013-5">
+    <script src="{{ asset('js/consulta-alunos.js') }}?v=20261013-5" defer></script>
+    <script src="{{ asset('js/limites-texto.js') }}?v=20261013-1" defer></script>
 </head>
 <body>
 
@@ -110,7 +111,11 @@
                                         {{ \Carbon\Carbon::parse($agendamento->hora)->format('H:i') }}h
                                     </td>
                                     <td class="col-aluno">
-                                        {{ $agendamento->nome ?? 'Não informado' }}
+                                        @if($agendamento->usuario && in_array($agendamento->usuario->tipo, ['aluno', 'estudante'], true))
+                                            <a class="consulta-nome-link" href="{{ route('psicologa.index', ['consultar_aluno' => $agendamento->usuario->id]) }}" data-consultar-aluno="{{ $agendamento->usuario->id }}">{{ $agendamento->nome ?? 'Não informado' }}</a>
+                                        @else
+                                            {{ $agendamento->nome ?? 'Não informado' }}
+                                        @endif
                                     </td>
                                     <td class="col-matricula">
     {{ $agendamento->usuario?->turma_formatada ?? 'Não informada' }}
@@ -173,7 +178,12 @@
                                     @endphp
 
                                     <li style="margin-bottom: 15px;">
-                                        <strong>Aluno:</strong> {{ $cancelamento->nome_aluno ?? 'Não informado' }} 
+                                        <strong>Aluno:</strong>
+                                        @if(!empty($cancelamento->aluno_id) && in_array($cancelamento->tipo_aluno, ['aluno', 'estudante'], true))
+                                            <a class="consulta-nome-link" href="{{ route('psicologa.index', ['consultar_aluno' => $cancelamento->aluno_id]) }}" data-consultar-aluno="{{ $cancelamento->aluno_id }}">{{ $cancelamento->nome_aluno ?? 'Não informado' }}</a>
+                                        @else
+                                            {{ $cancelamento->nome_aluno ?? 'Não informado' }}
+                                        @endif 
                                         ({{ $cancelamento->turma_formatada_aluno }} - {{ $cancelamento->matricula_aluno ?? 'N/A' }})<br>
 
                                         <strong>Horário Cancelado:</strong> {{ $horario_cancelado }}<br>
@@ -297,6 +307,7 @@
                 <div id="action-buttons" class="action-buttons-group">
     <input type="hidden" id="eventId">
 
+    <a id="consultarAlunoBtn" href="#" class="btn btn-info consulta-nome-link" style="display:none;">Consultar aluno</a>
     <a id="prontuarioBtn" href="#" target="_blank" class="btn btn-info" style="display:none; background-color: #0284c7; border-color: #0284c7; color: #fff; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-weight: bold;">
         Acessar Prontuário
     </a>
@@ -471,9 +482,10 @@
 
             <div class="form-group">
                 <label for="justificativa_bloco">Justificativa aos alunos:</label>
-                <textarea id="justificativa_bloco" name="justificativa" rows="4" maxlength="2000"
-                    aria-describedby="justificativa_bloco_ajuda"
-                    placeholder="Informe o motivo do cancelamento..."></textarea>
+                <textarea id="justificativa_bloco" name="justificativa" rows="4"
+                    aria-describedby="justificativa_bloco_ajuda justificativa_bloco-contador"
+                    placeholder="Informe o motivo do cancelamento..." data-limite-caracteres="2000" data-contador-caracteres="justificativa_bloco-contador"></textarea>
+                <p id="justificativa_bloco-contador" style="font-size:.85rem;margin-top:6px;color:#56675a;">0 / 2.000 caracteres</p>
                 <small id="justificativa_bloco_ajuda">Obrigatória se houver alunos agendados. A mesma justificativa será enviada a cada aluno.</small>
             </div>
             <button type="submit" class="btn btn-danger">Cancelar Horários Selecionados</button>
@@ -514,7 +526,8 @@
                 <form id="cancel-by-psicologa-form">
                     <div class="form-group">
                         <label for="justificativa_psicologa">Motivo do Cancelamento (Obrigatório):</label>
-                        <textarea id="justificativa_psicologa" rows="4" required></textarea>
+                        <textarea id="justificativa_psicologa" rows="4" required data-limite-caracteres="2000" data-contador-caracteres="justificativa_psicologa-contador" aria-describedby="justificativa_psicologa-contador"></textarea>
+                <p id="justificativa_psicologa-contador" style="font-size:.85rem;margin-top:6px;color:#56675a;">0 / 2.000 caracteres</p>
                     </div>
                     <button type="submit" class="btn btn-danger">Confirmar Cancelamento e Notificar Aluno</button>
                 </form>
@@ -718,7 +731,7 @@
     </script>
 
     <script src="{{ asset('js/preferencias-calendario.js') }}?v=20261008-1"></script>
-    <script src="{{ asset('js/psicologa.js') }}?v=20261008-calendario-1"></script>
+    <script src="{{ asset('js/psicologa.js') }}?v=20261013-atalhos-1"></script>
     <script src="{{ asset('js/atendimento-emergencial.js') }}?v=20261004-emergencial-1"></script>
 
 @include('partials.mensagens-modal')

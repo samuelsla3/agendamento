@@ -20,3 +20,13 @@
 .consulta-nota { font-size:.9rem; color:#56675a; line-height:1.5; }
 .consulta-alunos button:focus-visible,.consulta-alunos a:focus-visible { outline:3px solid #39714a; outline-offset:3px; }
 @media(max-width:700px) { .consulta-alunos { padding:16px; }.consulta-colunas { grid-template-columns:1fr; }.consulta-lista-area { border-right:0; border-bottom:1px solid #e0e7e2; padding-right:0; }.consulta-atalhos > * { flex:1 1 100%; text-align:center; }.consulta-cabecalho h2 { font-size:1.2rem; } }
+
+.consulta-proximo { padding:12px 14px; margin:8px 0; border:1px solid #7caa88; border-left:4px solid #39714a; border-radius:8px; background:#f1f8f2; color:#285a38; font-weight:600; }
+.consulta-historico { margin-top:20px; border-top:1px solid #dce8df; padding-top:14px; }
+.consulta-historico > summary { cursor:pointer; font-weight:700; padding:8px 0; }
+.consulta-historico > summary:focus-visible { outline:3px solid #39714a; outline-offset:3px; }
+@media(max-width:420px) { .consulta-insights { gap:6px; }.consulta-insight { padding:8px; }.consulta-insight span { font-size:.78rem; } }
+
+.consulta-nome-link { color:#285a38; text-decoration:none; cursor:pointer; border-radius:4px; transition:color .15s ease, background-color .15s ease; }
+.consulta-nome-link:hover { color:#00833d; background-color:#e8f3eb; text-decoration:none; }
+.consulta-nome-link:focus-visible { outline:3px solid #39714a; outline-offset:3px; }

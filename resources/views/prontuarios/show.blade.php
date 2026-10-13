@@ -8,7 +8,17 @@
     <title>Prontuário - {{ $aluno->nome ?? $aluno->name }}</title>
     @vite('resources/css/app.css')
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
-<script src="{{ asset('js/protecao-prontuario.js') }}?v=20261008-1" defer></script>
+<script src="{{ asset('js/protecao-prontuario.js') }}?v=20261013-2" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261013-atalhos-1">
+    <link rel="stylesheet" href="{{ asset('css/consulta-alunos.css') }}?v=20261013-5">
+    <script src="{{ asset('js/mensagens.js') }}?v=20261013-atalhos-1" defer></script>
+    <script src="{{ asset('js/consulta-alunos.js') }}?v=20261013-5" defer></script>
+    <style>
+        dialog.mensagens-modal { margin: auto; }
+        .mensagens-modal .btn,.consulta-alunos .btn { display:inline-block; padding:10px 16px; border:0; border-radius:8px; background:#00833d; color:white; font:inherit; cursor:pointer; text-decoration:none; }
+        .mensagens-modal .btn-secondary,.consulta-alunos .btn-secondary { background:#52645a; }
+    </style>
+    <script src="{{ asset('js/limites-texto.js') }}?v=20261013-1" defer></script>
 </head>
 <body class="bg-gray-100 min-h-screen"
     data-prontuario-status="{{ route('prontuarios.acesso.status') }}"
@@ -46,10 +56,16 @@
     <div class="bg-white p-6 rounded-lg shadow mb-6 border-l-4 border-[#00833D]">
         <h2 class="text-2xl font-bold text-gray-800">Prontuário de Atendimento</h2>
         <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-700">
-            <p><strong>Aluno:</strong> {{ $aluno->nome ?? $aluno->name }}</p>
+            <p><strong>Aluno:</strong> <a class="consulta-nome-link" href="{{ route('psicologa.index', ['consultar_aluno' => $aluno->id]) }}" data-consultar-aluno="{{ $aluno->id }}">{{ $aluno->nome ?? $aluno->name }}</a></p>
             <p><strong>Turma:</strong> {{ $aluno->turma_formatada ?? 'Não informada' }}</p>
             <p><strong>Matrícula:</strong> {{ $aluno->matricula ?? 'Não informada' }}</p>
             <p><strong>E-mail:</strong> {{ $aluno->email ?: 'Não informado' }}</p>
+            <p><button type="button" class="mensagens-acesso" data-mensagens-aluno="{{ $aluno->id }}" aria-haspopup="dialog" aria-controls="mensagens-modal" title="Abrir mensagens/e-mail deste aluno" @disabled($aluno->cadastro_provisorio)>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false">
+                    <path d="M4 4h16v12H8l-4 4V4Z"></path><path d="M8 8h8M8 12h5"></path>
+                </svg>
+                <span>Mensagens</span>
+            </button></p>
         </div>
     </div>
 
@@ -57,6 +73,7 @@
         <h3 class="text-lg font-semibold text-gray-800 mb-4">Registrar Nova Anotação</h3>
 
         <form data-texto-envio="Processando registro…" action="{{ route('prontuarios.store', $aluno->id) }}" method="POST">
+            <input type="hidden" name="_modo_anotacao" value="nova">
             @csrf
             @include('partials.operacao')
 
@@ -81,7 +98,8 @@
                 <label for="anotacoes" class="block text-sm font-medium text-gray-700 mb-1">Anotações</label>
                 <textarea name="anotacoes" id="anotacoes" rows="5" 
                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-[#00833D] focus:border-[#00833D]" 
-                          placeholder="Digite aqui as observações, encaminhamentos e evolução do atendimento..." required></textarea>
+                          placeholder="Digite aqui as observações, encaminhamentos e evolução do atendimento..." required data-limite-caracteres="50000" data-contador-caracteres="anotacoes-contador" aria-describedby="anotacoes-contador">{{ old('_modo_anotacao') === 'nova' ? old('anotacoes', '') : '' }}</textarea>
+                <p id="anotacoes-contador" style="font-size:.85rem;margin-top:6px;color:#56675a;">0 / 50.000 caracteres</p>
             </div>
 
             <button type="submit" class="bg-[#00833D] hover:bg-[#006630] text-white font-semibold px-5 py-2 rounded-lg shadow transition">
@@ -150,6 +168,8 @@
         <h3 class="text-lg font-bold text-gray-800 mb-4">Editar Registro da Sessão</h3>
 
         <form data-texto-envio="Processando registro…" id="formEditarSessao" method="POST">
+            <input type="hidden" name="_modo_anotacao" value="editar">
+            <input type="hidden" name="_sessao_edicao" id="sessao_edicao_id">
             @csrf
             @include('partials.operacao')
             @method('PUT')
@@ -168,7 +188,8 @@
 
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Anotações</label>
-                <textarea name="anotacoes" id="edit_anotacoes" rows="5" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-[#00833D] focus:border-[#00833D]" required></textarea>
+                <textarea name="anotacoes" id="edit_anotacoes" rows="5" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-[#00833D] focus:border-[#00833D]" required data-limite-caracteres="50000" data-contador-caracteres="edit_anotacoes-contador" aria-describedby="edit_anotacoes-contador"></textarea>
+                <p id="edit_anotacoes-contador" style="font-size:.85rem;margin-top:6px;color:#56675a;">0 / 50.000 caracteres</p>
             </div>
 
             <div class="flex justify-end gap-2">
@@ -222,9 +243,11 @@ function abrirModalEdicao(botao) {
     const {id, data, hora, anotacoes} = JSON.parse(botao.dataset.sessao);
     document.getElementById('formEditarSessao').action = '/prontuarios/sessao/' + id;
 
+    document.getElementById('sessao_edicao_id').value = id;
     document.getElementById('edit_data_sessao').value = data;
     document.getElementById('edit_hora_sessao').value = hora || '';
     document.getElementById('edit_anotacoes').value = anotacoes;
+    window.AtualizarContadoresTexto?.();
 
     const modal = document.getElementById('modalEditarSessao');
     modal.classList.remove('hidden');
@@ -243,5 +266,23 @@ function fecharModalSenha() {
 }
 </script>
 
+@if(old('_modo_anotacao') === 'editar' && old('_sessao_edicao'))
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const sessaoId = @json((string) old('_sessao_edicao'));
+    const botao = Array.from(document.querySelectorAll('[data-sessao]')).find(b => {
+        try { return String(JSON.parse(b.dataset.sessao).id) === sessaoId; } catch { return false; }
+    });
+    if (!botao) return;
+    abrirModalEdicao(botao);
+    document.getElementById('edit_anotacoes').value = @json(old('anotacoes', ''));
+    document.getElementById('edit_data_sessao').value = @json(old('data_sessao', ''));
+    document.getElementById('edit_hora_sessao').value = @json(old('hora_sessao', ''));
+    window.AtualizarContadoresTexto?.();
+});
+</script>
+@endif
+@include('partials.mensagens-modal')
+@include('partials.consulta-alunos')
 </body>
 </html>
