@@ -19,7 +19,7 @@ $mensagensDados = [
 <dialog class="mensagens-modal {{ $mensagensPsicologa ? 'mensagens-modal--psicologa' : 'mensagens-modal--aluno' }}"
     id="mensagens-modal" aria-labelledby="mensagens-titulo">
     <header class="mensagens-cabecalho-modal">
-        <div><h2 id="mensagens-titulo">{{ $mensagensPsicologa ? 'Mensagens dos alunos' : 'Contato com a Psicologia' }}</h2>
+        <div><h2 id="mensagens-titulo">{{ $mensagensPsicologa ? 'Mensagens dos alunos' : 'Contato com a Psicóloga' }}</h2>
             <p>Mensagens e documentos relacionados ao atendimento.</p></div>
         <button type="button" id="mensagens-fechar" class="mensagens-botao-leve" aria-label="Fechar mensagens">Fechar <span aria-hidden="true">&times;</span></button>
     </header>
@@ -34,7 +34,7 @@ $mensagensDados = [
                 <input type="password" id="mensagens-senha" name="senha" autocomplete="current-password" maxlength="512" style="padding-right: 52px;" required>
                 @include('partials.senha-olho', ['campoSenha' => 'mensagens-senha'])
             </div>
-            <button type="submit" class="btn btn-primary" id="mensagens-senha-enviar">Desbloquear conversas</button>
+            <button type="submit" class="btn btn-primary" id="mensagens-senha-enviar">Desbloquear Conversas</button>
         </form>
     </section>
     @endif
@@ -107,12 +107,12 @@ $mensagensDados = [
                     </select>
                     <label for="mensagens-email-onde">Onde abrir</label>
                     <select id="mensagens-email-onde">
-                        <option value="automatico">Automático — aplicativo no celular e navegador no computador</option>
+                        <option value="automatico">(Padrão) Aplicativo no celular e navegador no computador</option>
                         <option value="app">Aplicativo do dispositivo</option>
                         <option value="web">Navegador</option>
                     </select>
                     <label for="mensagens-email-assunto">Assunto</label>
-                    <input type="text" id="mensagens-email-assunto" maxlength="150" value="Contato pelo sistema de agendamento">
+                    <input type="text" id="mensagens-email-assunto" maxlength="150" value="Contato - Setor de Psicologia IFBA">
                     <label for="mensagens-email-texto">Texto do e-mail</label>
                     <textarea id="mensagens-email-texto" rows="8" maxlength="10000" placeholder="Escreva o texto do e-mail."></textarea>
                     <p class="mensagens-ajuda">O botão prepara destinatário, assunto e texto. Confira a conta remetente e envie pelo seu e-mail. Para documentos e informações sensíveis, prefira as mensagens internas. Os anexos da conversa não são incluídos no e-mail.</p>

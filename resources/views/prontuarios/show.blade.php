@@ -19,8 +19,9 @@
         .mensagens-modal .btn-secondary,.consulta-alunos .btn-secondary { background:#52645a; }
     </style>
     <script src="{{ asset('js/limites-texto.js') }}?v=20261013-1" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/identidade-visual.css') }}?v=20261013-1">
 </head>
-<body class="bg-gray-100 min-h-screen"
+<body class="ui-sistema ui-prontuario bg-gray-100 min-h-screen"
     data-prontuario-status="{{ route('prontuarios.acesso.status') }}"
     data-prontuario-renovar="{{ route('prontuarios.acesso.renovar') }}"
     data-prontuario-agenda="{{ route('psicologa.index') }}"

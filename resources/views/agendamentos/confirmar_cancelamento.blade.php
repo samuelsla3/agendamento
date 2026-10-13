@@ -24,8 +24,9 @@
         .btn-link, .card > a { display: flex; align-items: center; justify-content: center; }
       }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/identidade-visual.css') }}?v=20261013-1">
 </head>
-<body>
+<body class="ui-sistema ui-confirmacao">
     <div class="card">
         <h2>Confirmação de Cancelamento</h2>
         <p>Você está prestes a cancelar seu atendimento agendado para:</p>

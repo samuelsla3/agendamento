@@ -1,3 +1,86 @@
+// Diagramação do PDF: resumo somente na primeira página, sem links da interface.
+function gerarPdfAtendimentos(doc, dados) {
+    const largura = doc.internal.pageSize.getWidth(), altura = doc.internal.pageSize.getHeight();
+    const margem = 14, util = largura - margem * 2;
+    const verde = [0, 131, 61], escuro = [31, 41, 55], cinza = [95, 110, 101];
+    doc.setProperties({title: 'Relatório de Atendimentos', author: 'IFBA - Campus Seabra'});
+    function cabecalho(continua = false) {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...verde);
+        doc.text('IFBA | CAMPUS SEABRA', margem, 14);
+        doc.setTextColor(...escuro); doc.setFontSize(continua ? 13 : 18);
+        doc.text('Relatório de Atendimentos', margem, 23);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...cinza);
+        doc.text('Emitido em: ' + dados.emitido, largura - margem, 14, {align: 'right'});
+        doc.setDrawColor(215, 228, 220); doc.line(margem, 28, largura - margem, 28);
+    }
+    cabecalho();
+    const cartoes = [['Atendimentos realizados', dados.realizados], ['Alunos atendidos', dados.alunos], ['Registros encontrados', dados.total]];
+    const gap = 4, w = (util - gap * 2) / 3;
+    cartoes.forEach(([label, valor], i) => {
+        const x = margem + i * (w + gap);
+        doc.setFillColor(241, 248, 243); doc.setDrawColor(214, 230, 220);
+        doc.roundedRect(x, 36, w, 23, 2, 2, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(17); doc.setTextColor(...verde);
+        doc.text(String(valor), x + 4, 46);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...cinza);
+        doc.text(label, x + 4, 54);
+    });
+    doc.setFontSize(7.5); doc.setTextColor(...cinza);
+    const explicacao = doc.splitTextToSize('Alunos atendidos: matrículas distintas em atendimentos realizados, dentro dos filtros aplicados.', util);
+    doc.text(explicacao, margem, 65);
+    let y = 65 + explicacao.length * 3.6 + 7;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...escuro);
+    doc.text('Filtros aplicados', margem, y); y += 6;
+    dados.filtros.forEach(([label, valor]) => {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+        const linhas = doc.splitTextToSize(String(valor || 'Não informado'), util - 38);
+        doc.setTextColor(...cinza); doc.text(label, margem, y);
+        doc.setTextColor(...escuro); doc.text(linhas, margem + 38, y);
+        y += Math.max(1, linhas.length) * 4.2 + 2;
+    });
+    if (dados.aviso) {
+        y += 3; doc.setFontSize(8);
+        const linhas = doc.splitTextToSize('Observação: ' + dados.aviso, util - 8);
+        const h = linhas.length * 4 + 7;
+        doc.setFillColor(255, 248, 232); doc.setDrawColor(239, 222, 179);
+        doc.roundedRect(margem, y - 3, util, h, 2, 2, 'FD');
+        doc.setTextColor(102, 75, 16); doc.text(linhas, margem + 4, y + 2); y += h + 3;
+    }
+    y += 8;
+    if (dados.registros.length) {
+        // Espaço mínimo para cabeçalho da tabela e a primeira linha.
+        if (y > altura - 48) { doc.addPage(); y = 34; }
+        doc.autoTable({
+            head: [['Aluno', 'Turma', 'Matrícula', 'Data e hora', 'Situação']],
+            body: dados.registros.map(linha => linha.map((valor, i) => {
+                if (i === 3 && /não preservad/i.test(valor)) return 'Data/hora não preservadas';
+                if (i === 4 && valor === 'Atendimento Realizado') return 'Realizado';
+                return valor;
+            })),
+            startY: y, margin: {top: 34, right: margem, bottom: 18, left: margem},
+            theme: 'grid', showHead: 'everyPage', rowPageBreak: 'avoid',
+            styles: {font: 'helvetica', fontSize: 8.3, textColor: [44, 58, 49], cellPadding: 3,
+                overflow: 'linebreak', lineColor: [220, 230, 224], lineWidth: .15, valign: 'middle'},
+            headStyles: {fillColor: verde, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.3},
+            alternateRowStyles: {fillColor: [246, 249, 247]},
+            columnStyles: {0: {cellWidth: util * .29}, 1: {cellWidth: util * .10}, 2: {cellWidth: util * .17},
+                3: {cellWidth: util * .24}, 4: {cellWidth: util * .20}}
+        });
+    } else {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...cinza);
+        doc.text(doc.splitTextToSize(dados.semResultados || 'Nenhum registro encontrado.', util), margem, y);
+    }
+    const paginas = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= paginas; p++) {
+        doc.setPage(p); if (p > 1) cabecalho(true);
+        doc.setDrawColor(220, 230, 224); doc.line(margem, altura - 13, largura - margem, altura - 13);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...cinza);
+        doc.text('Serviço de Psicologia | IFBA Seabra', margem, altura - 8);
+        doc.text('Página ' + p + ' de ' + paginas, largura - margem, altura - 8, {align: 'right'});
+    }
+    return doc;
+}
+
 // Usa o relógio do servidor para liberar a falta; o backend confere novamente.
 const relogioAgenda = (() => {
     const servidor = Date.parse(LaravelConfig.agora || '');
@@ -169,16 +252,16 @@ function openModal(event) {
             }
 
             if (props.data_hora_reserva_anterior) {
-    aviso += ` A reserva cancelada estava marcada para ${props.data_hora_reserva_anterior}.`;
+    aviso += `\nA reserva cancelada estava marcada para ${props.data_hora_reserva_anterior}.`;
 } else {
-    aviso += ' A data e a hora originais não foram preservadas neste registro antigo.';
+    aviso += '\nA data e a hora originais não foram preservadas neste registro antigo.';
 }
 
 if (props.justificativa_cancelamento) {
-    aviso += ` Motivo: ${props.justificativa_cancelamento}`;
+    aviso += `\nMotivo: ${props.justificativa_cancelamento}`;
 }
 
-            aviso += ' Esta vaga está disponível para edição e novo agendamento.';
+            aviso += '\nEsta vaga está disponível para edição e novo agendamento.';
             // Nome e justificativa são texto, nunca HTML executável.
             $('#justificativaTexto').text(aviso);
             $('#justificativaInfo').show();
@@ -428,51 +511,32 @@ $('#cancel-by-psicologa-form').submit(function(e) {
             return;
         }
         const texto = id => (document.getElementById(id)?.textContent || '').replace(/\s+/g, ' ').trim();
-        const largura = doc.internal.pageSize.getWidth();
-        const altura = doc.internal.pageSize.getHeight();
-        const margem = 14;
-        const larguraTexto = largura - margem * 2;
-        const totalPagesExp = '{total_pages_count_string}';
-        // Captura o resultado renderizado, jamais os valores de outro pedido.
-        const metadados = [
-            texto('indicadores-relatorio'), texto('total-registros-relatorio'),
-            texto('periodo-relatorio'), texto('situacao-relatorio'), texto('aluno-relatorio'),
-            texto('turma-relatorio'),
-            'Indicadores: somente realizados; alunos distintos por matrícula, dentro dos filtros.',
-            texto('avisos-relatorio')
-        ].filter(Boolean);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        const linhas = metadados.flatMap(linha => doc.splitTextToSize(linha, larguraTexto));
-        const inicioTabela = 34 + linhas.length * 4.2 + 5;
-        const emitido = new Date().toLocaleString('pt-BR');
-        const desenharCabecalho = pagina => {
-            doc.setTextColor(40);
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(16);
-            doc.text('Relatório de Atendimentos', margem, 18);
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
-            doc.text('Emitido em: ' + emitido, margem, 25);
-            linhas.forEach((linha, i) => doc.text(linha, margem, 34 + i * 4.2));
-            doc.setFontSize(9);
-            const total = typeof doc.putTotalPages === 'function' ? ' de ' + totalPagesExp : '';
-            doc.text('Página ' + pagina + total, margem, altura - 10);
-        };
-        if (tabela) {
-            doc.autoTable({
-                html: '#tabela-relatorio', startY: inicioTabela,
-                margin: { top: inicioTabela, right: margem, bottom: 20, left: margem },
-                theme: 'grid', styles: { fontSize: 9, overflow: 'linebreak' },
-                headStyles: { fillColor: [0, 131, 61], textColor: [255, 255, 255] },
-                alternateRowStyles: { fillColor: [245, 245, 245] },
-                didDrawPage: data => desenharCabecalho(data.pageNumber)
-            });
-        } else {
-            desenharCabecalho(1);
-            doc.text(doc.splitTextToSize(texto('sem-resultados'), larguraTexto), margem, inicioTabela + 5);
+        const numero = (valor, padrao) => valor?.match(padrao)?.[1] || '-';
+        const indicadores = texto('indicadores-relatorio');
+        const filtros = [
+            ['Período', texto('periodo-relatorio').replace(/^Período(?: selecionado)?:\s*/i, '') || 'Todos os registros'],
+            ['Situação', texto('situacao-relatorio').replace(/^Situação:\s*/i, '').replace(/^Todos os registros$/i, 'Todas as situações')],
+            ['Turma', texto('turma-relatorio').replace(/^Turma \(cadastro atual\):\s*/i, '')]
+        ];
+        const alvo = texto('aluno-relatorio');
+        const pesquisa = /^Nome contém:\s*(.*?)\s*\|\s*Matrícula contém:\s*(.*)$/i.exec(alvo);
+        if (pesquisa) {
+            const nome = pesquisa[1], matricula = pesquisa[2];
+            if (nome !== 'qualquer nome') filtros.push(['Nome contém', nome]);
+            if (matricula !== 'qualquer matrícula') filtros.push(['Matrícula contém', matricula]);
+            if (nome === 'qualquer nome' && matricula === 'qualquer matrícula') filtros.push(['Alunos', 'Todos']);
+        } else if (alvo) {
+            filtros.push(['Aluno', alvo.replace(/^Aluno:\s*/i, '').replace(/\s*\|\s*Matrícula contém: qualquer matrícula$/i, '')]);
         }
-        if (typeof doc.putTotalPages === 'function') doc.putTotalPages(totalPagesExp);
+        const registros = tabela ? Array.from(tabela.querySelectorAll('tbody tr')).map(tr =>
+            Array.from(tr.querySelectorAll('td')).map(td => td.textContent.replace(/\s+/g, ' ').trim())) : [];
+        gerarPdfAtendimentos(doc, {
+            emitido: new Date().toLocaleString('pt-BR'),
+            realizados: numero(indicadores, /Atendimentos realizados:\s*([\d.]+)/i),
+            alunos: numero(indicadores, /Alunos atendidos:\s*([\d.]+)/i),
+            total: numero(texto('total-registros-relatorio'), /Total de registros encontrados:\s*([\d.]+)/i),
+            filtros, registros, aviso: texto('avisos-relatorio'), semResultados: texto('sem-resultados')
+        });
         doc.save('relatorio_atendimentos.pdf');
     });
 })();

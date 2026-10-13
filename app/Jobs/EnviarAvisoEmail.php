@@ -112,6 +112,28 @@ class EnviarAvisoEmail implements ShouldQueue
                 'enviado_em' => now(), 'conteudo' => '', 'erro_tipo' => null,
             ]);
         } catch (Throwable $e) {
+            // Diagnóstico sem conteúdo, códigos, destinatários, credenciais ou argumentos de stack.
+            // A mensagem completa de exceções SMTP pode incluir informações sensíveis.
+            $simbolo = null;
+            if ($e instanceof \Error && preg_match('/^Call to undefined (?:function|method) ([A-Za-z0-9_\\\\:]+)\(\)$/D', $e->getMessage(), $partes)) {
+                $simbolo = $partes[1];
+            }
+            $rastro = array_map(static function (array $item): array {
+                return [
+                    'arquivo' => isset($item['file']) ? basename($item['file']) : null,
+                    'linha' => $item['line'] ?? null,
+                    'classe' => $item['class'] ?? null,
+                    'funcao' => $item['function'] ?? null,
+                ];
+            }, array_slice($e->getTrace(), 0, 4));
+            \Illuminate\Support\Facades\Log::error('Diagnostico do envio de e-mail', [
+                'aviso_id' => $this->avisoId, 'erro_tipo' => get_class($e),
+                'arquivo' => basename($e->getFile()), 'linha' => $e->getLine(),
+                'simbolo_indisponivel' => $simbolo, 'rastro_sem_argumentos' => $rastro,
+                'php' => PHP_VERSION, 'modo' => PHP_SAPI,
+                'mbstring' => extension_loaded('mbstring'), 'mb_split' => function_exists('mb_split'),
+                'openssl' => extension_loaded('openssl'), 'intl' => extension_loaded('intl'),
+            ]);
             // Depois de entrar no transporte, uma desconexão pode deixar o resultado
             // incerto. Nunca repetir automaticamente e nunca armazenar mensagem/debug SMTP.
             $this->resultado($transporteIniciado ? 'revisar' : 'falhou',

@@ -25,14 +25,29 @@
     <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261013-imagens-1">
     <script src="{{ asset('js/mensagens.js') }}?v=20261013-imagens-1" defer></script>
     <script src="{{ asset('js/limites-texto.js') }}?v=20261013-1" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/identidade-visual.css') }}?v=20261013-1">
+    <style>
+        .aluno-sair { display:inline-flex; align-items:center; justify-content:center; gap:7px; }
+        .aluno-sair span { margin:0; }
+        .aluno-sair svg { flex-shrink:0; }
+    </style>
+    <link rel="stylesheet" href="{{ asset('css/desenvolvedores.css') }}?v=20261013-1">
+    <link rel="stylesheet" href="{{ asset('css/apresentacao-publica.css') }}?v=20261013-1">
+    <script src="{{ asset('js/apresentacao-publica.js') }}?v=20261013-1" defer></script>
 </head>
-<body>
+<body class="ui-sistema ui-aluno">
 
     <header class="header">
         <h1>Agendamento de Atendimento Psicológico</h1>
         <div class="user-info">
             @if(auth()->check())
-                <span>{{ auth()->user()->nome }} ({{ auth()->user()->matricula }})</span>
+                @php
+                    $partesNomeAluno = preg_split('/\s+/u', trim((string) auth()->user()->nome), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+                    $nomeCurtoAluno = count($partesNomeAluno) > 1
+                        ? $partesNomeAluno[0] . ' ' . $partesNomeAluno[count($partesNomeAluno) - 1]
+                        : ($partesNomeAluno[0] ?? 'Aluno');
+                @endphp
+                <span>{{ $nomeCurtoAluno }}</span>
                 @if(($contatoEmail ?? null) !== null)
                     <button type="button" class="contato-email-link" data-abrir-contato-email aria-controls="contato-email-modal" aria-expanded="false">Alterar e-mail</button>
                 @endif
@@ -41,7 +56,12 @@
             <form action="{{ route('logout') }}" method="POST" style="display: inline;">
                     @csrf
             @include('partials.operacao')
-                    <button type="submit" class="btn btn-danger">Sair</button>
+                    <button type="submit" class="btn btn-danger aluno-sair" title="Sair do sistema">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                            <path d="M9 5H5v14h4M10 12h10M16 8l4 4-4 4"></path>
+                        </svg>
+                        <span>Sair</span>
+                    </button>
                 </form>
             @else
                 <button class="btn btn-primary" onclick="window.location.href='{{ route('login') }}';">Fazer Login</button>
@@ -71,6 +91,10 @@
             @endif
             <div id="calendar"></div>
         </section>
+
+        @guest
+            @include('partials.apresentacao-publica')
+        @endguest
 
         @if(auth()->check() && (auth()->user()->tipo === 'estudante' || auth()->user()->tipo === 'aluno'))
         <section class="content-section">
@@ -135,6 +159,10 @@
         @include('partials.sugestoes-aluno')
     </div>
 
+
+    @if(!auth()->check() || in_array(auth()->user()->tipo, ['aluno', 'estudante'], true))
+        @include('partials.desenvolvedores')
+    @endif
 
     @include('partials.contato-email')
 

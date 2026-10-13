@@ -1,0 +1,106 @@
+.ui-aluno .apresentacao-publica { margin-top: 40px; color: #52657b; }
+.ui-aluno .apresentacao-sobre { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 56px; padding: 64px 28px; background: #fff; }
+.ui-aluno .apresentacao-etiqueta { color: #00833d; text-transform: uppercase; letter-spacing: .07em; font-size: 14px; font-weight: 700; margin: 0 0 18px; }
+.ui-aluno .apresentacao-publica h2 { color: #1e293b; border: 0; padding: 0; margin: 0 0 24px; font-size: clamp(28px, 3vw, 42px); line-height: 1.22; }
+.ui-aluno .apresentacao-texto > p:not(.apresentacao-etiqueta) { font-size: 17px; line-height: 1.8; margin: 0 0 18px; }
+.ui-aluno .apresentacao-destaque { background: #effbf3; padding: 22px 24px; border-radius: 12px; margin: 26px 0; }
+.ui-aluno .apresentacao-destaque h3 { color: #007334; font-size: 18px; margin: 0 0 8px; }
+.ui-aluno .apresentacao-destaque p { margin: 0; line-height: 1.7; }
+.ui-aluno .apresentacao-entrar { display: inline-flex; align-items: center; gap: 16px; padding: 13px 24px; border: 1px solid #00833d; border-radius: 28px; color: #007334; text-decoration: none; font-weight: 600; transition: background .2s; }
+.ui-aluno .apresentacao-entrar:hover { background: #e5f5eb; }
+.ui-aluno .apresentacao-entrar:focus-visible { outline: 3px solid #00833d; outline-offset: 4px; }
+.ui-aluno .apresentacao-ilustracao { margin: 0; padding: 18px; background: white; border-radius: 22px; box-shadow: 0 10px 30px rgb(15 23 42 / 7%); min-width: 0; }
+.ui-aluno .apresentacao-ilustracao img { display: block; width: 100%; height: auto; }
+.ui-aluno .apresentacao-ilustracao figcaption { text-align: center; margin-top: 10px; font-size: 11px; }
+.ui-aluno .apresentacao-ilustracao a { color: #64748b; }
+.ui-aluno .apresentacao-funcoes { background: #f7f9fa; text-align: center; padding: 64px 28px; }
+.ui-aluno .apresentacao-grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin-top: 42px; }
+.ui-aluno .apresentacao-cartao { background: white; border-radius: 20px; padding: 36px 26px; box-shadow: 0 6px 24px rgb(15 23 42 / 5%); }
+.ui-aluno .apresentacao-cartao h3 { color: #00833d; font-size: 22px; font-weight: 500; margin: 0 0 20px; line-height: 1.4; }
+.ui-aluno .apresentacao-cartao p { font-size: 16px; line-height: 1.75; margin: 0; }
+.ui-aluno .subida-pendente { opacity: 0; transform: translateY(22px); }
+.ui-aluno .subida-animada { transition: opacity .6s ease, transform .6s ease; }
+@media (max-width: 850px) {
+ .ui-aluno .apresentacao-sobre { grid-template-columns: 1fr; gap: 32px; padding: 40px 20px; }
+ .ui-aluno .apresentacao-grade { grid-template-columns: 1fr; gap: 20px; }
+ .ui-aluno .apresentacao-funcoes { padding: 40px 20px; }
+ .ui-aluno .apresentacao-ilustracao { max-width: 600px; margin: 0 auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+ .ui-aluno .subida-pendente { opacity: 1; transform: none; }
+ .ui-aluno .subida-animada { transition: none; }
+}
+
+/* Cabeçalho do aluno: ajuste exclusivo para celular. */
+@media (max-width: 767px) {
+    .ui-sistema.ui-aluno > .header {
+        display: grid;
+        grid-template-columns: minmax(0, .85fr) minmax(0, 1.35fr);
+        align-items: start;
+        gap: 12px;
+        padding: 14px 12px;
+    }
+    .ui-sistema.ui-aluno > .header > h1 {
+        font-size: clamp(14px, 3.8vw, 17px);
+        line-height: 1.35;
+        margin: 3px 0 0;
+        text-align: left;
+        overflow-wrap: normal;
+        word-break: normal;
+    }
+    .ui-sistema.ui-aluno > .header > .user-info {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: center;
+        width: 100%;
+        min-width: 0;
+        gap: 6px 8px;
+        text-align: right;
+    }
+    .ui-sistema.ui-aluno > .header > .user-info > span {
+        flex: 1 0 100%;
+        width: 100%;
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.4;
+        overflow-wrap: normal;
+        word-break: normal;
+    }
+    .ui-sistema.ui-aluno > .header .user-info > .contato-email-link {
+        flex: 1 0 100%;
+        width: 100%;
+        min-height: 32px;
+        margin: 0;
+        text-align: right;
+        font-size: 12px;
+    }
+    .ui-sistema.ui-aluno > .header .mensagens-acesso {
+        max-width: 100%;
+        min-width: 0;
+        min-height: 40px;
+        padding: 8px 10px;
+        gap: 6px;
+        font-size: 12px;
+        line-height: 1.35;
+        white-space: normal;
+    }
+    .ui-sistema.ui-aluno > .header .mensagens-acesso > span:not(.mensagens-badge) {
+        overflow-wrap: normal;
+        word-break: normal;
+    }
+    .ui-sistema.ui-aluno > .header .mensagens-acesso > svg {
+        width: 17px;
+        height: 17px;
+        flex-shrink: 0;
+    }
+    .ui-sistema.ui-aluno > .header .user-info > form { margin: 0; }
+    .ui-sistema.ui-aluno > .header .user-info .btn {
+        min-height: 40px;
+        padding: 8px 12px;
+        font-size: 12px;
+        line-height: 1.35;
+        width: auto;
+    }
+}

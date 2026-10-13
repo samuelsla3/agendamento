@@ -11,7 +11,7 @@
         <div id="contato-email-retorno" class="contato-email-retorno" role="status" aria-live="polite" hidden></div>
         <form id="contato-email-enviar" method="POST" action="{{ route('contato.email.enviar') }}">
             @csrf
-            <label for="contato-email-endereco">Seu e-mail</label>
+            <label for="contato-email-endereco">Digite seu e-mail</label>
             <input type="email" id="contato-email-endereco" name="email" maxlength="100" autocomplete="email" required
                 value="{{ $contatoEmail['pendente'] ?? $contatoEmail['atual'] }}" placeholder="Digite o e-mail que você usa">
             <p class="contato-email-ajuda">Você pode manter o endereço sugerido ou escolher outro. Enviaremos um código para conferir se você consegue acessá-lo.</p>
@@ -32,7 +32,7 @@
                 <button type="button" id="contato-email-atualizar" class="contato-email-link">Atualizar situação do envio</button>
             </form>
         </section>
-        <p class="contato-email-ajuda">O código vale por 15 minutos. Uma mudança de endereço só entra em vigor depois da confirmação. Seus agendamentos continuam disponíveis.</p>
+        <p class="contato-email-ajuda">O código vale por 15 minutos. Uma mudança de endereço só entra em vigor depois da confirmação.</p>
         <button type="button" id="contato-email-depois" class="btn btn-secondary">Agora não</button>
     </dialog>
     <script type="application/json" id="contato-email-dados">@json($contatoEmail)</script>

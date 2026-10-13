@@ -35,24 +35,59 @@
     <link rel="stylesheet" href="{{ asset('css/consulta-alunos.css') }}?v=20261013-5">
     <script src="{{ asset('js/consulta-alunos.js') }}?v=20261013-5" defer></script>
     <script src="{{ asset('js/limites-texto.js') }}?v=20261013-1" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/identidade-visual.css') }}?v=20261013-1">
+    <style>
+        .painel-titulo-acoes { display:flex; align-items:center; gap:12px; min-width:0; }
+        .painel-cabecalho .painel-configuracoes { display:inline-flex; flex:0 0 44px; align-items:center; justify-content:center; width:44px; height:44px; min-height:44px; padding:0 !important; border-radius:10px; }
+        .painel-configuracoes img { display:block; width:26px; height:26px; }
+        .painel-conta { display:flex; align-items:center; justify-content:flex-end; gap:12px; min-width:0; }
+        .painel-conta .painel-nome { margin:0; font-weight:600; color:#526159; font-size:.92rem; overflow-wrap:anywhere; }
+        .painel-conta form { display:flex; flex-shrink:0; margin:0; }
+        .painel-sair { display:inline-flex; align-items:center; justify-content:center; gap:7px; }
+        .painel-sair span { margin:0; }
+        @media(max-width:767px) {
+            .painel-cabecalho { flex-wrap:wrap; }
+            .painel-cabecalho .painel-titulo-acoes { flex:1 1 100%; justify-content:flex-start; }
+            .painel-cabecalho .user-info { flex:1 1 100%; justify-content:flex-end; }
+            .painel-conta { max-width:100%; }
+        }
+    </style>
+    <style>
+        #justificativaTexto { white-space: pre-line; line-height: 1.65; }
+        .ultimos-cancelamentos-detalhes > summary {
+            cursor: pointer;
+            font-size: 1.5em;
+            font-weight: 700;
+            color: inherit;
+        }
+        .ultimos-cancelamentos-detalhes[open] > summary { margin-bottom: 20px; }
+    </style>
 </head>
-<body>
+<body class="ui-sistema ui-psicologa">
 
-    <header class="header">
-        <h1>Painel da Psicóloga</h1>
+    <header class="header painel-cabecalho">
+        <div class="painel-titulo-acoes">
+            <h1>Painel da Psicóloga</h1>
+            <a href="{{ route('configuracoes.index') }}" class="btn btn-secondary painel-configuracoes"
+               title="Configurações" aria-label="Abrir configurações">
+                <img src="{{ asset('images/configuracao.png') }}" width="26" height="26" alt="" aria-hidden="true">
+            </a>
+        </div>
         <div class="user-info">
-            <span>{{ session('usuario_nome') }} ({{ ucfirst(auth()->user()->tipo) }})</span>
-            <a href="{{ route('configuracoes.index') }}"
-   class="btn btn-secondary" title="Configurações" aria-label="Abrir configurações"
-   style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:0;text-decoration:none;font-size:24px;">
-    <span aria-hidden="true" style="margin:0;">&#9881;</span>
-</a>
             @include('partials.mensagens-botao')
-            <form action="{{ route('logout') }}" method="POST" style="display: inline;">
-                @csrf
-            @include('partials.operacao')
-                <button type="submit" class="btn btn-danger">Sair</button>
-            </form>
+            <div class="painel-conta">
+                <span class="painel-nome">{{ auth()->user()->nome ?? session('usuario_nome') }}</span>
+                <form action="{{ route('logout') }}" method="POST">
+                    @csrf
+                    @include('partials.operacao')
+                    <button type="submit" class="btn btn-secondary painel-sair" title="Sair do sistema">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                            <path d="M9 5H5v14h4M10 12h10M16 8l4 4-4 4"></path>
+                        </svg>
+                        <span>Sair</span>
+                    </button>
+                </form>
+            </div>
         </div>
     </header>
 
@@ -65,15 +100,15 @@
             </aside>
         @endif
         <div class="action-buttons-group">
-            <button type="button" class="btn btn-primary" onclick="$('#generateModal').addClass('is-visible')">Gerar Horário(s)</button>
+            <button type="button" class="btn btn-primary ui-botao-contorno" onclick="$('#generateModal').addClass('is-visible')">Gerar Horário(s)</button>
             <button type="button" class="btn btn-danger" onclick="$('#deleteModal').addClass('is-visible')">Cancelar Horários</button>
             <button type="button" 
         onclick="abrirModalBuscaProntuario(); return false;" 
         class="btn btn-info text-white font-semibold px-4 py-2 rounded-lg shadow">
     Prontuários e Acompanhamento
 </button>
-            <button type="button" class="btn btn-primary" onclick="abrirModalEmergencial()">Atendimento emergencial</button>
-            <button type="button" class="btn btn-info" id="abrir-consulta-alunos">Consultar alunos</button>
+            <button type="button" class="btn btn-primary ui-botao-contorno" onclick="abrirModalEmergencial()">Atendimento Emergencial</button>
+            <button type="button" class="btn btn-info" id="abrir-consulta-alunos">Consultar Alunos</button>
         </div>
 
         <section class="content-section agenda-hoje-section">
@@ -159,7 +194,8 @@
         </section>
 
         <section class="content-section">
-            <h2>Últimos Cancelamentos</h2>
+            <details class="ultimos-cancelamentos-detalhes" open>
+            <summary>Últimos Cancelamentos</summary>
             @if($ultimosCancelamentos->isEmpty())
                 <p style="text-align: center;">Nenhum cancelamento recente.</p>
             @else
@@ -184,7 +220,7 @@
                                         @else
                                             {{ $cancelamento->nome_aluno ?? 'Não informado' }}
                                         @endif 
-                                        ({{ $cancelamento->turma_formatada_aluno }} - {{ $cancelamento->matricula_aluno ?? 'N/A' }})<br>
+                                        ({{ $cancelamento->turma_formatada_aluno }})<br>
 
                                         <strong>Horário Cancelado:</strong> {{ $horario_cancelado }}<br>
 
@@ -199,6 +235,7 @@
 
                 </div>
             @endif
+            </details>
         </section>
 
         <section class="content-section">
@@ -307,8 +344,8 @@
                 <div id="action-buttons" class="action-buttons-group">
     <input type="hidden" id="eventId">
 
-    <a id="consultarAlunoBtn" href="#" class="btn btn-info consulta-nome-link" style="display:none;">Consultar aluno</a>
-    <a id="prontuarioBtn" href="#" target="_blank" class="btn btn-info" style="display:none; background-color: #0284c7; border-color: #0284c7; color: #fff; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-weight: bold;">
+    <a id="consultarAlunoBtn" href="#" class="btn btn-info consulta-nome-link" style="display:none;">Consultar Aluno</a>
+    <a id="prontuarioBtn" href="#" target="_blank" class="btn btn-info" style="display:none;">
         Acessar Prontuário
     </a>
 
@@ -317,7 +354,7 @@
     <button type="button" id="corrigirSituacaoBtn" class="btn btn-primary" style="display:none;">Corrigir situação</button>
     <button type="button" id="cancelByPsicologaBtn" class="btn btn-danger" style="display:none;">Cancelar Agendamento</button>
     <button type="button" id="deleteBtn" class="btn btn-danger">Excluir Horário</button>
-    <button type="button" onclick="closeModal()" class="btn btn-secondary">Fechar</button>
+    
 </div>
             </div>
         </div>
@@ -325,7 +362,7 @@
         <div id="emergencialModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="emergencial-titulo">
             <div class="modal-content" style="max-width: 560px;">
                 <button type="button" class="close-btn" onclick="closeModal()" aria-label="Fechar">&times;</button>
-                <h2 id="emergencial-titulo">Atendimento emergencial</h2>
+                <h2 id="emergencial-titulo">Atendimento Emergencial</h2>
                 <form id="emergencial-form" data-fuso="{{ config('app.timezone') }}">
                     <div class="form-row">
                         <div class="form-group">
@@ -565,7 +602,7 @@
                         @if(isset($alunos) && $alunos->count() > 0)
                             @foreach($alunos as $aluno)
                                 <option value="{{ $aluno->id }}" data-search="{{ strtolower($aluno->nome . ' ' . $aluno->matricula) }}">
-                                    {{ $aluno->nome }} ({{ $aluno->matricula ?? 'N/A' }})
+                                    {{ $aluno->nome }} ({{ $aluno->turma_formatada }})
                                 </option>
                             @endforeach
                         @else
@@ -575,10 +612,10 @@
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
-                    <button type="button" onclick="fecharModalBuscaProntuario()" style="padding: 10px 18px; background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; color: #374151; font-weight: 600; cursor: pointer;">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModalBuscaProntuario()">
                         Cancelar
                     </button>
-                    <button type="submit" style="padding: 10px 20px; background-color: #00833D; border: none; border-radius: 8px; color: #ffffff; font-weight: 600; cursor: pointer;">
+                    <button type="submit" class="btn btn-primary">
                         Abrir Prontuário
                     </button>
                 </div>
@@ -618,10 +655,10 @@
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
-                    <button type="button" onclick="fecharModalSenhaProntuario()" style="padding: 10px 18px; background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; color: #374151; font-weight: 600; cursor: pointer;">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModalSenhaProntuario()">
                         Cancelar
                     </button>
-                    <button type="submit" style="padding: 10px 20px; background-color: #00833D; border: none; border-radius: 8px; color: #ffffff; font-weight: 600; cursor: pointer;">
+                    <button type="submit" class="btn btn-primary">
                         Confirmar Senha
                     </button>
                 </div>

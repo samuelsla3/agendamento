@@ -89,7 +89,14 @@ class CalendarioController extends Controller
             ];
         });
 
-        $registros = collect($historicoAtivos)->merge($historicoCancelados);
+        $registros = collect($historicoAtivos)
+    ->merge($historicoCancelados)
+    ->sortByDesc(function ($registro) {
+        return ($registro->data_atendimento ?: '0001-01-01')
+            . ' '
+            . ($registro->hora_atendimento ?: '00:00:00');
+    })
+    ->values();
     }
 
     $antecedenciaAgendamento = ConfiguracaoSistema::antecedenciaAgendamento();

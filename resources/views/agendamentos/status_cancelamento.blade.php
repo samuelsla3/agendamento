@@ -18,6 +18,7 @@
         .btn-link, .card > a { display: flex; align-items: center; justify-content: center; }
       }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/identidade-visual.css') }}?v=20261013-1">
 </head>
-<body><main class="card"><h1>{{ $titulo }}</h1><p>{{ $mensagem }}</p><a href="{{ url('/') }}">Voltar para o site</a></main></body>
+<body class="ui-sistema ui-confirmacao"><main class="card"><h1>{{ $titulo }}</h1><p>{{ $mensagem }}</p><a href="{{ url('/') }}">Voltar para o site</a></main></body>
 </html>

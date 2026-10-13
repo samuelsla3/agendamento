@@ -50,8 +50,9 @@
             .config-card input[type="number"] { max-width: none; }
         }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/identidade-visual.css') }}?v=20261013-1">
 </head>
-<body>
+<body class="ui-sistema ui-configuracoes">
     <header class="header">
         <h1>Configurações</h1>
         <div class="user-info">
@@ -75,7 +76,7 @@
         <section class="content-section config-card" id="seguranca-da-conta">
             <h2>Segurança da conta</h2>
             <p>Altere sua senha local ou a senha específica do prontuário.</p>
-            <div class="config-acoes"><a href="{{ route('seguranca.index') }}" class="btn btn-primary">Gerenciar senhas</a></div>
+            <div class="config-acoes"><a href="{{ route('seguranca.index') }}" class="btn btn-primary ui-botao-contorno">Gerenciar senhas</a></div>
         </section>
 
         <section class="content-section config-card" id="preferencias-calendario">

@@ -10,8 +10,9 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{{ asset('js/operacoes.js') }}?v=20260924-1" defer></script>
     <script src="{{ asset('js/acompanhar-emails.js') }}?v=20261008-1" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/identidade-visual.css') }}?v=20261013-1">
 </head>
-<body>
+<body class="ui-sistema ui-emails">
 <header class="header">
     <h1>Acompanhamento de e-mails</h1>
     <div class="user-info">

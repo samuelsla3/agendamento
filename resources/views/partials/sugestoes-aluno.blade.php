@@ -1,7 +1,12 @@
 @if(auth()->check() && in_array(auth()->user()->tipo, ['estudante', 'aluno'], true))
     <div class="sugestoes-acesso" id="sugestoes-do-sistema">
-        <button type="button" class="sugestoes-botao-discreto" id="abrir-sugestao"
-            aria-haspopup="dialog" aria-controls="sugestoes-modal" aria-expanded="false">Sugerir uma melhoria</button>
+        <button type="button" class="sugestoes-botao-discreto" id="abrir-sugestao" style="display:inline-flex;align-items:center;justify-content:center;gap:7px;"
+            aria-haspopup="dialog" aria-controls="sugestoes-modal" aria-expanded="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M9 18h6M10 21h4M9 15c0-1.5-3-2.5-3-6a6 6 0 0 1 12 0c0 3.5-3 4.5-3 6"></path>
+            </svg>
+            <span>Sugerir melhorias</span>
+        </button>
         <span>Sua sugestão é anônima.</span>
         @if(session('sugestao_sucesso'))
             <p class="sugestoes-retorno" role="status">{{ session('sugestao_sucesso') }}</p>

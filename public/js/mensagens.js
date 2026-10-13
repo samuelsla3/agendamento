@@ -339,7 +339,7 @@
                 if (numero !== selecaoNumero || g !== geracao) return;
                 destino(resposta.conversa); itens.clear(); marcada = 0; lendo = false;
                 if (!rascunhos.has(selecionada.id)) rascunhos.set(selecionada.id, {texto: '', arquivos: [], chave: resposta.nova_chave,
-                    incerto: false, assunto: 'Contato pelo sistema de agendamento', emailTexto: ''});
+                    incerto: false, assunto: 'Contato - Setor de Psicologia IFBA', emailTexto: ''});
                 el('vazio').hidden = true; el('conversa-area').hidden = false; modal.classList.add('com-conversa');
                 restaurarRascunho(); trocarAba('interno'); aviso(el('aviso'), '');
                 await carregarHistorico(false, true);
@@ -414,7 +414,7 @@
                     csrf(resposta.csrf); geracao++; prazo(resposta); badge(resposta); atividadeRenovada = atividade;
                     aviso(el('aviso'), ''); await ativar();
                 } catch (erro) { tratarErro(erro); }
-                finally { el('senha').value = ''; botao.disabled = false; botao.textContent = 'Desbloquear conversas'; }
+                finally { el('senha').value = ''; botao.disabled = false; botao.textContent = 'Desbloquear Conversas'; }
             });
             ['conversas', 'novo'].forEach(m => el('modo-' + m).addEventListener('click', () => {
                 if (enviando) return;

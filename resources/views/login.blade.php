@@ -40,13 +40,17 @@
     </style>
 
     <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
+    <link rel="stylesheet" href="{{ asset('css/identidade-visual.css') }}?v=20261013-1">
+    <link rel="stylesheet" href="{{ asset('css/login-institucional.css') }}?v=20261013-1">
 </head>
 
 <body @class([
+    'ui-sistema', 'ui-auth', 'ui-login-institucional',
     'login-com-aviso' => ($avisoPublico ?? null) !== null,
 ])>
 
-    <div class="auth-container">
+    <div class="auth-container login-card">
+        <section class="login-form-area" aria-label="Acesso ao sistema">
         @include('partials.aviso-alunos')
 
         <form
@@ -57,7 +61,8 @@
             @csrf
             @include('partials.operacao')
 
-            <h2>Login com SUAP</h2>
+            <h2>Bem-vindo(a)!</h2>
+            <p class="login-subtitulo">Informe sua matrícula (SUAP) e senha.</p>
 
             @if (session('sucesso'))
                 <p style="color: green; text-align: center; font-weight: bold;">
@@ -121,6 +126,10 @@
 
             {{-- O cadastro é automático via SUAP. --}}
         </form>
+        </section>
+        <aside class="login-marca" aria-label="Instituto Federal da Bahia">
+            <img src="{{ asset('images/ifba-marca-login.png') }}" alt="Instituto Federal da Bahia" width="1657" height="1975" decoding="async">
+        </aside>
     </div>
 
     <script>

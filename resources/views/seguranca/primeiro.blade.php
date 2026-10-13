@@ -8,8 +8,9 @@
     <link rel="stylesheet" href="{{ asset('css/seguranca-psicologa.css') }}?v=20261012-1">
     <script src="{{ asset('js/operacoes.js') }}?v=20260924-1" defer></script>
     <script src="{{ asset('js/seguranca-psicologa.js') }}?v=20261008-1" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/identidade-visual.css') }}?v=20261013-1">
 </head>
-<body>
+<body class="ui-sistema ui-seguranca">
     <header class="header"><h1>Configure seu acesso</h1><div class="user-info">
         <span>{{ $usuario->nome }}</span>
         <form action="{{ route('logout') }}" method="POST">@csrf<button type="submit" class="btn btn-secondary">Sair</button></form>
