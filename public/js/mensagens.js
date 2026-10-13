@@ -15,18 +15,37 @@
         }
         return '';
     }
-    function montarEmail(email, servico = 'gmail') {
-        // Texto e assunto permanecem na página: nunca entram no endereço do site externo.
+    function destinoEmail(servico, onde = 'automatico', agente = '', plataforma = '', toques = 0) {
+        if (onde === 'web') return 'web';
+        const android = /Android/i.test(agente);
+        const celular = android || /iPhone|iPad|iPod/i.test(agente) || (plataforma === 'MacIntel' && toques > 1);
+        if (onde === 'app' || (onde === 'automatico' && celular)) {
+            return android && /Chrome\//i.test(agente) && servico === 'gmail' ? 'gmail-android' : 'mailto';
+        }
+        return 'web';
+    }
+    function montarEmail(email, servico = 'gmail', assunto = '', texto = '', destino = 'web') {
         const bases = {
             gmail: 'https://mail.google.com/mail/?view=cm&fs=1&to=',
             outlook: 'https://outlook.live.com/mail/0/deeplink/compose?to=',
             institucional: 'https://outlook.office.com/mail/deeplink/compose?to=',
         };
-        return Object.prototype.hasOwnProperty.call(bases, servico)
-            ? bases[servico] + encodeURIComponent(email) : null;
+        if (!Object.prototype.hasOwnProperty.call(bases, servico)) return null;
+        const contato = encodeURIComponent(email);
+        const campos = (assunto ? '&subject=' + encodeURIComponent(assunto) : '')
+            + (texto ? '&body=' + encodeURIComponent(texto) : '');
+        const dadosApp = contato + (campos ? '?' + campos.slice(1) : '');
+        if (destino === 'gmail-android' && servico === 'gmail') {
+            return 'intent:' + dadosApp + '#Intent;scheme=mailto;action=android.intent.action.SENDTO;package=com.google.android.gm;end';
+        }
+        if (destino === 'mailto') return 'mailto:' + dadosApp;
+        if (destino !== 'web') return null;
+        return bases[servico] + contato
+            + (assunto ? '&' + (servico === 'gmail' ? 'su' : 'subject') + '=' + encodeURIComponent(assunto) : '')
+            + (texto ? '&body=' + encodeURIComponent(texto) : '');
     }
     // Helpers usados pela interface; não guardam conteúdo de conversas.
-    window.MensagensUtil = {validarArquivos, montarEmail};
+    window.MensagensUtil = {validarArquivos, montarEmail, destinoEmail};
 
     document.addEventListener('DOMContentLoaded', () => {
         const modal = document.getElementById('mensagens-modal'), origemDados = document.getElementById('mensagens-dados');
@@ -39,7 +58,7 @@
         let geracao = 0, consultaResumo = 0, consultaLista = 0, selecaoNumero = 0;
         let lendo = false, marcando = false, marcada = 0, atividade = -1, atividadeRenovada = -1;
         let baseServidor = 0, marcoServidor = performance.now(), expira = 0, listaOpcoes = new Map();
-        let debounce = null, gatilho = null;
+        let debounce = null, gatilho = null, alunoPendente = null;
 
         function aviso(campo, texto, erro = false) {
             if (!campo) return;
@@ -88,7 +107,35 @@
             } catch (erro) { if (erro.geracao === undefined) erro.geracao = quando; throw erro; }
             finally { clearTimeout(timeout); }
         }
+        const visualizador = document.createElement('dialog');
+        visualizador.className = 'mensagens-visualizador';
+        visualizador.setAttribute('aria-label', 'Imagem ampliada');
+        const fecharImagem = document.createElement('button');
+        fecharImagem.type = 'button'; fecharImagem.className = 'mensagens-botao-leve';
+        fecharImagem.textContent = 'Fechar imagem ×';
+        const imagemAmpliada = document.createElement('img');
+        imagemAmpliada.referrerPolicy = 'no-referrer';
+        const erroImagem = document.createElement('p');
+        erroImagem.textContent = 'Não foi possível abrir a imagem. Confira sua conexão e o acesso à conversa.';
+        erroImagem.hidden = true;
+        visualizador.append(fecharImagem, imagemAmpliada, erroImagem);
+        document.body.append(visualizador);
+        function fecharVisualizador() {
+            if (visualizador.open) visualizador.close();
+            imagemAmpliada.removeAttribute('src');
+        }
+        fecharImagem.addEventListener('click', fecharVisualizador);
+        visualizador.addEventListener('cancel', event => { event.preventDefault(); fecharVisualizador(); });
+        visualizador.addEventListener('close', () => imagemAmpliada.removeAttribute('src'));
+        imagemAmpliada.addEventListener('error', () => { erroImagem.hidden = false; imagemAmpliada.hidden = true; });
+        function ampliarImagem(url, nome) {
+            if (bloqueado || !modal.open) return;
+            erroImagem.hidden = true; imagemAmpliada.hidden = false;
+            imagemAmpliada.alt = nome; imagemAmpliada.src = url;
+            if (!visualizador.open) visualizador.showModal();
+        }
         function limparTela() {
+            fecharVisualizador();
             itens.clear(); el('itens').replaceChildren(); el('texto').value = ''; el('selecionados').replaceChildren();
             el('email-texto').value = ''; el('email-assunto').value = ''; el('email-destino').textContent = '';
             el('destinatario-nome').textContent = ''; el('destinatario-info').textContent = '';
@@ -179,6 +226,7 @@
             } catch (erro) { if (numero === consultaLista) tratarErro(erro, el('lista-aviso')); }
         }
         function destino(conversa) {
+            fecharVisualizador();
             if (selecionada?.id !== Number(conversa.id)) aviso(el('email-aviso'), '');
             selecionada = {...conversa, id: Number(conversa.id), aluno_id: Number(conversa.aluno_id)};
             el('destinatario-nome').textContent = conversa.nome;
@@ -220,6 +268,18 @@
                     if (url.origin !== window.location.origin || !['http:', 'https:'].includes(url.protocol)) return;
                     const link = document.createElement('a'); link.className = 'mensagens-anexo'; link.href = url.href;
                     link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = `↓ ${a.nome} · ${(a.tamanho / 1048576).toFixed(1)} MB`;
+                    if (['image/png', 'image/jpeg', 'image/webp'].includes(a.mime)) {
+                        const previaUrl = new URL(url.href); previaUrl.searchParams.set('visualizar', '1');
+                        const botao = document.createElement('button'); botao.type = 'button';
+                        botao.className = 'mensagens-imagem-botao';
+                        botao.setAttribute('aria-label', 'Ampliar imagem: ' + a.nome);
+                        const img = document.createElement('img'); img.alt = a.nome;
+                        img.loading = 'lazy'; img.decoding = 'async'; img.referrerPolicy = 'no-referrer';
+                        img.addEventListener('error', () => { botao.hidden = true; });
+                        img.src = previaUrl.href;
+                        botao.append(img); botao.addEventListener('click', () => ampliarImagem(previaUrl.href, a.nome));
+                        balao.append(botao);
+                    }
                     balao.append(link);
                 });
                 const hora = document.createElement('span'); hora.className = 'mensagens-hora'; hora.textContent = m.hora; balao.append(hora);
@@ -276,14 +336,20 @@
                 el('vazio').hidden = true; el('conversa-area').hidden = false; modal.classList.add('com-conversa');
                 restaurarRascunho(); trocarAba('interno'); aviso(el('aviso'), '');
                 await carregarHistorico(false, true);
+                return true;
             } catch (erro) { tratarErro(erro); }
         }
         async function ativar() {
             bloqueado = false; el('area').hidden = false;
-            if (dados.psicologa) { el('bloqueio').hidden = true; await carregarContatos(); if (selecionada) await abrirConversa(selecionada.aluno_id); }
+            if (dados.psicologa) {
+                el('bloqueio').hidden = true; await carregarContatos();
+                const alvo = alunoPendente ?? selecionada?.aluno_id;
+                if (alvo && await abrirConversa(alvo)) alunoPendente = null;
+            }
             else await abrirConversa();
         }
-        async function abrirModal(botao) {
+        async function abrirModal(botao, alunoId = null) {
+            alunoPendente = alunoId;
             const g = geracao;
             gatilho = botao; if (!modal.open) modal.showModal();
             botoesAbrir.forEach(b => b.setAttribute('aria-expanded', 'true'));
@@ -297,12 +363,18 @@
         }
         function fecharModal() {
             if (enviando) return;
-            salvarRascunho(); modal.close();
+            fecharVisualizador(); salvarRascunho(); modal.close();
         }
+        window.MensagensAbrirAluno = async (alunoId, botao) => {
+            if (!dados.psicologa || enviando || !Number.isSafeInteger(alunoId) || alunoId <= 0) return false;
+            await abrirModal(botao, alunoId);
+            return modal.open;
+        };
         botoesAbrir.forEach(botao => botao.addEventListener('click', () => abrirModal(botao)));
         el('fechar').addEventListener('click', fecharModal);
         modal.addEventListener('cancel', event => { event.preventDefault(); fecharModal(); });
         modal.addEventListener('close', () => {
+            fecharVisualizador();
             salvarRascunho(); botoesAbrir.forEach(b => b.setAttribute('aria-expanded', 'false')); gatilho?.focus();
         });
         window.addEventListener('beforeunload', event => { if (temRascunho()) { event.preventDefault(); event.returnValue = ''; } });
@@ -385,12 +457,27 @@
         el('aba-email').addEventListener('click', () => trocarAba('email'));
         function abrirEmail() {
             if (!selecionada?.email || bloqueado) return;
-            salvarRascunho(); const url = montarEmail(selecionada.email, el('email-servico').value);
+            salvarRascunho(); const r = rascunho(), servico = el('email-servico').value;
+            const destino = destinoEmail(servico, el('email-onde').value,
+                navigator.userAgent || '', navigator.platform || '', navigator.maxTouchPoints || 0);
+            let url = montarEmail(selecionada.email, servico, r.assunto.trim(), r.emailTexto, destino);
             if (!url) { aviso(el('email-aviso'), 'Escolha seu serviço de e-mail.', true); return; }
-            const link = document.createElement('a'); link.href = url; link.target = '_blank';
+            const longo = url.length > (destino === 'web' ? 1800 : 100000);
+            if (longo) {
+                // Nunca corta um texto para caber no atalho; copia manual permanece disponível.
+                url = montarEmail(selecionada.email, servico, '', '', destino);
+                el('email-alternativas').open = true;
+            }
+            const link = document.createElement('a'); link.href = url;
+            link.target = destino === 'web' ? '_blank' : '_self';
             link.rel = 'noopener noreferrer'; link.referrerPolicy = 'no-referrer';
             modal.append(link); link.click(); link.remove();
-            aviso(el('email-aviso'), 'O serviço escolhido foi aberto em outra aba. Entre na sua conta se necessário, cole o assunto e o texto e confira o destinatário antes de enviar. Seu rascunho continua aqui.');
+            const avisoDestino = destino === 'web'
+                ? 'Solicitamos abrir seu e-mail no navegador com os campos preenchidos. Se precisar fazer login, confira novamente os campos.'
+                : 'Solicitamos abrir o aplicativo com os campos preenchidos. Se não abrir, escolha Navegador ou outro aplicativo do dispositivo.';
+            aviso(el('email-aviso'), (longo
+                ? 'O texto é longo para esse atalho. Solicitamos abrir somente o destinatário; copie o assunto e o texto completos abaixo.'
+                : avisoDestino) + ' Confira a conta remetente e o destinatário antes de enviar. Seu rascunho continua aqui.');
         }
         el('email-form').addEventListener('submit', event => { event.preventDefault(); abrirEmail(); });
         async function copiarEmail(campo, descricao) {

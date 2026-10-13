@@ -74,6 +74,8 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['verificar.psicologa'])->group(function () {
         
         Route::get('/agenda', [PsicologaController::class, 'index'])->name('psicologa.index');
+        Route::get('/alunos/consultar', [\App\Http\Controllers\ConsultaAlunosController::class, 'index'])->name('alunos.consultar');
+        Route::get('/alunos/consultar/{aluno}', [\App\Http\Controllers\ConsultaAlunosController::class, 'show'])->whereNumber('aluno')->name('alunos.consultar.detalhe');
         Route::get('/agenda/eventos', [PsicologaController::class, 'listarEventos'])->name('agenda.eventos');
         Route::post('/agenda/acao', [PsicologaController::class, 'processarAcao'])->name('agenda.acao')->middleware(RequisicaoUnica::class.':agenda');
         Route::get('/emails', [\App\Http\Controllers\EmailsController::class, 'index'])->name('emails.index');

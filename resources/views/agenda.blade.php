@@ -30,8 +30,10 @@
         }
     </style>
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
-    <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261012-email-web-2">
-    <script src="{{ asset('js/mensagens.js') }}?v=20261012-email-web-2" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261013-consulta-1">
+    <script src="{{ asset('js/mensagens.js') }}?v=20261013-consulta-1" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/consulta-alunos.css') }}?v=20261013-1">
+    <script src="{{ asset('js/consulta-alunos.js') }}?v=20261013-1" defer></script>
 </head>
 <body>
 
@@ -70,6 +72,7 @@
     Prontuários e Acompanhamento
 </button>
             <button type="button" class="btn btn-primary" onclick="abrirModalEmergencial()">Atendimento emergencial</button>
+            <button type="button" class="btn btn-info" id="abrir-consulta-alunos">Consultar alunos</button>
         </div>
 
         <section class="content-section agenda-hoje-section">
@@ -719,5 +722,6 @@
     <script src="{{ asset('js/atendimento-emergencial.js') }}?v=20261004-emergencial-1"></script>
 
 @include('partials.mensagens-modal')
+    @include('partials.consulta-alunos')
 </body>
 </html>

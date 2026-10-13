@@ -137,7 +137,7 @@ class ComunicacaoPrivada
                 'anexos' => $anexos->get($item->id, collect())->map(function ($anexo) {
                     try { $nome = Crypt::decryptString($anexo->nome); }
                     catch (\Illuminate\Contracts\Encryption\DecryptException $e) { $nome = 'Arquivo anexado'; }
-                    return ['nome' => $nome, 'tamanho' => (int) $anexo->tamanho, 'url' => route('mensagens.anexo', ['anexo' => $anexo->uuid])];
+                    return ['nome' => $nome, 'mime' => $anexo->mime, 'tamanho' => (int) $anexo->tamanho, 'url' => route('mensagens.anexo', ['anexo' => $anexo->uuid])];
                 })->values()->all()];
         })->values()->all();
     }

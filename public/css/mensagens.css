@@ -71,6 +71,8 @@
 .mensagens-email-area > p { overflow-wrap:anywhere; }
 .mensagens-email-area textarea { margin-top:8px; min-height:180px; resize:vertical; line-height:1.5; }
 .mensagens-email-acoes { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+.mensagens-email-alternativas { margin-top:18px; padding-top:12px; border-top:1px solid #dce6df; }
+.mensagens-email-alternativas summary { cursor:pointer; color:#305b41; font-size:.9rem; padding:8px 0; }
 .mensagens-voltar-contatos { display:none; }
 .mensagens-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 @media(max-width:767px) {
@@ -95,3 +97,14 @@
     .mensagens-email-area { padding:14px; }
     .mensagens-email-acoes > .btn { width:100%; }
 }
+
+/* Imagens privadas na conversa e ampliação acessível em celular/desktop. */
+.mensagens-imagem-botao { display:block; padding:0; margin:8px 0; border:0; border-radius:10px; overflow:hidden; background:transparent; cursor:zoom-in; max-width:100%; }
+.mensagens-imagem-botao[hidden] { display:none; }
+.mensagens-imagem-botao img { display:block; max-width:100%; width:auto; max-height:240px; object-fit:contain; }
+.mensagens-imagem-botao:focus-visible { outline:3px solid #285a38; outline-offset:3px; }
+.mensagens-visualizador { box-sizing:border-box; width: min(960px, 96vw); max-width:96vw; max-height:94dvh; padding:16px; border:0; border-radius:12px; background:#fff; color:#243b29; }
+.mensagens-visualizador::backdrop { background:rgba(0,0,0,.8); }
+.mensagens-visualizador > button { display:block; margin:0 0 12px auto; }
+.mensagens-visualizador > img { display:block; max-width:100%; max-height:75dvh; height:auto; width:auto; margin:auto; object-fit:contain; }
+.mensagens-visualizador > img[hidden] { display:none; }

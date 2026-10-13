@@ -88,6 +88,17 @@ class MensagensController extends Controller
     public function anexo(Request $request, string $anexo)
     {
         $dados = $this->comunicacao->anexo($request, $anexo);
+        // Mesmo acesso privado do download; somente imagens raster podem ser exibidas.
+        if ($request->boolean('visualizar')) {
+            abort_unless(in_array($dados['mime'], ['image/png', 'image/jpeg', 'image/webp'], true), 415);
+            return response($dados['conteudo'], 200, [
+                'Content-Type' => $dados['mime'], 'Content-Disposition' => 'inline',
+                'Cache-Control' => 'private, no-store, max-age=0',
+                'X-Content-Type-Options' => 'nosniff',
+                'Content-Security-Policy' => "sandbox; default-src 'none'",
+                'Referrer-Policy' => 'no-referrer',
+            ]);
+        }
         return response()->streamDownload(function () use ($dados) { echo $dados['conteudo']; }, $dados['nome'], [
             'Content-Type' => $dados['mime'], 'Cache-Control' => 'private, no-store, max-age=0',
             'X-Content-Type-Options' => 'nosniff', 'Content-Security-Policy' => "sandbox; default-src 'none'",

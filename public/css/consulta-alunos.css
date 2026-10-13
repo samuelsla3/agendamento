@@ -1,0 +1,22 @@
+.consulta-alunos { box-sizing:border-box; width:min(1100px,96vw); max-width:96vw; max-height:92dvh; padding:24px; border:0; border-radius:14px; color:#263b2c; background:#fff; }
+.consulta-alunos::backdrop { background:#0008; }
+.consulta-cabecalho { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+.consulta-cabecalho h2 { margin:0; font-size:1.4rem; }.consulta-cabecalho p { margin:8px 0 16px; }
+.consulta-busca label { display:block; margin-bottom:6px; }.consulta-busca > div { display:flex; gap:8px; }
+.consulta-busca input { box-sizing:border-box; width:100%; min-width:0; padding:12px; border:1px solid #bfd0c3; border-radius:8px; font:inherit; }
+.consulta-colunas { display:grid; grid-template-columns:minmax(220px,1fr) minmax(0,2fr); gap:24px; }
+.consulta-lista-area { border-right:1px solid #e0e7e2; padding-right:20px; }
+.consulta-aluno { display:block; text-align:left; width:100%; margin:8px 0; padding:12px; border:1px solid #d4dfd7; border-radius:8px; background:#fff; color:inherit; cursor:pointer; font:inherit; }
+.consulta-aluno strong,.consulta-aluno span { display:block; }.consulta-aluno span { margin-top:5px; font-size:.85rem; }
+.consulta-aluno[aria-pressed="true"] { background:#eef6ef; border-color:#39714a; }
+.consulta-detalhe { min-width:0; overflow-wrap:anywhere; }.consulta-detalhe h3 { margin-top:14px; }.consulta-detalhe h4 { margin-bottom:8px; }
+.consulta-insights { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:18px 0; }
+.consulta-insight { border:1px solid #dce8df; border-radius:9px; padding:12px; background:#f5f9f6; }.consulta-insight strong { display:block; font-size:1.5rem; }.consulta-insight span { font-size:.85rem; }
+.consulta-atalhos { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0; }.consulta-atalhos a { text-decoration:none; }
+.consulta-paginacao { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:16px 0; }
+.consulta-paginacao button { padding:8px; border:1px solid #bccfc0; border-radius:6px; background:#f5f9f6; cursor:pointer; font:inherit; }
+.consulta-paginacao button:disabled { opacity:.5; cursor:default; }
+.consulta-registro { padding:10px 0; border-bottom:1px solid #e4ece6; }.consulta-registro strong { display:block; }
+.consulta-nota { font-size:.9rem; color:#56675a; line-height:1.5; }
+.consulta-alunos button:focus-visible,.consulta-alunos a:focus-visible { outline:3px solid #39714a; outline-offset:3px; }
+@media(max-width:700px) { .consulta-alunos { padding:16px; }.consulta-colunas { grid-template-columns:1fr; }.consulta-lista-area { border-right:0; border-bottom:1px solid #e0e7e2; padding-right:0; }.consulta-atalhos > * { flex:1 1 100%; text-align:center; }.consulta-cabecalho h2 { font-size:1.2rem; } }

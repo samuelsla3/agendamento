@@ -98,25 +98,37 @@ $mensagensDados = [
                 </div>
                 <form id="mensagens-email-form" class="mensagens-email-area" hidden>
                     <p>Para: <strong id="mensagens-email-destino"></strong></p>
-                    <button type="button" class="mensagens-botao-leve" id="mensagens-email-copiar-endereco">Copiar endereço</button>
                     <p id="mensagens-email-confirmacao" class="mensagens-ajuda" hidden>Este e-mail ainda não foi confirmado pelo aluno. Confira o contato antes de enviar.</p>
                     <label for="mensagens-email-servico">Seu serviço de e-mail</label>
                     <select id="mensagens-email-servico">
-                        <option value="gmail">Gmail — no navegador</option>
-                        <option value="outlook">Outlook / Hotmail — no navegador</option>
-                        <option value="institucional">Outlook institucional — no navegador</option>
+                        <option value="gmail">Gmail</option>
+                        <option value="outlook">Outlook / Hotmail</option>
+                        <option value="institucional">Outlook institucional</option>
+                    </select>
+                    <label for="mensagens-email-onde">Onde abrir</label>
+                    <select id="mensagens-email-onde">
+                        <option value="automatico">(Padrão) Aplicativo no celular e navegador no computador</option>
+                        <option value="app">Aplicativo do dispositivo</option>
+                        <option value="web">Navegador</option>
                     </select>
                     <label for="mensagens-email-assunto">Assunto</label>
-                    <input type="text" id="mensagens-email-assunto" maxlength="150" value="Contato pelo sistema de agendamento">
-                    <button type="button" class="mensagens-botao-leve" id="mensagens-email-copiar-assunto">Copiar assunto</button>
+                    <input type="text" id="mensagens-email-assunto" maxlength="150" value="Contato - Setor de Psicologia IFBA">
                     <label for="mensagens-email-texto">Texto do e-mail</label>
-                    <textarea id="mensagens-email-texto" rows="8" maxlength="10000" placeholder="Escreva o texto que deseja preparar no seu aplicativo de e-mail."></textarea>
-                    <p class="mensagens-ajuda">Copie o assunto e o texto e abra seu e-mail em outra aba. Cole os campos, confira o destinatário e envie por lá. Se precisar fazer login ou o destinatário não vier preenchido, use Copiar endereço. O rascunho permanece nesta página enquanto ela estiver aberta. Os anexos da conversa não são incluídos no e-mail.</p>
+                    <textarea id="mensagens-email-texto" rows="8" maxlength="10000" placeholder="Escreva o texto do e-mail."></textarea>
+                    <p class="mensagens-ajuda">O botão prepara destinatário, assunto e texto. Confira a conta remetente e envie pelo seu e-mail. Para documentos e informações sensíveis, prefira as mensagens internas. Os anexos da conversa não são incluídos no e-mail.</p>
                     <p id="mensagens-email-aviso" class="mensagens-aviso" role="status" hidden></p>
                     <div class="mensagens-email-acoes">
-                        <button type="submit" class="btn btn-primary" id="mensagens-email-abrir">Abrir e-mail no navegador</button>
-                        <button type="button" class="mensagens-botao-leve" id="mensagens-email-copiar">Copiar texto</button>
+                        <button type="submit" class="btn btn-primary" id="mensagens-email-abrir">Abrir e-mail preparado</button>
                     </div>
+                    <details id="mensagens-email-alternativas" class="mensagens-email-alternativas">
+                        <summary>Não abriu ou os campos não foram preenchidos?</summary>
+                        <p class="mensagens-ajuda">Tente outra opção em Onde abrir. Se necessário, copie os campos e cole no e-mail. O rascunho fica guardado enquanto esta página permanecer aberta.</p>
+                        <div class="mensagens-email-acoes">
+                            <button type="button" class="mensagens-botao-leve" id="mensagens-email-copiar-endereco">Copiar endereço</button>
+                            <button type="button" class="mensagens-botao-leve" id="mensagens-email-copiar-assunto">Copiar assunto</button>
+                            <button type="button" class="mensagens-botao-leve" id="mensagens-email-copiar">Copiar texto</button>
+                        </div>
+                    </details>
                 </form>
             </div>
         </section>
