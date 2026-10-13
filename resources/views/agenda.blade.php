@@ -30,8 +30,8 @@
         }
     </style>
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
-    <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261012-1">
-    <script src="{{ asset('js/mensagens.js') }}?v=20261012-1" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261012-email-web-2">
+    <script src="{{ asset('js/mensagens.js') }}?v=20261012-email-web-2" defer></script>
 </head>
 <body>
 
@@ -591,7 +591,10 @@
                     <label for="senhaProntuarioInput" style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
                         Senha do prontuário
                     </label>
-                    <input type="password" id="senhaProntuarioInput" name="senha" autocomplete="current-password" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box;" placeholder="••••••••" required autofocus>
+                    <div style="position: relative;">
+                        <input type="password" id="senhaProntuarioInput" name="senha" autocomplete="current-password" style="width: 100%; padding: 10px 52px 10px 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box;" placeholder="••••••••" required autofocus>
+                        @include('partials.senha-olho', ['campoSenha' => 'senhaProntuarioInput'])
+                    </div>
 
                     @error('senha')
                         <span style="color: #ef4444; font-size: 12px; margin-top: 6px; display: block;">{{ $message }}</span>

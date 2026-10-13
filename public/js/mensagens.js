@@ -15,9 +15,15 @@
         }
         return '';
     }
-    function montarEmail(email, assunto, texto, comTexto = true) {
-        return 'mailto:' + encodeURIComponent(email) + '?subject=' + encodeURIComponent(assunto)
-            + (comTexto ? '&body=' + encodeURIComponent(texto) : '');
+    function montarEmail(email, servico = 'gmail') {
+        // Texto e assunto permanecem na página: nunca entram no endereço do site externo.
+        const bases = {
+            gmail: 'https://mail.google.com/mail/?view=cm&fs=1&to=',
+            outlook: 'https://outlook.live.com/mail/0/deeplink/compose?to=',
+            institucional: 'https://outlook.office.com/mail/deeplink/compose?to=',
+        };
+        return Object.prototype.hasOwnProperty.call(bases, servico)
+            ? bases[servico] + encodeURIComponent(email) : null;
     }
     // Helpers usados pela interface; não guardam conteúdo de conversas.
     window.MensagensUtil = {validarArquivos, montarEmail};
@@ -173,7 +179,7 @@
             } catch (erro) { if (numero === consultaLista) tratarErro(erro, el('lista-aviso')); }
         }
         function destino(conversa) {
-            if (selecionada?.id !== Number(conversa.id)) { aviso(el('email-aviso'), ''); el('email-sem-texto').hidden = true; }
+            if (selecionada?.id !== Number(conversa.id)) aviso(el('email-aviso'), '');
             selecionada = {...conversa, id: Number(conversa.id), aluno_id: Number(conversa.aluno_id)};
             el('destinatario-nome').textContent = conversa.nome;
             el('destinatario-info').textContent = [conversa.turma, conversa.matricula].filter(Boolean).join(' · ');
@@ -377,26 +383,43 @@
         el('historico').addEventListener('scroll', () => marcarLidas(), {passive: true});
         el('aba-interno').addEventListener('click', () => trocarAba('interno'));
         el('aba-email').addEventListener('click', () => trocarAba('email'));
-        function abrirEmail(comTexto = true) {
+        function abrirEmail() {
             if (!selecionada?.email || bloqueado) return;
-            salvarRascunho(); const r = rascunho(), url = montarEmail(selecionada.email, r.assunto.trim(), r.emailTexto, comTexto);
-            if (comTexto && url.length > 1800) {
-                aviso(el('email-aviso'), 'Seu texto é longo para o atalho de e-mail. Copie o texto e use Abrir e-mail sem o texto para colá-lo no seu aplicativo.');
-                el('email-sem-texto').hidden = false; return;
-            }
-            const link = document.createElement('a'); link.href = url; link.click();
-            aviso(el('email-aviso'), 'O e-mail foi preparado para seu aplicativo. Confira e envie por lá.');
+            salvarRascunho(); const url = montarEmail(selecionada.email, el('email-servico').value);
+            if (!url) { aviso(el('email-aviso'), 'Escolha seu serviço de e-mail.', true); return; }
+            const link = document.createElement('a'); link.href = url; link.target = '_blank';
+            link.rel = 'noopener noreferrer'; link.referrerPolicy = 'no-referrer';
+            modal.append(link); link.click(); link.remove();
+            aviso(el('email-aviso'), 'O serviço escolhido foi aberto em outra aba. Entre na sua conta se necessário, cole o assunto e o texto e confira o destinatário antes de enviar. Seu rascunho continua aqui.');
         }
         el('email-form').addEventListener('submit', event => { event.preventDefault(); abrirEmail(); });
-        el('email-sem-texto').addEventListener('click', () => abrirEmail(false));
-        el('email-copiar').addEventListener('click', async () => {
-            const texto = el('email-texto').value;
+        async function copiarEmail(campo, descricao) {
+            if (!selecionada?.email || bloqueado) return;
+            const texto = campo ? campo.value : selecionada.email;
+            let temporario = null;
             try {
                 if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(texto);
-                else { el('email-texto').focus(); el('email-texto').select(); if (!document.execCommand('copy')) throw new Error('copiar'); }
-                aviso(el('email-aviso'), 'Texto copiado. Cole no seu aplicativo de e-mail.');
-            } catch { aviso(el('email-aviso'), 'Selecione o texto e copie manualmente para seu aplicativo de e-mail.'); el('email-texto').focus(); el('email-texto').select(); }
-        });
+                else {
+                    let selecionavel = campo;
+                    if (!selecionavel) {
+                        temporario = document.createElement('textarea'); temporario.value = texto;
+                        temporario.setAttribute('aria-label', 'Endereço para copiar'); modal.append(temporario);
+                        selecionavel = temporario;
+                    }
+                    selecionavel.focus(); selecionavel.select();
+                    if (!document.execCommand('copy')) throw new Error('copiar');
+                }
+                if (!bloqueado) aviso(el('email-aviso'), descricao + ' copiado. Cole no seu e-mail.');
+            } catch {
+                if (!bloqueado) {
+                    aviso(el('email-aviso'), 'Não foi possível copiar automaticamente. Selecione ' + descricao.toLowerCase() + ' e copie manualmente.');
+                    if (campo) { campo.focus(); campo.select(); }
+                }
+            } finally { temporario?.remove(); }
+        }
+        el('email-copiar').addEventListener('click', () => copiarEmail(el('email-texto'), 'Texto'));
+        el('email-copiar-assunto').addEventListener('click', () => copiarEmail(el('email-assunto'), 'Assunto'));
+        el('email-copiar-endereco').addEventListener('click', () => copiarEmail(null, 'Endereço'));
         async function acompanhar() {
             if (document.visibilityState !== 'visible') return;
             await renovarSePreciso();

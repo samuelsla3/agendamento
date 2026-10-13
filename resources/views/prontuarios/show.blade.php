@@ -199,8 +199,11 @@
             @include('partials.operacao')
 
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Senha da Psicóloga</label>
-                <input type="password" name="senha" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-[#00833D] focus:border-[#00833D]" placeholder="••••••••" required autofocus>
+                <label for="senhaProntuarioShowInput" class="block text-sm font-medium text-gray-700 mb-1">Senha da Psicóloga</label>
+                <div style="position: relative;">
+                    <input type="password" id="senhaProntuarioShowInput" name="senha" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-[#00833D] focus:border-[#00833D]" style="padding-right: 52px;" placeholder="••••••••" required autofocus>
+                    @include('partials.senha-olho', ['campoSenha' => 'senhaProntuarioShowInput'])
+                </div>
                 @error('senha')
                     <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
                 @enderror

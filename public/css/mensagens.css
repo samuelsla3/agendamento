@@ -13,7 +13,7 @@
 .mensagens-botao-leve { min-height:40px; padding:8px 12px; border:1px solid #b8c9bd; border-radius:7px; background:white; color:#305b41; font:inherit; font-size:.9rem; cursor:pointer; line-height:1.3; }
 .mensagens-botao-leve:hover,.mensagens-botao-leve.ativo { background:#e5efe7; border-color:#5f866a; }
 .mensagens-botao-leve:disabled,.mensagens-acesso:disabled { opacity:.55; cursor:not-allowed; }
-.mensagens-modal button:focus-visible,.mensagens-modal a:focus-visible,.mensagens-modal input:focus-visible,.mensagens-modal textarea:focus-visible { outline:3px solid #3987aa; outline-offset:2px; }
+.mensagens-modal button:focus-visible,.mensagens-modal a:focus-visible,.mensagens-modal input:focus-visible,.mensagens-modal textarea:focus-visible,.mensagens-modal select:focus-visible { outline:3px solid #3987aa; outline-offset:2px; }
 .mensagens-area { display:flex; min-height:0; flex:1; }
 .mensagens-area[hidden],.mensagens-modal [hidden] { display:none!important; }
 .mensagens-contatos { width:300px; min-width:260px; display:flex; flex-direction:column; padding:14px; gap:10px; border-right:1px solid #dce6df; background:#fafcfb; min-height:0; }
@@ -21,7 +21,7 @@
 .mensagens-modos button { flex:1; }
 .mensagens-filtros { flex-shrink:0; }
 .mensagens-filtros label,.mensagens-email-area label,.mensagens-bloqueio label { display:block; margin:8px 0 5px; font-size:.85rem; font-weight:600; }
-.mensagens-modal input[type=text],.mensagens-modal input[type=password],.mensagens-modal textarea { display:block; width:100%; min-height:42px; box-sizing:border-box; padding:10px; border:1px solid #bdcbc1; border-radius:7px; background:white; color:#26352c; font:inherit; font-size:16px; }
+.mensagens-modal input[type=text],.mensagens-modal input[type=password],.mensagens-modal textarea,.mensagens-modal select { display:block; width:100%; min-height:42px; box-sizing:border-box; padding:10px; border:1px solid #bdcbc1; border-radius:7px; background:white; color:#26352c; font:inherit; font-size:16px; }
 .mensagens-filtros-linha { display:flex; gap:8px; }
 .mensagens-filtros-linha > div { flex:1; min-width:0; }
 .mensagens-lista-contatos { overflow:auto; flex:1; min-height:0; }

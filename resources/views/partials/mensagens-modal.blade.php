@@ -30,7 +30,10 @@ $mensagensDados = [
         <p>Mensagens e documentos usam a proteção do prontuário. Se o acesso já estiver desbloqueado, você pode continuar sem digitar a senha novamente.</p>
         <form id="mensagens-senha-form">
             <label for="mensagens-senha">Senha do prontuário</label>
-            <input type="password" id="mensagens-senha" name="senha" autocomplete="current-password" maxlength="512" required>
+            <div style="position: relative;">
+                <input type="password" id="mensagens-senha" name="senha" autocomplete="current-password" maxlength="512" style="padding-right: 52px;" required>
+                @include('partials.senha-olho', ['campoSenha' => 'mensagens-senha'])
+            </div>
             <button type="submit" class="btn btn-primary" id="mensagens-senha-enviar">Desbloquear conversas</button>
         </form>
     </section>
@@ -95,17 +98,24 @@ $mensagensDados = [
                 </div>
                 <form id="mensagens-email-form" class="mensagens-email-area" hidden>
                     <p>Para: <strong id="mensagens-email-destino"></strong></p>
+                    <button type="button" class="mensagens-botao-leve" id="mensagens-email-copiar-endereco">Copiar endereço</button>
                     <p id="mensagens-email-confirmacao" class="mensagens-ajuda" hidden>Este e-mail ainda não foi confirmado pelo aluno. Confira o contato antes de enviar.</p>
+                    <label for="mensagens-email-servico">Seu serviço de e-mail</label>
+                    <select id="mensagens-email-servico">
+                        <option value="gmail">Gmail — no navegador</option>
+                        <option value="outlook">Outlook / Hotmail — no navegador</option>
+                        <option value="institucional">Outlook institucional — no navegador</option>
+                    </select>
                     <label for="mensagens-email-assunto">Assunto</label>
-                    <input type="text" id="mensagens-email-assunto" maxlength="150" value="Contato pelo sistema de agendamento" required>
+                    <input type="text" id="mensagens-email-assunto" maxlength="150" value="Contato pelo sistema de agendamento">
+                    <button type="button" class="mensagens-botao-leve" id="mensagens-email-copiar-assunto">Copiar assunto</button>
                     <label for="mensagens-email-texto">Texto do e-mail</label>
                     <textarea id="mensagens-email-texto" rows="8" maxlength="10000" placeholder="Escreva o texto que deseja preparar no seu aplicativo de e-mail."></textarea>
-                    <p class="mensagens-ajuda">O botão abre seu aplicativo de e-mail. Confira e envie por lá. Os anexos desta conversa não são encaminhados automaticamente.</p>
+                    <p class="mensagens-ajuda">Copie o assunto e o texto e abra seu e-mail em outra aba. Cole os campos, confira o destinatário e envie por lá. Se precisar fazer login ou o destinatário não vier preenchido, use Copiar endereço. O rascunho permanece nesta página enquanto ela estiver aberta. Os anexos da conversa não são incluídos no e-mail.</p>
                     <p id="mensagens-email-aviso" class="mensagens-aviso" role="status" hidden></p>
                     <div class="mensagens-email-acoes">
-                        <button type="submit" class="btn btn-primary" id="mensagens-email-abrir">Abrir no aplicativo de e-mail</button>
+                        <button type="submit" class="btn btn-primary" id="mensagens-email-abrir">Abrir e-mail no navegador</button>
                         <button type="button" class="mensagens-botao-leve" id="mensagens-email-copiar">Copiar texto</button>
-                        <button type="button" class="mensagens-botao-leve" id="mensagens-email-sem-texto" hidden>Abrir e-mail sem o texto</button>
                     </div>
                 </form>
             </div>

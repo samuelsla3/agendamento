@@ -22,8 +22,8 @@
     <link rel="stylesheet" href="{{ asset('css/sugestoes.css') }}?v=20261012-1">
     <script src="{{ asset('js/sugestoes.js') }}?v=20261012-2" defer></script>
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
-    <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261012-1">
-    <script src="{{ asset('js/mensagens.js') }}?v=20261012-1" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261012-email-web-2">
+    <script src="{{ asset('js/mensagens.js') }}?v=20261012-email-web-2" defer></script>
 </head>
 <body>
 
