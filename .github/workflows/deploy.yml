@@ -1,0 +1,79 @@
+name: Deploy via SSH
+
+on:
+  push:
+    branches:
+      - main # Mude para master se a sua branch principal tiver esse nome
+
+jobs:
+  web-deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+    - name: 🚚 Get latest code
+      uses: actions/checkout@v4
+
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        extensions: curl, fileinfo, gd, mbstring, pdo_mysql, xml, zip
+        tools: composer:v2
+
+    - name: Cache Composer dependencies
+      uses: actions/cache@v4
+      id: composer-cache
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-8.3-composer-${{ hashFiles('composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-8.3-composer-
+
+    - name: Install PHP dependencies
+      if: steps.composer-cache.outputs.cache-hit != 'true'
+      run: |
+        composer config --global process-timeout 600
+        composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-progress --no-scripts
+
+    - name: Refresh Laravel autoload and package manifest
+      run: |
+        composer dump-autoload --no-dev --optimize --no-scripts
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+
+    - name: Cache Node.js dependencies
+      uses: actions/cache@v4
+      id: npm-cache
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-node-22-npm-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-22-npm-
+
+    - name: Install JavaScript dependencies and build assets
+      run: |
+        if [ "${{ steps.npm-cache.outputs.cache-hit }}" != "true" ]; then
+          npm ci
+        fi
+        npm run build
+
+    - name: 🚀 Deploy via SSH com Chave
+      uses: easingthemes/ssh-deploy@v5.1.0
+      with:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        REMOTE_HOST: ${{ secrets.SSH_HOST }}
+        REMOTE_USER: ${{ secrets.SSH_USER }}
+        REMOTE_PORT: ${{ secrets.SSH_PORT }}
+        ARGS: "-rlgoDzcv --delete"
+        TARGET: ${{ secrets.SSH_TARGET_DIR }}
+        EXCLUDE: "/node_modules/, /tests/, /storage/framework/, .git*, README.md, phpunit.xml, .env.example, .env"
+        SCRIPT_AFTER: |
+          cd ${{ secrets.SSH_TARGET_DIR }}
+          php artisan config:clear
+          php artisan route:clear
+          php artisan view:clear
+          php artisan migrate --no-interaction
