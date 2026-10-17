@@ -10,7 +10,7 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     steps:
-    - name: 🚚 Get latest code
+    - name: Get latest code
       uses: actions/checkout@v4
 
     - name: Set up PHP
@@ -61,7 +61,7 @@ jobs:
         fi
         npm run build
 
-    - name: 🚀 Deploy via SSH com Chave
+    - name: Deploy via SSH com Chave
       uses: easingthemes/ssh-deploy@v5.1.0
       with:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
