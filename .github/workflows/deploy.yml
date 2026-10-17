@@ -70,7 +70,7 @@ jobs:
         REMOTE_PORT: ${{ secrets.SSH_PORT }}
         ARGS: "-rlgoDzcv --delete"
         TARGET: ${{ secrets.SSH_TARGET_DIR }}
-        EXCLUDE: "/node_modules/, /tests/, /storage/framework/, .git*, README.md, phpunit.xml, .env.example, .env"
+        EXCLUDE: "/node_modules/, /tests/, /storage/, /public/storage, .git*, README.md, phpunit.xml, .env.example, .env"
         SCRIPT_AFTER: |
           cd ${{ secrets.SSH_TARGET_DIR }}
           php artisan config:clear
