@@ -77,3 +77,4 @@ jobs:
           php artisan route:clear
           php artisan view:clear
           php artisan migrate --no-interaction
+          php -r 'require "vendor/autoload.php"; (require "bootstrap/app.php")->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo "BANCO_LARAVEL=", \Illuminate\Support\Facades\DB::selectOne("SELECT DATABASE() AS nome")->nome, PHP_EOL;'
