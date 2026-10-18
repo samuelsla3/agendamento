@@ -11,7 +11,7 @@
 <script src="{{ asset('js/protecao-prontuario.js') }}?v=20261013-2" defer></script>
     <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261013-atalhos-1">
     <link rel="stylesheet" href="{{ asset('css/consulta-alunos.css') }}?v=20261013-5">
-    <script src="{{ asset('js/mensagens.js') }}?v=20261013-atalhos-1" defer></script>
+    <script src="{{ asset('js/mensagens.js') }}?v=20261018-rotas-1" defer></script>
     <script src="{{ asset('js/consulta-alunos.js') }}?v=20261013-5" defer></script>
     <style>
         dialog.mensagens-modal { margin: auto; }
@@ -242,7 +242,10 @@
 <script>
 function abrirModalEdicao(botao) {
     const {id, data, hora, anotacoes} = JSON.parse(botao.dataset.sessao);
-    document.getElementById('formEditarSessao').action = '/prontuarios/sessao/' + id;
+    const urlEditarSessao = @json(route('prontuarios.update', ['id' => '__ID__']));
+
+document.getElementById('formEditarSessao').action =
+    urlEditarSessao.replace('__ID__', encodeURIComponent(id));
 
     document.getElementById('sessao_edicao_id').value = id;
     document.getElementById('edit_data_sessao').value = data;

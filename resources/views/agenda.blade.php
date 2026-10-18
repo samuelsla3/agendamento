@@ -31,7 +31,7 @@
     </style>
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
     <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261013-atalhos-1">
-    <script src="{{ asset('js/mensagens.js') }}?v=20261013-atalhos-1" defer></script>
+    <script src="{{ asset('js/mensagens.js') }}?v=20261018-rotas-1" defer></script>
     <link rel="stylesheet" href="{{ asset('css/consulta-alunos.css') }}?v=20261013-5">
     <script src="{{ asset('js/consulta-alunos.js') }}?v=20261013-5" defer></script>
     <script src="{{ asset('js/limites-texto.js') }}?v=20261013-1" defer></script>
@@ -725,7 +725,8 @@
         const alunoId = select ? select.value : null;
 
         if (alunoId) {
-            window.location.href = '/prontuarios/aluno/' + alunoId;
+            window.location.href = LaravelConfig.rotas.prontuarioAluno
+    .replace('__ID__', encodeURIComponent(alunoId));
         } else {
             alert('Por favor, selecione um aluno na lista.');
         }
@@ -760,15 +761,17 @@
             agora: @json(now()->toIso8601String()),
             preferenciasCalendario: @json(\App\Models\ConfiguracaoSistema::preferenciasCalendario()),
             rotas: {
-                eventos: "{{ route('agenda.eventos') }}",
-                acao: "{{ route('agenda.acao') }}",
-                relatorio: "/agenda/relatorio"
+                eventos: @json(route('agenda.eventos')),
+                acao: @json(route('agenda.acao')),
+                relatorio: @json(route('agenda.relatorio')),
+                agenda: @json(route('psicologa.index')),
+                prontuarioAluno: @json(route('prontuarios.aluno', ['alunoId' => '__ID__']))
             }
         };
     </script>
 
     <script src="{{ asset('js/preferencias-calendario.js') }}?v=20261008-1"></script>
-    <script src="{{ asset('js/psicologa.js') }}?v=20261013-atalhos-1"></script>
+    <script src="{{ asset('js/psicologa.js') }}?v=20261018-rotas-1"></script>
     <script src="{{ asset('js/atendimento-emergencial.js') }}?v=20261004-emergencial-1"></script>
 
 @include('partials.mensagens-modal')

@@ -184,7 +184,8 @@ function configurarLinksAluno(valor, nomeAnterior = '') {
     if (botao) { botao.style.display = 'none'; botao.removeAttribute('data-consultar-aluno'); botao.removeAttribute('href'); }
     if (campo) campo.textContent = campo.textContent;
     if (!Number.isSafeInteger(id) || id <= 0) return;
-    const base = document.getElementById('consulta-alunos-modal')?.dataset.agenda || '/agenda';
+    const base = document.getElementById('consulta-alunos-modal')?.dataset.agenda
+    || LaravelConfig.rotas.agenda;
     const destino = new URL(base, window.location.href); destino.searchParams.set('consultar_aluno', id);
     function linkNome(nome) {
         const link = document.createElement('a'); link.textContent = nome;
@@ -279,7 +280,10 @@ if (props.justificativa_cancelamento) {
 
         const alunoId = props.aluno_id || props.user_id;
         if (alunoId && alunoId !== 'null') {
-            $('#prontuarioBtn').attr('href', '/prontuarios/aluno/' + alunoId).css('display', 'inline-block');
+            $('#prontuarioBtn')
+    .attr('href', LaravelConfig.rotas.prontuarioAluno
+        .replace('__ID__', encodeURIComponent(alunoId)))
+    .css('display', 'inline-block');
         }
 
         configurarAcoesAtendimento(disponivel, confirmado, isPast, props.situacao_atendimento);
@@ -618,9 +622,15 @@ function abrirAcoesHoje(botao) {
     $('#agendadoStatus').text('Agendado').css('color', '#d97706');
 
     if (alunoId && alunoId !== '' && alunoId !== 'null' && alunoId !== 'undefined') {
-        $('#prontuarioBtn').attr('href', '/prontuarios/aluno/' + alunoId).css('display', 'inline-block');
+        $('#prontuarioBtn')
+    .attr('href', LaravelConfig.rotas.prontuarioAluno
+        .replace('__ID__', encodeURIComponent(alunoId)))
+    .css('display', 'inline-block');
     } else if (matricula && matricula !== 'N/A' && matricula !== '') {
-        $('#prontuarioBtn').attr('href', '/prontuarios/aluno/' + matricula).css('display', 'inline-block');
+        $('#prontuarioBtn')
+    .attr('href', LaravelConfig.rotas.prontuarioAluno
+        .replace('__ID__', encodeURIComponent(matricula)))
+    .css('display', 'inline-block');
     }
 
     configurarAcoesAtendimento(disponivel === 1, confirmado === 1,

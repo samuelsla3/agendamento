@@ -232,7 +232,7 @@
             const nomeTopo = el('destinatario-nome'); nomeTopo.textContent = conversa.nome;
             if (dados.psicologa && Number.isSafeInteger(selecionada.aluno_id) && selecionada.aluno_id > 0) {
                 const link = document.createElement('a'); link.textContent = conversa.nome;
-                const consulta = new URL(dados.consulta || '/agenda', window.location.href);
+                const consulta = new URL(dados.consulta, window.location.href);
                 consulta.searchParams.set('consultar_aluno', selecionada.aluno_id);
                 link.href = consulta.href; link.dataset.consultarAluno = selecionada.aluno_id;
                 link.className = 'consulta-nome-link'; nomeTopo.replaceChildren(link);
