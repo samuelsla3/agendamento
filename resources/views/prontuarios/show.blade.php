@@ -17,6 +17,23 @@
         dialog.mensagens-modal { margin: auto; }
         .mensagens-modal .btn,.consulta-alunos .btn { display:inline-block; padding:10px 16px; border:0; border-radius:8px; background:#00833d; color:white; font:inherit; cursor:pointer; text-decoration:none; }
         .mensagens-modal .btn-secondary,.consulta-alunos .btn-secondary { background:#52645a; }
+        .prontuario-email {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.prontuario-mensagens {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: 0;
+}
+
+@media (min-width: 768px) {
+    .prontuario-email {
+        grid-column: span 2;
+    }
+}
     </style>
     <script src="{{ asset('js/limites-texto.js') }}?v=20261013-1" defer></script>
     <link rel="stylesheet" href="{{ asset('css/identidade-visual.css') }}?v=20261013-1">
@@ -60,13 +77,26 @@
             <p><strong>Aluno:</strong> <a class="consulta-nome-link" href="{{ route('psicologa.index', ['consultar_aluno' => $aluno->id]) }}" data-consultar-aluno="{{ $aluno->id }}">{{ $aluno->nome ?? $aluno->name }}</a></p>
             <p><strong>Turma:</strong> {{ $aluno->turma_formatada ?? 'Não informada' }}</p>
             <p><strong>Matrícula:</strong> {{ $aluno->matricula ?? 'Não informada' }}</p>
-            <p><strong>E-mail:</strong> {{ $aluno->email ?: 'Não informado' }}</p>
-            <p><button type="button" class="mensagens-acesso" data-mensagens-aluno="{{ $aluno->id }}" aria-haspopup="dialog" aria-controls="mensagens-modal" title="Abrir mensagens/e-mail deste aluno" @disabled($aluno->cadastro_provisorio)>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false">
-                    <path d="M4 4h16v12H8l-4 4V4Z"></path><path d="M8 8h8M8 12h5"></path>
-                </svg>
-                <span>Mensagens</span>
-            </button></p>
+            <p class="prontuario-email">
+    <strong>E-mail:</strong> {{ $aluno->email ?: 'Não informado' }}
+</p>
+
+<p class="prontuario-mensagens">
+    <button type="button" class="mensagens-acesso"
+        data-mensagens-aluno="{{ $aluno->id }}"
+        aria-haspopup="dialog"
+        aria-controls="mensagens-modal"
+        title="Abrir mensagens/e-mail deste aluno"
+        @disabled($aluno->cadastro_provisorio)>
+        <svg width="20" height="20" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="1.8"
+            aria-hidden="true" focusable="false">
+            <path d="M4 4h16v12H8l-4 4V4Z"></path>
+            <path d="M8 8h8M8 12h5"></path>
+        </svg>
+        <span>Mensagens</span>
+    </button>
+</p>
         </div>
     </div>
 
