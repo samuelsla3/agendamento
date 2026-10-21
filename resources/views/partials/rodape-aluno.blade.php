@@ -12,11 +12,6 @@
             </div>
 
             @auth
-                <button type="button" class="aluno-rodape-acao"
-                    data-abrir-sugestao aria-haspopup="dialog"
-                    aria-controls="sugestoes-modal" aria-expanded="false">
-                    Sugerir melhorias
-                </button>
             @else
             @endauth
         </div>

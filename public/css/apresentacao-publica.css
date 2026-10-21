@@ -104,3 +104,52 @@
         width: auto;
     }
 }
+
+/* Aluno logado: identificação no topo e ações na mesma linha inferior. */
+@media (max-width: 767px) {
+    .ui-sistema.ui-aluno > .header.aluno-cabecalho-logado {
+        grid-template-rows: auto auto auto;
+        row-gap: 0;
+        align-items: center;
+    }
+
+    .ui-sistema.ui-aluno > .header.aluno-cabecalho-logado > h1 {
+        grid-column: 1;
+        grid-row: 1 / 3;
+        align-self: start;
+    }
+
+    .ui-sistema.ui-aluno > .header.aluno-cabecalho-logado > .user-info {
+        display: contents;
+    }
+
+    .ui-sistema.ui-aluno > .header.aluno-cabecalho-logado > .user-info > span {
+        grid-column: 2;
+        grid-row: 1;
+        text-align: right;
+    }
+
+    .ui-sistema.ui-aluno > .header.aluno-cabecalho-logado .user-info > .contato-email-link {
+        grid-column: 2;
+        grid-row: 2;
+        min-height: 28px;
+        padding: 0 4px;
+        line-height: 1.3;
+    }
+
+    .ui-sistema.ui-aluno > .header.aluno-cabecalho-logado .user-info > .mensagens-acesso {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        justify-self: start;
+        max-width: calc(100% - 88px);
+        margin-top: 10px;
+        text-align: left;
+    }
+
+    .ui-sistema.ui-aluno > .header.aluno-cabecalho-logado .user-info > form {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        justify-self: end;
+        margin-top: 10px;
+    }
+}

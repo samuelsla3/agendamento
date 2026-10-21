@@ -32,13 +32,13 @@
         .aluno-sair svg { flex-shrink:0; }
     </style>
     <link rel="stylesheet" href="{{ asset('css/desenvolvedores.css') }}?v=20261013-1">
-    <link rel="stylesheet" href="{{ asset('css/apresentacao-publica.css') }}?v=20261013-1">
+    <link rel="stylesheet" href="{{ asset('css/apresentacao-publica.css') }}?v=20261021-cabecalho-mobile-1">
     <link rel="stylesheet" href="{{ asset('css/rodape-aluno.css') }}?v=20261021-1">
     <script src="{{ asset('js/apresentacao-publica.js') }}?v=20261013-1" defer></script>
 </head>
 <body class="ui-sistema ui-aluno">
 
-    <header class="header">
+    <header class="header{{ auth()->check() ? ' aluno-cabecalho-logado' : '' }}">
         <h1>Agendamento Psicológico</h1>
         <div class="user-info">
             @if(auth()->check())
