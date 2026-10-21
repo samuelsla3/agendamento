@@ -1,8 +1,8 @@
 @php
     // Para adicionar fotos, substitua null por 'images/desenvolvedores/nome.jpg'.
     $equipeDesenvolvimento = [
-        ['nome' => 'Nome 1', 'cargo' => 'Discente IFBA', 'descricao' => 'Discente ingressado no ano de XXXX no Curso de Informática.', 'foto' => null],
-        ['nome' => 'Nome 2', 'cargo' => 'Discente IFBA', 'descricao' => 'Discente ingressado no ano de XXXX no Curso de Informática.', 'foto' => null],
+        ['nome' => 'Caio Valle Araújo', 'cargo' => 'Discente IFBA', 'descricao' => 'Discente ingressado no ano de 2021 no Curso de Informática.', 'foto' => null],
+        ['nome' => 'Eduarda Chaves', 'cargo' => 'Discente IFBA', 'descricao' => 'Discente ingressado no ano de 2021 no Curso de Informática.', 'foto' => null],
         ['nome' => 'Samuel Santos de Lima Alves', 'cargo' => 'Discente IFBA', 'descricao' => 'Discente ingressado no ano de 2023 no Curso de Informática.', 'foto' => null],
         ['nome' => 'Ítalo Oliveira Silva', 'cargo' => 'Discente IFBA', 'descricao' => 'Discente ingressado no ano de 2023 no Curso de Informática.', 'foto' => null],
         ['nome' => 'Monck Charles Albuquerque', 'cargo' => 'Docente / Orientador', 'descricao' => 'Docente do Curso de Informática no IFBA - Campus Seabra e orientador do projeto.', 'foto' => 'images/desenvolvedores/charles.png'],
