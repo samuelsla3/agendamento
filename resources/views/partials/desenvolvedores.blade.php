@@ -12,18 +12,102 @@
 <section class="desenvolvedores" aria-labelledby="desenvolvedores-titulo">
     <div class="desenvolvedores-conteudo">
         <h2 id="desenvolvedores-titulo">Desenvolvedores</h2>
-        <div class="desenvolvedores-grade">
-            @foreach($equipeDesenvolvimento as $integrante)
-                <article class="desenvolvedores-cartao">
-                    <img class="desenvolvedores-foto"
-                        src="{{ asset($integrante['foto'] ?? 'images/desenvolvedor-placeholder.svg') }}"
-                        alt="{{ $integrante['foto'] ? 'Foto de ' . $integrante['nome'] : '' }}"
-                        width="112" height="112" loading="lazy">
-                    <h3>{{ $integrante['nome'] }}</h3>
-                    <p class="desenvolvedores-cargo">{{ $integrante['cargo'] }}</p>
-                    <p class="desenvolvedores-descricao">{{ $integrante['descricao'] }}</p>
-                </article>
+
+        <div class="desenvolvedores-versoes">
+            @foreach([
+                ['titulo' => '1ª Versão', 'integrantes' => array_slice($equipeDesenvolvimento, 0, 2)],
+                ['titulo' => 'Versão atual', 'integrantes' => array_slice($equipeDesenvolvimento, 2)],
+            ] as $grupo)
+                <div class="desenvolvedores-grupo">
+                    <h3 class="desenvolvedores-versao-titulo">
+                        {{ $grupo['titulo'] }}
+                    </h3>
+
+                    <div class="desenvolvedores-grade">
+                        @foreach($grupo['integrantes'] as $integrante)
+                            <article class="desenvolvedores-cartao">
+                                <img class="desenvolvedores-foto"
+                                    src="{{ asset($integrante['foto'] ?? 'images/desenvolvedor-placeholder.svg') }}"
+                                    alt="{{ $integrante['foto'] ? 'Foto de ' . $integrante['nome'] : '' }}"
+                                    width="112" height="112" loading="lazy">
+
+                                <h3>{{ $integrante['nome'] }}</h3>
+
+                                <p class="desenvolvedores-cargo">
+                                    {{ $integrante['cargo'] }}
+                                </p>
+
+                                <p class="desenvolvedores-descricao">
+                                    {{ $integrante['descricao'] }}
+                                </p>
+                            </article>
+                        @endforeach
+                    </div>
+                </div>
             @endforeach
         </div>
     </div>
 </section>
+
+.desenvolvedores-versoes {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: 32px;
+    width: 100%;
+    margin-inline: auto;
+    align-items: start;
+}
+
+.desenvolvedores-grupo {
+    min-width: 0;
+}
+
+.desenvolvedores .desenvolvedores-versao-titulo {
+    margin: 0 0 22px;
+    text-align: center;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.desenvolvedores-grupo > .desenvolvedores-grade {
+    display: grid;
+    gap: 16px;
+    width: 100%;
+    margin: 0;
+}
+
+.desenvolvedores-grupo:first-child > .desenvolvedores-grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.desenvolvedores-grupo:last-child > .desenvolvedores-grade {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.desenvolvedores-grupo .desenvolvedores-cartao {
+    min-width: 0;
+}
+
+/* Em telas menores, os grupos ficam um abaixo do outro. */
+@media (max-width: 900px) {
+    .desenvolvedores-versoes {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 32px;
+    }
+}
+
+@media (max-width: 600px) {
+    .desenvolvedores-grupo:last-child > .desenvolvedores-grade {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .desenvolvedores-grupo:last-child
+    > .desenvolvedores-grade
+    > .desenvolvedores-cartao:last-child {
+        grid-column: 1 / -1;
+        width: calc((100% - 16px) / 2);
+        justify-self: center;
+    }
+}
