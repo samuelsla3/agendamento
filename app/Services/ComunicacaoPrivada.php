@@ -109,6 +109,13 @@ class ComunicacaoPrivada
             'email_confirmado' => $psicologa ? $aluno->emailConfirmado() : true];
     }
 
+    public function autorizarConversaEmail(Request $request, int $id): array
+    {
+        $this->instalado();
+        $usuario = $this->usuario($request, true);
+        return ['usuario' => $usuario, 'conversa' => $this->conversa($usuario, $id)];
+    }
+
     public function historico(Request $request, int $id): array
     {
         $usuario = $this->usuario($request, true);

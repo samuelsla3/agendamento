@@ -23,7 +23,7 @@
     <script src="{{ asset('js/sugestoes.js') }}?v=20261021-rodape-1" defer></script>
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
     <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261013-imagens-1">
-    <script src="{{ asset('js/mensagens.js') }}?v=20261018-rotas-1" defer></script>
+    <script src="{{ asset('js/mensagens.js') }}?v=20261021-email-direto-1" defer></script>
     <script src="{{ asset('js/limites-texto.js') }}?v=20261013-1" defer></script>
     <link rel="stylesheet" href="{{ asset('css/identidade-visual.css') }}?v=20261013-1">
     <style>

@@ -8,6 +8,9 @@ $mensagensDados = [
     'abrir' => route('mensagens.abrir'), 'contatos' => route('mensagens.contatos'), 'alunos' => route('mensagens.alunos'),
     'historico' => route('mensagens.historico', ['conversa' => '__ID__']),
     'enviar' => route('mensagens.enviar', ['conversa' => '__ID__']),
+    'emailEnviar' => route('mensagens.email.enviar', ['conversa' => '__ID__']),
+    'emailStatus' => route('mensagens.email.status', ['conversa' => '__ID__', 'chave' => '__CHAVE__']),
+    'emailAnexosMaximo' => config('comunicacao.email_anexos_maximo_bytes', 15728640),
     'lidas' => route('mensagens.lidas', ['conversa' => '__ID__']),
     'renovar' => route('prontuarios.acesso.renovar'),
     'intervalo' => config('comunicacao.consultas_intervalo_segundos', 30),
@@ -98,37 +101,20 @@ $mensagensDados = [
                 </div>
                 <form id="mensagens-email-form" class="mensagens-email-area" hidden>
                     <p>Para: <strong id="mensagens-email-destino"></strong></p>
-                    <p id="mensagens-email-confirmacao" class="mensagens-ajuda" hidden>Este e-mail ainda não foi confirmado pelo aluno. Confira o contato antes de enviar.</p>
-                    <label for="mensagens-email-servico">Seu serviço de e-mail</label>
-                    <select id="mensagens-email-servico">
-                        <option value="gmail">Gmail</option>
-                        <option value="outlook">Outlook / Hotmail</option>
-                        <option value="institucional">Outlook institucional</option>
-                    </select>
-                    <label for="mensagens-email-onde">Onde abrir</label>
-                    <select id="mensagens-email-onde">
-                        <option value="automatico">(Padrão) Aplicativo no celular e navegador no computador</option>
-                        <option value="app">Aplicativo do dispositivo</option>
-                        <option value="web">Navegador</option>
-                    </select>
+                    <p id="mensagens-email-confirmacao" class="mensagens-ajuda" hidden>O aluno precisa confirmar o e-mail de contato no sistema antes do envio.</p>
                     <label for="mensagens-email-assunto">Assunto</label>
-                    <input type="text" id="mensagens-email-assunto" maxlength="150" value="Contato - Setor de Psicologia IFBA">
+                    <input type="text" id="mensagens-email-assunto" maxlength="150" required value="Contato - Setor de Psicologia IFBA">
                     <label for="mensagens-email-texto">Texto do e-mail</label>
                     <textarea id="mensagens-email-texto" rows="8" maxlength="10000" placeholder="Escreva o texto do e-mail."></textarea>
-                    <p class="mensagens-ajuda">O botão prepara destinatário, assunto e texto. Confira a conta remetente e envie pelo seu e-mail. Para documentos e informações sensíveis, prefira as mensagens internas. Os anexos da conversa não são incluídos no e-mail.</p>
+                    <div id="mensagens-email-selecionados" class="mensagens-arquivos-selecionados" aria-live="polite"></div>
+                    <input type="file" id="mensagens-email-arquivos" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple hidden>
+                    <p class="mensagens-ajuda" id="mensagens-email-ajuda">O e-mail será enviado pelo sistema. PDF, JPG, PNG ou WEBP: até 3 arquivos, 10 MB por arquivo e 15 MB no total. Selecione aqui os anexos deste e-mail.</p>
                     <p id="mensagens-email-aviso" class="mensagens-aviso" role="status" hidden></p>
                     <div class="mensagens-email-acoes">
-                        <button type="submit" class="btn btn-primary" id="mensagens-email-abrir">Abrir e-mail preparado</button>
+                        <button type="button" class="mensagens-botao-leve" id="mensagens-email-anexar">Anexar arquivos</button>
+                        <button type="submit" class="btn btn-primary" id="mensagens-email-enviar">Enviar e-mail</button>
+                        <button type="button" class="mensagens-botao-leve" id="mensagens-email-novo" hidden>Preparar nova tentativa</button>
                     </div>
-                    <details id="mensagens-email-alternativas" class="mensagens-email-alternativas">
-                        <summary>Não abriu ou os campos não foram preenchidos?</summary>
-                        <p class="mensagens-ajuda">Tente outra opção em Onde abrir. Se necessário, copie os campos e cole no e-mail. O rascunho fica guardado enquanto esta página permanecer aberta.</p>
-                        <div class="mensagens-email-acoes">
-                            <button type="button" class="mensagens-botao-leve" id="mensagens-email-copiar-endereco">Copiar endereço</button>
-                            <button type="button" class="mensagens-botao-leve" id="mensagens-email-copiar-assunto">Copiar assunto</button>
-                            <button type="button" class="mensagens-botao-leve" id="mensagens-email-copiar">Copiar texto</button>
-                        </div>
-                    </details>
                 </form>
             </div>
         </section>

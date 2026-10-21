@@ -8,6 +8,9 @@ return [
     'armazenamento_maximo_bytes' => 2 * 1024 * 1024 * 1024,
     'mensagens_por_hora_aluno' => 40,
     'mensagens_por_hora_psicologa' => 200,
+    'email_anexos_maximo_bytes' => 15 * 1024 * 1024,
+    'emails_por_hora_aluno' => 10,
+    'emails_por_hora_psicologa' => 60,
     'consultas_intervalo_segundos' => 30,
     // Opcional: caminho privado para clamscan/clamdscan. Nunca usa argumentos do aluno.
     'antivirus_binario' => env('COMUNICACAO_ANTIVIRUS_BIN', ''),

@@ -15,37 +15,7 @@
         }
         return '';
     }
-    function destinoEmail(servico, onde = 'automatico', agente = '', plataforma = '', toques = 0) {
-        if (onde === 'web') return 'web';
-        const android = /Android/i.test(agente);
-        const celular = android || /iPhone|iPad|iPod/i.test(agente) || (plataforma === 'MacIntel' && toques > 1);
-        if (onde === 'app' || (onde === 'automatico' && celular)) {
-            return android && /Chrome\//i.test(agente) && servico === 'gmail' ? 'gmail-android' : 'mailto';
-        }
-        return 'web';
-    }
-    function montarEmail(email, servico = 'gmail', assunto = '', texto = '', destino = 'web') {
-        const bases = {
-            gmail: 'https://mail.google.com/mail/?view=cm&fs=1&to=',
-            outlook: 'https://outlook.live.com/mail/0/deeplink/compose?to=',
-            institucional: 'https://outlook.office.com/mail/deeplink/compose?to=',
-        };
-        if (!Object.prototype.hasOwnProperty.call(bases, servico)) return null;
-        const contato = encodeURIComponent(email);
-        const campos = (assunto ? '&subject=' + encodeURIComponent(assunto) : '')
-            + (texto ? '&body=' + encodeURIComponent(texto) : '');
-        const dadosApp = contato + (campos ? '?' + campos.slice(1) : '');
-        if (destino === 'gmail-android' && servico === 'gmail') {
-            return 'intent:' + dadosApp + '#Intent;scheme=mailto;action=android.intent.action.SENDTO;package=com.google.android.gm;end';
-        }
-        if (destino === 'mailto') return 'mailto:' + dadosApp;
-        if (destino !== 'web') return null;
-        return bases[servico] + contato
-            + (assunto ? '&' + (servico === 'gmail' ? 'su' : 'subject') + '=' + encodeURIComponent(assunto) : '')
-            + (texto ? '&body=' + encodeURIComponent(texto) : '');
-    }
-    // Helpers usados pela interface; não guardam conteúdo de conversas.
-    window.MensagensUtil = {validarArquivos, montarEmail, destinoEmail};
+    window.MensagensUtil = {validarArquivos};
 
     document.addEventListener('DOMContentLoaded', () => {
         const modal = document.getElementById('mensagens-modal'), origemDados = document.getElementById('mensagens-dados');
@@ -73,7 +43,7 @@
         }
         function temRascunho() {
             salvarRascunho();
-            return enviando || Array.from(rascunhos.values()).some(r => r.texto.trim() || r.arquivos.length || r.emailTexto.trim());
+            return enviando || Array.from(rascunhos.values()).some(r => r.texto.trim() || r.arquivos.length || r.emailTexto.trim() || r.emailArquivos.length);
         }
         function relogio() { return baseServidor + (performance.now() - marcoServidor) / 1000; }
         function prazo(resposta) {
@@ -138,6 +108,7 @@
             fecharVisualizador();
             itens.clear(); el('itens').replaceChildren(); el('texto').value = ''; el('selecionados').replaceChildren();
             el('email-texto').value = ''; el('email-assunto').value = ''; el('email-destino').textContent = '';
+            el('email-selecionados').replaceChildren(); el('email-arquivos').value = ''; aviso(el('email-aviso'), '');
             el('destinatario-nome').textContent = ''; el('destinatario-info').textContent = '';
             el('conversa-area').hidden = true; modal.classList.remove('com-conversa');
             if (dados.psicologa) el('lista-contatos').replaceChildren();
@@ -246,6 +217,7 @@
             const r = rascunho(); if (!r) return;
             el('texto').value = r.texto; el('texto').readOnly = r.incerto;
             el('email-assunto').value = r.assunto; el('email-texto').value = r.emailTexto;
+            restaurarEmail();
             el('texto-contador').textContent = r.texto.length.toLocaleString('pt-BR') + ' / 10.000';
             el('enviar').textContent = r.incerto ? 'Tentar novamente' : 'Enviar';
             el('anexar').disabled = r.incerto || enviando;
@@ -339,7 +311,8 @@
                 if (numero !== selecaoNumero || g !== geracao) return;
                 destino(resposta.conversa); itens.clear(); marcada = 0; lendo = false;
                 if (!rascunhos.has(selecionada.id)) rascunhos.set(selecionada.id, {texto: '', arquivos: [], chave: resposta.nova_chave,
-                    incerto: false, assunto: 'Contato - Setor de Psicologia IFBA', emailTexto: ''});
+                    incerto: false, assunto: 'Contato - Setor de Psicologia IFBA', emailTexto: '',
+                    emailArquivos: [], emailChave: resposta.nova_chave, emailProximaChave: null, emailEstado: 'rascunho', emailAviso: ''});
                 el('vazio').hidden = true; el('conversa-area').hidden = false; modal.classList.add('com-conversa');
                 restaurarRascunho(); trocarAba('interno'); aviso(el('aviso'), '');
                 await carregarHistorico(false, true);
@@ -472,58 +445,102 @@
         el('historico').addEventListener('scroll', () => marcarLidas(), {passive: true});
         el('aba-interno').addEventListener('click', () => trocarAba('interno'));
         el('aba-email').addEventListener('click', () => trocarAba('email'));
-        function abrirEmail() {
-            if (!selecionada?.email || bloqueado) return;
-            salvarRascunho(); const r = rascunho(), servico = el('email-servico').value;
-            const destino = destinoEmail(servico, el('email-onde').value,
-                navigator.userAgent || '', navigator.platform || '', navigator.maxTouchPoints || 0);
-            let url = montarEmail(selecionada.email, servico, r.assunto.trim(), r.emailTexto, destino);
-            if (!url) { aviso(el('email-aviso'), 'Escolha seu serviço de e-mail.', true); return; }
-            const longo = url.length > (destino === 'web' ? 1800 : 100000);
-            if (longo) {
-                // Nunca corta um texto para caber no atalho; copia manual permanece disponível.
-                url = montarEmail(selecionada.email, servico, '', '', destino);
-                el('email-alternativas').open = true;
+        function restaurarEmail() {
+            const r = rascunho(); if (!r) return;
+            const travado = enviando || r.emailEstado !== 'rascunho';
+            el('email-assunto').readOnly = travado;
+            el('email-texto').readOnly = travado;
+            el('email-anexar').disabled = travado;
+            el('email-enviar').disabled = enviando;
+            el('email-enviar').textContent = enviando ? 'Aguarde…' : (r.emailEstado === 'rascunho' ? 'Enviar e-mail' : 'Consultar envio');
+            el('email-novo').hidden = !['revisar', 'falhou', 'nao_localizado'].includes(r.emailEstado);
+            el('email-novo').disabled = enviando;
+            el('email-selecionados').replaceChildren();
+            r.emailArquivos.forEach((arquivo, i) => {
+                const chip = document.createElement('div'); chip.className = 'mensagens-arquivo-chip';
+                const nome = document.createElement('span'); nome.textContent = `${arquivo.name} · ${(arquivo.size / 1048576).toFixed(1)} MB`;
+                const remover = document.createElement('button'); remover.type = 'button'; remover.textContent = '×';
+                remover.setAttribute('aria-label', 'Remover ' + arquivo.name); remover.disabled = travado;
+                remover.addEventListener('click', () => {
+                    if (!enviando && r.emailEstado === 'rascunho') { r.emailArquivos.splice(i, 1); restaurarEmail(); }
+                });
+                chip.append(nome, remover); el('email-selecionados').append(chip);
+            });
+            aviso(el('email-aviso'), r.emailAviso, r.emailEstado !== 'rascunho' && r.emailEstado !== 'enviado');
+        }
+        el('email-anexar').addEventListener('click', () => {
+            if (!enviando && rascunho()?.emailEstado === 'rascunho') el('email-arquivos').click();
+        });
+        el('email-arquivos').addEventListener('change', () => {
+            const r = rascunho(); if (!r || enviando || r.emailEstado !== 'rascunho') return;
+            const arquivos = [...r.emailArquivos, ...Array.from(el('email-arquivos').files || [])];
+            el('email-arquivos').value = '';
+            let erro = validarArquivos(arquivos, dados.arquivosMaximo, dados.arquivoMaximo);
+            if (!erro && arquivos.reduce((soma, arquivo) => soma + arquivo.size, 0) > dados.emailAnexosMaximo) {
+                erro = 'Os anexos juntos podem ter até 15 MB por e-mail.';
             }
-            const link = document.createElement('a'); link.href = url;
-            link.target = destino === 'web' ? '_blank' : '_self';
-            link.rel = 'noopener noreferrer'; link.referrerPolicy = 'no-referrer';
-            modal.append(link); link.click(); link.remove();
-            const avisoDestino = destino === 'web'
-                ? 'Solicitamos abrir seu e-mail no navegador com os campos preenchidos. Se precisar fazer login, confira novamente os campos.'
-                : 'Solicitamos abrir o aplicativo com os campos preenchidos. Se não abrir, escolha Navegador ou outro aplicativo do dispositivo.';
-            aviso(el('email-aviso'), (longo
-                ? 'O texto é longo para esse atalho. Solicitamos abrir somente o destinatário; copie o assunto e o texto completos abaixo.'
-                : avisoDestino) + ' Confira a conta remetente e o destinatário antes de enviar. Seu rascunho continua aqui.');
-        }
-        el('email-form').addEventListener('submit', event => { event.preventDefault(); abrirEmail(); });
-        async function copiarEmail(campo, descricao) {
-            if (!selecionada?.email || bloqueado) return;
-            const texto = campo ? campo.value : selecionada.email;
-            let temporario = null;
+            if (erro) { r.emailAviso = erro; aviso(el('email-aviso'), erro, true); return; }
+            r.emailArquivos = arquivos; r.emailAviso = ''; restaurarEmail();
+        });
+        el('email-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!selecionada || enviando || bloqueado) return;
+            salvarRascunho(); const r = rascunho(), id = selecionada.id, g = geracao;
+            const consulta = r.emailEstado !== 'rascunho';
+            if (!consulta && (!r.assunto.trim() || (!r.emailTexto.trim() && !r.emailArquivos.length))) {
+                aviso(el('email-aviso'), 'Informe o assunto e escreva uma mensagem ou selecione um anexo.', true); return;
+            }
+            if (!consulta) {
+                const erroArquivo = validarArquivos(r.emailArquivos, dados.arquivosMaximo, dados.arquivoMaximo);
+                if (erroArquivo || r.emailArquivos.reduce((soma, arquivo) => soma + arquivo.size, 0) > dados.emailAnexosMaximo) {
+                    aviso(el('email-aviso'), erroArquivo || 'Os anexos juntos podem ter até 15 MB por e-mail.', true); return;
+                }
+            }
+            enviando = true; el('fechar').disabled = true;
+            r.emailAviso = consulta ? 'Consultando o resultado…' : 'Enviando e-mail…'; restaurarEmail();
             try {
-                if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(texto);
-                else {
-                    let selecionavel = campo;
-                    if (!selecionavel) {
-                        temporario = document.createElement('textarea'); temporario.value = texto;
-                        temporario.setAttribute('aria-label', 'Endereço para copiar'); modal.append(temporario);
-                        selecionavel = temporario;
-                    }
-                    selecionavel.focus(); selecionavel.select();
-                    if (!document.execCommand('copy')) throw new Error('copiar');
+                let resposta;
+                if (consulta) {
+                    const url = dados.emailStatus.replace('__ID__', encodeURIComponent(id)).replace('__CHAVE__', encodeURIComponent(r.emailChave));
+                    resposta = await api(url);
+                } else {
+                    const corpo = new FormData(); corpo.append('assunto', r.assunto.trim()); corpo.append('texto', r.emailTexto);
+                    corpo.append('chave_envio', r.emailChave);
+                    r.emailArquivos.forEach(arquivo => corpo.append('arquivos[]', arquivo, arquivo.name));
+                    resposta = await api(dados.emailEnviar.replace('__ID__', encodeURIComponent(id)), 'POST', corpo, 120000);
                 }
-                if (!bloqueado) aviso(el('email-aviso'), descricao + ' copiado. Cole no seu e-mail.');
-            } catch {
-                if (!bloqueado) {
-                    aviso(el('email-aviso'), 'Não foi possível copiar automaticamente. Selecione ' + descricao.toLowerCase() + ' e copie manualmente.');
-                    if (campo) { campo.focus(); campo.select(); }
+                if (!['enviado', 'em_envio', 'revisar', 'falhou', 'nao_localizado'].includes(resposta.estado) || !resposta.nova_chave) {
+                    throw new Error('resposta_invalida');
                 }
-            } finally { temporario?.remove(); }
-        }
-        el('email-copiar').addEventListener('click', () => copiarEmail(el('email-texto'), 'Texto'));
-        el('email-copiar-assunto').addEventListener('click', () => copiarEmail(el('email-assunto'), 'Assunto'));
-        el('email-copiar-endereco').addEventListener('click', () => copiarEmail(null, 'Endereço'));
+                r.emailAviso = resposta.message;
+                if (resposta.estado === 'enviado') {
+                    r.emailTexto = ''; r.emailArquivos = []; r.emailChave = resposta.nova_chave;
+                    r.emailEstado = 'rascunho'; r.emailProximaChave = null;
+                } else {
+                    r.emailEstado = resposta.estado; r.emailProximaChave = resposta.nova_chave;
+                }
+            } catch (erro) {
+                if (!consulta && [413, 422, 429, 503].includes(erro.status)) {
+                    r.emailEstado = 'rascunho'; r.emailAviso = erro.message;
+                } else {
+                    r.emailEstado = 'aguardando';
+                    r.emailAviso = 'Não foi possível confirmar o resultado. O texto e os anexos foram mantidos. Clique em Consultar envio antes de tentar enviar novamente.';
+                }
+                if ([401, 403, 419, 423].includes(erro.status)) tratarErro(erro);
+            } finally {
+                enviando = false; el('fechar').disabled = false;
+                if (!bloqueado && g === geracao && selecionada?.id === id) {
+                    el('email-texto').value = r.emailTexto; restaurarEmail();
+                }
+            }
+        });
+        el('email-novo').addEventListener('click', () => {
+            const r = rascunho();
+            if (!r || enviando || bloqueado || !r.emailProximaChave) return;
+            if (r.emailEstado !== 'falhou' && !window.confirm('Confira primeiro se o destinatário recebeu o e-mail. Uma nova tentativa pode enviar uma segunda cópia. Deseja preparar outra tentativa?')) return;
+            r.emailChave = r.emailProximaChave; r.emailProximaChave = null;
+            r.emailEstado = 'rascunho'; r.emailAviso = 'Confira o texto e os anexos antes de enviar novamente.'; restaurarEmail();
+        });
         async function acompanhar() {
             if (document.visibilityState !== 'visible') return;
             await renovarSePreciso();
