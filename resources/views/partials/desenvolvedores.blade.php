@@ -49,65 +49,70 @@
     </div>
 </section>
 
-.desenvolvedores-versoes {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-    gap: 32px;
-    width: 100%;
-    margin-inline: auto;
-    align-items: start;
-}
-
-.desenvolvedores-grupo {
-    min-width: 0;
-}
-
-.desenvolvedores .desenvolvedores-versao-titulo {
-    margin: 0 0 22px;
-    text-align: center;
-    font-family: inherit;
-    font-size: 1rem;
-    font-weight: 600;
-    line-height: 1.4;
-}
-
-.desenvolvedores-grupo > .desenvolvedores-grade {
-    display: grid;
-    gap: 16px;
-    width: 100%;
-    margin: 0;
-}
-
-.desenvolvedores-grupo:first-child > .desenvolvedores-grade {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.desenvolvedores-grupo:last-child > .desenvolvedores-grade {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.desenvolvedores-grupo .desenvolvedores-cartao {
-    min-width: 0;
-}
-
-/* Em telas menores, os grupos ficam um abaixo do outro. */
-@media (max-width: 900px) {
+<style>
     .desenvolvedores-versoes {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 32px;
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+        column-gap: 48px;
+        align-items: start;
+        width: 100%;
+        margin-inline: auto;
     }
-}
 
-@media (max-width: 600px) {
-    .desenvolvedores-grupo:last-child > .desenvolvedores-grade {
+    .desenvolvedores-grupo {
+        min-width: 0;
+    }
+
+    .desenvolvedores .desenvolvedores-versao-titulo {
+        margin: 0 0 24px;
+        text-align: center;
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+
+    .desenvolvedores-grupo > .desenvolvedores-grade {
+        display: grid;
+        gap: 16px;
+        width: 100%;
+        max-width: none;
+        margin: 0;
+    }
+
+    .desenvolvedores-grupo:first-child > .desenvolvedores-grade {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .desenvolvedores-grupo:last-child
-    > .desenvolvedores-grade
-    > .desenvolvedores-cartao:last-child {
-        grid-column: 1 / -1;
-        width: calc((100% - 16px) / 2);
-        justify-self: center;
+    .desenvolvedores-grupo:last-child > .desenvolvedores-grade {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
-}
+
+    .desenvolvedores-grupo .desenvolvedores-cartao {
+        width: auto;
+        min-width: 0;
+        max-width: none;
+        margin: 0;
+        text-align: center;
+    }
+
+    /* Adaptação apenas para celular. */
+    @media (max-width: 600px) {
+        .desenvolvedores-versoes {
+            grid-template-columns: 1fr;
+            gap: 32px;
+        }
+
+        .desenvolvedores-grupo:last-child > .desenvolvedores-grade {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .desenvolvedores-grupo:last-child
+        > .desenvolvedores-grade
+        > .desenvolvedores-cartao:last-child {
+            grid-column: 1 / -1;
+            width: calc((100% - 16px) / 2);
+            justify-self: center;
+        }
+    }
+</style>
