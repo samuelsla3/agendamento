@@ -3,8 +3,8 @@
     $equipeDesenvolvimento = [
         ['nome' => 'Caio Valle Araújo', 'cargo' => 'Discente IFBA', 'descricao' => 'Discente ingressado no ano de 2021 no Curso de Informática.', 'foto' => null],
         ['nome' => 'Eduarda Chaves', 'cargo' => 'Discente IFBA', 'descricao' => 'Discente ingressado no ano de 2021 no Curso de Informática.', 'foto' => null],
-        ['nome' => 'Samuel Santos de Lima Alves', 'cargo' => 'Discente IFBA', 'descricao' => 'Discente ingressado no ano de 2023 no Curso de Informática.', 'foto' => null],
-        ['nome' => 'Ítalo Oliveira Silva', 'cargo' => 'Discente IFBA', 'descricao' => 'Discente ingressado no ano de 2023 no Curso de Informática.', 'foto' => null],
+        ['nome' => 'Samuel Santos de Lima Alves', 'cargo' => 'Discente IFBA', 'descricao' => 'Discente ingressado no ano de 2023 no Curso de Informática.', 'foto' => 'images/desenvolvedores/samuel.jpg'],
+        ['nome' => 'Ítalo Oliveira Silva', 'cargo' => 'Discente IFBA', 'descricao' => 'Discente ingressado no ano de 2023 no Curso de Informática.', 'foto' => 'images/desenvolvedores/italo.jpg'],
         ['nome' => 'Monck Charles Albuquerque', 'cargo' => 'Docente / Orientador', 'descricao' => 'Docente do Curso de Informática no IFBA - Campus Seabra e orientador do projeto.', 'foto' => 'images/desenvolvedores/charles.png'],
     ];
 @endphp
@@ -52,7 +52,7 @@
 <style>
     .desenvolvedores-versoes {
         display: grid;
-        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+        grid-template-columns: minmax(0, calc(40% - 22.4px)) minmax(0, 1fr);
         column-gap: 48px;
         align-items: start;
         width: 100%;
@@ -115,4 +115,22 @@
             justify-self: center;
         }
     }
+
+    .desenvolvedores-versoes {
+    align-items: stretch;
+}
+
+.desenvolvedores-grupo {
+    display: flex;
+    flex-direction: column;
+}
+
+.desenvolvedores-grupo > .desenvolvedores-grade {
+    flex: 1;
+    align-items: stretch;
+}
+
+.desenvolvedores-grupo .desenvolvedores-cartao {
+    align-self: stretch;
+}
 </style>

@@ -27,6 +27,8 @@
         if (!modal) return;
         const el = id => document.getElementById(id);
         const abrir = el('abrir-sugestao'), form = el('sugestoes-form'), campo = el('sugestoes-texto');
+        const botoesAbrir = [abrir, ...document.querySelectorAll('[data-abrir-sugestao]')];
+        let origemAbertura = abrir;
         const enviar = el('enviar-sugestao'), chave = el('sugestoes-chave'), retorno = el('sugestoes-retorno');
         const fechar = [el('fechar-sugestao'), el('cancelar-sugestao')];
         let ocupado = false, incerto = false, ultimoTexto = null;
@@ -38,12 +40,18 @@
         }
         function mostrar() {
             if (!modal.open) modal.showModal();
-            abrir.setAttribute('aria-expanded', 'true'); campo.focus();
+            botoesAbrir.forEach(botao => botao.setAttribute('aria-expanded', 'true')); campo.focus();
         }
-        abrir.addEventListener('click', mostrar);
+        botoesAbrir.forEach(botao => botao.addEventListener('click', () => {
+            origemAbertura = botao;
+            mostrar();
+        }));
         fechar.forEach(botao => botao.addEventListener('click', () => { if (!ocupado) modal.close(); }));
         modal.addEventListener('cancel', event => { if (ocupado) event.preventDefault(); });
-        modal.addEventListener('close', () => { abrir.setAttribute('aria-expanded', 'false'); abrir.focus(); });
+        modal.addEventListener('close', () => {
+            botoesAbrir.forEach(botao => botao.setAttribute('aria-expanded', 'false'));
+            origemAbertura.focus();
+        });
         campo.addEventListener('input', contar);
         form.addEventListener('submit', async event => {
             event.preventDefault();

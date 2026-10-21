@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="{{ asset('css/contato-email.css') }}?v=20261008-1">
     <script src="{{ asset('js/contato-email.js') }}?v=20261008-1" defer></script>
     <link rel="stylesheet" href="{{ asset('css/sugestoes.css') }}?v=20261012-1">
-    <script src="{{ asset('js/sugestoes.js') }}?v=20261012-2" defer></script>
+    <script src="{{ asset('js/sugestoes.js') }}?v=20261021-rodape-1" defer></script>
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
     <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261013-imagens-1">
     <script src="{{ asset('js/mensagens.js') }}?v=20261018-rotas-1" defer></script>
@@ -33,12 +33,13 @@
     </style>
     <link rel="stylesheet" href="{{ asset('css/desenvolvedores.css') }}?v=20261013-1">
     <link rel="stylesheet" href="{{ asset('css/apresentacao-publica.css') }}?v=20261013-1">
+    <link rel="stylesheet" href="{{ asset('css/rodape-aluno.css') }}?v=20261021-1">
     <script src="{{ asset('js/apresentacao-publica.js') }}?v=20261013-1" defer></script>
 </head>
 <body class="ui-sistema ui-aluno">
 
     <header class="header">
-        <h1>Agendamento de Atendimento Psicológico</h1>
+        <h1>Agendamento Psicológico</h1>
         <div class="user-info">
             @if(auth()->check())
                 @php
@@ -162,6 +163,7 @@
 
     @if(!auth()->check() || in_array(auth()->user()->tipo, ['aluno', 'estudante'], true))
         @include('partials.desenvolvedores')
+        @include('partials.rodape-aluno')
     @endif
 
     @include('partials.contato-email')

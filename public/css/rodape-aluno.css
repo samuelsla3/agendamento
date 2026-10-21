@@ -1,0 +1,123 @@
+.ui-aluno .aluno-rodape {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: #1a1f2e;
+    color: #fff;
+}
+
+.ui-aluno .aluno-rodape-conteudo {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1564px;
+    margin-inline: auto;
+    padding: 36px 32px 0;
+}
+
+.ui-aluno .aluno-rodape-principal {
+    box-sizing: border-box;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 99px;
+    padding: 0 0 30px;
+    border-bottom: 1px solid #2d3748;
+}
+
+.ui-aluno .aluno-rodape-marca {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.ui-aluno .aluno-rodape-logo {
+    display: block;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+}
+
+.ui-aluno .aluno-rodape-identificacao {
+    min-width: 0;
+}
+
+.ui-aluno .aluno-rodape-titulo {
+    margin: 8px 0 6px;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.ui-aluno .aluno-rodape-descricao {
+    margin: 0;
+    color: #9ca3af;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.ui-aluno .aluno-rodape-acao {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-height: 38px;
+    margin: 0;
+    padding: 7px 24px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: #252b3c;
+    color: #e5e7eb;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.4;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color .15s ease;
+}
+
+.ui-aluno .aluno-rodape-acao:hover {
+    background: #30384b;
+}
+
+.ui-aluno .aluno-rodape-base {
+    padding: 16px 0;
+    text-align: center;
+}
+
+.ui-aluno .aluno-rodape-base p {
+    margin: 0;
+    color: #9ca3af;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+@media (max-width: 600px) {
+    .ui-aluno .aluno-rodape-conteudo {
+        padding: 28px 20px 0;
+    }
+
+    .ui-aluno .aluno-rodape-principal {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 20px;
+        min-height: 0;
+        padding-bottom: 28px;
+    }
+
+    .ui-aluno .aluno-rodape-titulo {
+        margin-top: 0;
+        font-size: 18px;
+    }
+
+    .ui-aluno .aluno-rodape-acao {
+        align-self: flex-start;
+        min-height: 44px;
+    }
+}
