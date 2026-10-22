@@ -162,7 +162,14 @@ if (props.justificativa_indisponibilidade) {
 
             return { 
                 ...rawEventData, 
-                classNames: [className], 
+                classNames: [
+    className,
+    props.justificativa_indisponibilidade
+        ? 'evento-bloqueado-psicologa'
+        : props.confirmado == 1 && props.situacao_atendimento !== 'Não compareceu'
+            ? 'evento-realizado-psicologa'
+            : ''
+].filter(Boolean), 
                 title: tituloFinal 
             };
         }
@@ -406,7 +413,7 @@ function abrirModalSituacao(correcao) {
     $('#situacaoAlunoNome').text($('#agendadoNome').text());
     copiarLinkAlunoDoAgendamento('situacaoAlunoNome');
     $('#situacaoTitulo').text(correcao ? 'Corrigir situação' : 'Registrar falta');
-    $('#situacaoAtualTexto').text(correcao ? `Situação atual: ${atual}. A alteração ficará registrada.` : 'O atendimento será encerrado como Não compareceu.');
+    $('#situacaoAtualTexto').text(correcao ? `Situação atual: ${atual}. A alteração ficará registrada.` : 'O atendimento será encerrado como "Não compareceu".');
     $('#observacaoFalta').val('');
     $('#grupoNovaSituacao').hide();
     $('#grupoObservacaoFalta').hide();

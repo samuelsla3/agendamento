@@ -62,7 +62,7 @@
         }
         .ultimos-cancelamentos-detalhes[open] > summary { margin-bottom: 20px; }
     </style>
-    <link rel="stylesheet" href="{{ asset('css/indisponibilidade-agenda.css') }}?v=20261021-sem-atendimento-1">
+    <link rel="stylesheet" href="{{ asset('css/indisponibilidade-agenda.css') }}?v=20261022-cores-1">
 </head>
 <body class="ui-sistema ui-psicologa">
 
@@ -810,7 +810,7 @@
 
     <script src="{{ asset('js/preferencias-calendario.js') }}?v=20261008-1"></script>
     <script src="{{ asset('js/indisponibilidade-agenda.js') }}?v=20261021-modal-2"></script>
-    <script src="{{ asset('js/psicologa.js') }}?v=20261021-sem-atendimento-1"></script>
+    <script src="{{ asset('js/psicologa.js') }}?v=20261022-cores-1"></script>
     <script src="{{ asset('js/atendimento-emergencial.js') }}?v=20261021-agendar-aluno-1"></script>
 
 @include('partials.mensagens-modal')

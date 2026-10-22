@@ -37,3 +37,20 @@
 .ui-psicologa .fc .evento-sem-atendimento-psicologa :is(.fc-daygrid-event-dot, .fc-list-event-dot) {
     border-color: #a4aea8 !important;
 }
+
+/* Indisponibilidade justificada: cinza e clicável. */
+.ui-psicologa .fc .evento-indisponivel-psicologa.evento-bloqueado-psicologa {
+    --cal-fundo: #f1f3f2;
+    --cal-texto: #5e6862;
+    --cal-borda: #d6dcd8;
+    --cal-marcador: #a4aea8;
+    cursor: pointer !important;
+}
+
+/* Atendimento realizado: azul. */
+.ui-psicologa .fc .evento-indisponivel-psicologa.evento-realizado-psicologa {
+    --cal-fundo: #e4effd;
+    --cal-texto: #1e3a5f;
+    --cal-borda: #b7cfee;
+    --cal-marcador: #356fb5;
+}
