@@ -229,6 +229,13 @@ function sendAjaxRequest(urlAlvo, data) {
         texto: data.action === 'agendar' ? 'Agendando…' : 'Cancelando…',
         sucesso(response) {
             showMessage(response.status, response.message);
+            closeModal();
+            if (data.action === 'agendar' && response.pesquisa === true && window.PesquisaPrimeiroAgendamento) {
+                window.PesquisaPrimeiroAgendamento.abrir().then(exibiu => {
+                    if (!exibiu) window.refreshCalendar();
+                });
+                return;
+            }
             setTimeout(() => window.refreshCalendar(), 1000);
         },
         erro(message) { showMessage('error', message); }

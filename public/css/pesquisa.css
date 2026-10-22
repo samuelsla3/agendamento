@@ -1,0 +1,45 @@
+.pesquisa-aberta { overflow: hidden; }
+.pesquisa-modal[hidden], .pesquisa-modal [hidden] { display: none !important; }
+.pesquisa-modal { position: fixed; inset: 0; z-index: 12000; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; background: rgba(15, 35, 24, .5); }
+.pesquisa-conteudo { width: 100%; max-width: 740px; max-height: 90vh; max-height: 90dvh; overflow-y: auto; padding: 28px; box-sizing: border-box; background: #fff; border-radius: 14px; box-shadow: 0 18px 56px #142b1d33; position: relative; color: #263d30; }
+.pesquisa-conteudo h2 { padding-right: 25px; margin-top: 0; text-align: left; }
+.pesquisa-conteudo p { line-height: 1.6; }
+.pesquisa-fechar { position: absolute; top: 12px; right: 14px; background: transparent; color: #526159; border: 0; padding: 6px 12px; font-size: 26px; cursor: pointer; }
+.pesquisa-opcional { margin-top: 0; margin-right: 30px; padding: 10px 12px; border: 1px solid #b5dcc3; border-radius: 6px; color: #14532d; background: #f0f8f3; font-weight: 600; }
+.pesquisa-pergunta { min-width: 0; margin: 24px 0 0; padding: 0; border: 0; }
+.pesquisa-pergunta legend { font-weight: 600; margin-bottom: 12px; line-height: 1.5; }
+.pesquisa-opcoes { display: flex; flex-wrap: wrap; gap: 8px; }
+.pesquisa-opcoes label { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #d5e2d9; border-radius: 8px; padding: 10px 12px; cursor: pointer; line-height: 1.4; }
+.pesquisa-opcoes label:has(input:checked) { border-color: #00833d; background: #e5f4eb; }
+.pesquisa-opcoes input[type="radio"] { width: 18px; height: 18px; min-height: 0; margin: 0; accent-color: #00833d; flex-shrink: 0; }
+.pesquisa-estrelas { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.pesquisa-estrelas label { position: relative; cursor: pointer; padding: 2px 5px; border-radius: 6px; }
+.pesquisa-estrelas input, .pesquisa-somente-leitor { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); }
+.pesquisa-estrela { font-size: 36px; color: #aeb8b1; line-height: 1.2; }
+.pesquisa-estrela-ativa { color: #ad7400; }
+.pesquisa-estrelas label:focus-within { outline: 2px solid #00833d; outline-offset: 2px; }
+.pesquisa-zero { font-size: 1rem; border: 1px solid #ccd9d0; margin-right: 7px; }
+.pesquisa-zero:has(input:checked) { background: #e5f4eb; border-color: #00833d; }
+#pesquisa-sugestao { margin-top: 10px; width: 100%; box-sizing: border-box; resize: vertical; }
+#pesquisa-privacidade, #pesquisa-nota { font-size: .9rem; color: #526159; }
+.pesquisa-acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.pesquisa-erro { padding: 12px; border-radius: 6px; background: #fff1f1; color: #9d2020; }
+#pesquisa-agradecimento { padding: 18px; background: #e5f4eb; border: 1px solid #b5dcc3; border-radius: 8px; font-weight: 600; }
+.pesquisa-painel { max-width: 1080px; }
+.pesquisa-painel h2 { text-align: left; }
+.pesquisa-totais { display: flex; flex-wrap: wrap; gap: 16px; margin: 20px 0; }
+.pesquisa-totais p { border: 1px solid #b5dcc3; border-radius: 8px; padding: 16px; margin: 0; }
+.pesquisa-resultados { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.pesquisa-resultados section, .pesquisa-resposta { min-width: 0; border: 1px solid #d5e2d9; border-radius: 8px; padding: 18px; }
+.pesquisa-resultados ul { padding-left: 20px; line-height: 1.7; }
+.pesquisa-resposta { margin: 16px 0; }
+.pesquisa-resposta dt { font-weight: 600; margin-top: 12px; }
+.pesquisa-resposta dd { margin: 4px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pesquisa-paginacao { display: flex; gap: 16px; justify-content: space-between; align-items: center; margin: 24px 0; }
+@media (max-width: 600px) {
+    .pesquisa-modal { padding: 10px; }
+    .pesquisa-conteudo { padding: 24px 16px; max-height: 94vh; max-height: 94dvh; }
+    .pesquisa-opcoes label { width: 100%; box-sizing: border-box; }
+    .pesquisa-acoes > .btn { width: 100%; }
+    .pesquisa-resultados { grid-template-columns: minmax(0, 1fr); }
+}

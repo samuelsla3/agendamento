@@ -146,6 +146,7 @@ class CalendarioController extends Controller
             if (Horario::where('matricula', $matricula)->where('data', $horario->data)->where('disponivel', 0)->exists()) {
                 return response()->json(['status' => 'error', 'message' => 'Você já possui um atendimento agendado para esta data.']);
             }
+            $tinhaHistorico = \App\Services\PesquisaPrimeiroAgendamento::temHistorico($usuario);
             $token = Str::random(64);
             $horario->update(['disponivel' => 0, 'nome' => $nome, 'matricula' => $matricula,
                 'confirmado' => 0, 'justificativa_cancelamento' => null, 'token_cancelamento' => $token]);
@@ -156,7 +157,8 @@ class CalendarioController extends Controller
                 .'<br><br>Serviço de Psicologia - IFBA Seabra',
                 ['horario_id' => $horario->id, 'reserva_hash' => hash('sha256', $token), 'data' => $horario->data],
                 ['nome' => $nome, 'matricula' => $matricula, 'data' => $horario->data, 'hora' => $horario->hora]);
-            return response()->json(['status' => 'success', 'message' => 'Agendamento realizado! O aviso de confirmação foi registrado para envio por e-mail.']);
+            $pesquisa = \App\Services\PesquisaPrimeiroAgendamento::convidar($usuario, $tinhaHistorico);
+            return response()->json(['status' => 'success', 'message' => 'Agendamento realizado! O aviso de confirmação foi registrado para envio por e-mail.', 'pesquisa' => $pesquisa]);
         }
 
         abort_unless((string) $horario->matricula === (string) $matricula, 403, 'Você só pode cancelar seu próprio agendamento.');

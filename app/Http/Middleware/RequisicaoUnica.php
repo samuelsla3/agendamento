@@ -54,7 +54,7 @@ class RequisicaoUnica
             } elseif (is_array($json)) {
                 // Nunca armazenar HTML de prontuário ou corpo integral da requisição.
                 $salvar = ['tipo' => 'json', 'status' => $response->getStatusCode(),
-                    'dados' => array_intersect_key($json, array_flip(['status', 'message']))];
+                    'dados' => array_intersect_key($json, array_flip(['status', 'message', 'pesquisa']))];
             } else {
                 throw new \LogicException('Operação protegida deve retornar JSON ou redirecionamento.');
             }

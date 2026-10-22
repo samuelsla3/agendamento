@@ -43,6 +43,16 @@ Route::post('/recuperar-senha-psicologa/{id}', [\App\Http\Controllers\Recuperaca
 
 // Rotas protegidas por login
 Route::middleware(['auth'])->group(function () {
+    Route::get('/pesquisa', [\App\Http\Controllers\PesquisaController::class, 'index'])->name('pesquisa.index');
+    Route::delete('/pesquisa/respostas/{resposta}', [\App\Http\Controllers\PesquisaController::class, 'excluir'])
+        ->whereUuid('resposta')->name('pesquisa.excluir');
+    Route::post('/pesquisa/convite', [\App\Http\Controllers\PesquisaController::class, 'convite'])
+        ->name('pesquisa.convite')->middleware('throttle:30,1,pesquisa-convite:');
+    Route::post('/pesquisa/responder', [\App\Http\Controllers\PesquisaController::class, 'responder'])
+        ->name('pesquisa.responder')->middleware('throttle:10,1,pesquisa-responder:');
+    Route::post('/pesquisa/dispensar', [\App\Http\Controllers\PesquisaController::class, 'dispensar'])
+        ->name('pesquisa.dispensar')->middleware('throttle:30,1,pesquisa-dispensar:');
+
 
     // Contato privado. Anexos nunca usam o disco publico nem URLs de storage.
     Route::get('/mensagens/resumo', [\App\Http\Controllers\MensagensController::class, 'resumo'])->name('mensagens.resumo')->middleware('throttle:120,1,mensagens-leitura:');

@@ -63,7 +63,7 @@ class RecuperacaoSenhaPsicologaTest extends TestCase
     public function test_formulario_publico_e_atalhos_ficam_disponiveis(): void
     {
         $this->get('/recuperar-senha-psicologa')->assertOk()->assertSee('Matrícula da psicóloga')->assertSee('Senha do prontuário');
-        $this->get('/login')->assertOk()->assertSee('Psicóloga: recuperar senha local ou do prontuário');
+        $this->get('/login')->assertOk()->assertDontSee('Psicóloga: recuperar senha local ou do prontuário');
         $this->entrar();
         $this->get('/configuracoes/seguranca')->assertOk()->assertSee('Recuperar senha por e-mail')
             ->assertDontSee('Procure o responsável técnico pelo sistema para confirmar sua identidade');

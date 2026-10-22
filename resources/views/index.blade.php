@@ -36,6 +36,7 @@
     <link rel="stylesheet" href="{{ asset('css/rodape-aluno.css') }}?v=20261021-1">
     <script src="{{ asset('js/apresentacao-publica.js') }}?v=20261013-1" defer></script>
     <link rel="stylesheet" href="{{ asset('css/indisponibilidade-agenda.css') }}?v=20261021-1">
+    <link rel="stylesheet" href="{{ asset('css/pesquisa.css') }}?v=20261022-1">
 </head>
 <body class="ui-sistema ui-aluno">
 
@@ -223,8 +224,9 @@
     };
 </script>
 
+@include('partials.pesquisa-primeiro-agendamento')
 <script src="{{ asset('js/antecedencia-agendamento.js') }}?v=20261008-1"></script>
-<script src="{{ asset('js/aluno.js') }}?v=20261021-indisponibilidade-1"></script>
+<script src="{{ asset('js/aluno.js') }}?v=20261022-pesquisa-1"></script>
 @include('partials.mensagens-modal')
 </body>
 </html>
