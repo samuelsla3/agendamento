@@ -31,6 +31,16 @@ Route::get('/cancelar-confirmar/{id}', [CalendarioController::class, 'exibirTela
 Route::post('/cancelar-executar/{id}', [CalendarioController::class, 'executarCancelamentoDireto'])
     ->name('agendamento.cancelar.executar')->middleware('signed');
 
+// Recuperação por e-mail: disponível também para quem não consegue entrar.
+Route::get('/recuperar-senha-psicologa', [\App\Http\Controllers\RecuperacaoSenhaPsicologaController::class, 'formulario'])
+    ->name('seguranca.recuperacao.form')->middleware('throttle:60,1,recuperacao-form:');
+Route::post('/recuperar-senha-psicologa', [\App\Http\Controllers\RecuperacaoSenhaPsicologaController::class, 'enviar'])
+    ->name('seguranca.recuperacao.enviar')->middleware('throttle:5,10,recuperacao-enviar:');
+Route::get('/recuperar-senha-psicologa/{id}', [\App\Http\Controllers\RecuperacaoSenhaPsicologaController::class, 'redefinir'])
+    ->whereUuid('id')->name('seguranca.recuperacao.redefinir')->middleware('throttle:60,1,recuperacao-abrir:');
+Route::post('/recuperar-senha-psicologa/{id}', [\App\Http\Controllers\RecuperacaoSenhaPsicologaController::class, 'salvar'])
+    ->whereUuid('id')->name('seguranca.recuperacao.salvar')->middleware('throttle:10,15,recuperacao-salvar:');
+
 // Rotas protegidas por login
 Route::middleware(['auth'])->group(function () {
 

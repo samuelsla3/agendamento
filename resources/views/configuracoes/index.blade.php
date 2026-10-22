@@ -157,6 +157,11 @@
                         placeholder="Outros e-mails ou formas de contato que possam ser divulgados.">{{ old('atendimento_outros_contatos', $configuracao->atendimento_outros_contatos) }}</textarea>
                 </div>
                 <p>Todos os campos são opcionais. Campos vazios são ocultados; se limpar todos e salvar, o botão também desaparece.</p>
+                <div class="form-group">
+                    <label for="senha-prontuario-contato">Senha do prontuário (somente para alterar o e-mail de contato)</label>
+                    <input type="password" id="senha-prontuario-contato" name="senha_prontuario_contato" maxlength="512" autocomplete="current-password" aria-describedby="contato-recuperacao-ajuda">
+                    <p id="contato-recuperacao-ajuda">Este e-mail também recebe os links de recuperação das senhas da psicóloga. Para alterá-lo, confirme a senha do prontuário. Para salvar apenas as outras informações, deixe a senha em branco.</p>
+                </div>
                 <p>Local, orientações e contatos serão incluídos nos próximos e-mails enviados pelo sistema. O e-mail informado aqui é um contato público do setor.</p>
                 <div class="config-acoes">
                     <button type="submit" class="btn btn-primary">Salvar informações</button>
@@ -246,6 +251,21 @@
                     <a href="{{ route('psicologa.index') }}" class="btn btn-secondary">Voltar</a>
                 </div>
             </form>
+        </section>
+        <section class="content-section config-card" id="acompanhamento-emails">
+            <h2>Acompanhamento de e-mails</h2>
+            <p>Consulte os envios aos alunos e acompanhe falhas ou mensagens sem confirmação.</p>
+            @if($problemasEmail > 0)
+                <div class="config-aviso config-orientacao" role="status">
+                    <p><strong>{{ $problemasEmail }} {{ $problemasEmail === 1 ? 'aviso precisa de atenção' : 'avisos precisam de atenção' }}.</strong></p>
+                    <p>Há problemas no envio ou mensagens sem confirmação. Os agendamentos e cancelamentos registrados continuam válidos.</p>
+                </div>
+            @else
+                <p>Nenhum aviso precisa de atenção no momento.</p>
+            @endif
+            <div class="config-acoes">
+                <a href="{{ route('emails.index') }}" class="btn btn-primary">Acompanhar os envios</a>
+            </div>
         </section>
         @include('partials.sugestoes-psicologa')
     </main>

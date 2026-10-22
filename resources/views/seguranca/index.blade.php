@@ -43,7 +43,8 @@
         </section>
         <section class="content-section">
             <h2>Esqueceu uma das senhas?</h2>
-            <p>Procure o responsável técnico pelo sistema para confirmar sua identidade e redefinir a senha. A recuperação não apaga as anotações e não revela a senha antiga.</p>
+            <p>Solicite um link de recuperação para o e-mail de contato cadastrado nas informações do atendimento. Escolha se deseja redefinir a senha local ou a do prontuário. O link vale por 15 minutos, pode ser usado uma vez e não apaga as anotações.</p>
+            <div class="seguranca-acoes"><a href="{{ route('seguranca.recuperacao.form') }}" class="btn btn-info">Recuperar senha por e-mail</a></div>
             <p>O prontuário também é bloqueado após 30 minutos sem uso. Para acessá-lo novamente, informe a senha do prontuário.</p>
         </section>
     </main>

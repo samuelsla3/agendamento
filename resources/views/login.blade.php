@@ -118,10 +118,13 @@
                     rel="noopener noreferrer"
                     style="font-size: 14px; color: inherit; text-decoration: underline;"
                 >
-                    Esqueceu sua senha?
+                    Esqueceu a senha do SUAP?
                 </a>
             </div>
 
+            <p class="auth-recovery" style="text-align: right; margin-top: 12px;">
+                <a href="{{ route('seguranca.recuperacao.form') }}">Psicóloga: recuperar senha local ou do prontuário</a>
+            </p>
             <button type="submit" class="btn">Entrar</button>
 
             {{-- O cadastro é automático via SUAP. --}}

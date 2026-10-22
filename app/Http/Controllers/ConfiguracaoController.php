@@ -93,8 +93,27 @@ class ConfiguracaoController extends Controller
         }
         $atualizacao['versao'] = DB::raw('versao + 1');
 
-        $alterados = ConfiguracaoSistema::query()->whereKey(1)
-            ->where('versao', $dados['versao'])->update($atualizacao);
+        $alterados = DB::transaction(function () use ($request, $dados, $atualizacao) {
+            abort_unless(DB::table('travas_operacoes')->where('nome', 'agenda')->lockForUpdate()->first(), 503);
+            $usuario = \App\Models\Usuario::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
+            abort_unless(\App\Services\SegurancaPsicologa::sessaoAtual($request, $usuario), 403, 'Faça login novamente.');
+            $configuracao = ConfiguracaoSistema::whereKey(1)->lockForUpdate()->firstOrFail();
+            if ((int) $configuracao->versao !== (int) $dados['versao']) return 0;
+            $anterior = mb_strtolower(trim((string) $configuracao->atendimento_email), 'UTF-8');
+            $novo = mb_strtolower(trim((string) ($atualizacao['atendimento_email'] ?? '')), 'UTF-8');
+            if ($anterior !== $novo) {
+                $confirmacao = $request->validate(['senha_prontuario_contato' => 'required|string|max:512'], [
+                    'senha_prontuario_contato.required' => 'Confirme a senha do prontuário para alterar o e-mail de recuperação.',
+                ]);
+                if (!\App\Services\SegurancaPsicologa::conferir($confirmacao['senha_prontuario_contato'], $usuario->senha_prontuario)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'senha_prontuario_contato' => 'A senha do prontuário está incorreta. O e-mail não foi alterado.',
+                    ]);
+                }
+                DB::table('recuperacoes_senha_psicologa')->whereNull('usado_em')->update(['usado_em' => now()]);
+            }
+            return ConfiguracaoSistema::whereKey(1)->where('versao', $dados['versao'])->update($atualizacao);
+        });
 
         if ($alterados !== 1) {
             return redirect()->route('configuracoes.index')->withErrors([

@@ -10,6 +10,8 @@ class SessaoPsicologa
 {
     public function handle(Request $request, Closure $next)
     {
+        // O link comprova o acesso ao e-mail mesmo se a sessão antiga precisar ser renovada.
+        if ($request->routeIs('seguranca.recuperacao.*')) return $next($request);
         $usuario = $request->user();
         if (!$usuario) return $next($request);
         if ($usuario->tipo !== 'psicologa') {
