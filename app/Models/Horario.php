@@ -6,11 +6,16 @@ class Horario extends Model
 {
     protected $table = 'horarios';
     protected $fillable = ['data', 'hora', 'disponivel', 'nome', 'matricula', 'confirmado', 'justificativa_cancelamento', 'token_cancelamento',
-        'situacao_final', 'registro_encerramento_id', 'revisao_encerramento'];
+        'situacao_final', 'registro_encerramento_id', 'revisao_encerramento', 'justificativa_indisponibilidade'];
     protected $hidden = ['token_cancelamento'];
     public function usuario() { return $this->belongsTo(Usuario::class, 'matricula', 'matricula'); }
+    public function temIndisponibilidade(): bool
+    {
+        return trim((string) $this->justificativa_indisponibilidade) !== '';
+    }
     public function getSituacaoAtendimentoAttribute(): string
     {
+        if ($this->temIndisponibilidade()) return 'Indisponível';
         if ((int) $this->confirmado === 1) {
             return $this->situacao_final ?? 'Realizado';
         }
@@ -21,7 +26,7 @@ class Horario extends Model
         return hash('sha256', implode('|', [$this->id, $this->data, $this->hora,
             (int) $this->disponivel, (int) $this->confirmado, $this->token_cancelamento ?? '',
             $this->getRawOriginal('updated_at') ?? '', $this->situacao_final ?? '',
-            $this->registro_encerramento_id ?? '', (int) $this->revisao_encerramento]));
+            $this->registro_encerramento_id ?? '', (int) $this->revisao_encerramento, $this->justificativa_indisponibilidade ?? '']));
     }
     public function conferirVersao($versao): void
     {

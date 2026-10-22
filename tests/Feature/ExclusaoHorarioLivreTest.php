@@ -28,14 +28,18 @@ class ExclusaoHorarioLivreTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['app.key' => 'base64:'.base64_encode(str_repeat('x', 32)),
+            'psicologia.matriculas_suap' => ['99999999999']]);
         Http::preventStrayRequests();
         Mail::fake();
         $usuario = Usuario::forceCreate([
             'nome' => 'Psicóloga de Teste', 'matricula' => '99999999999',
             'email' => 'teste@example.test', 'tipo' => 'psicologa',
             'senha' => Hash::make('teste'), 'password' => Hash::make('teste'),
+            'psicologa_configurada_em' => now(), 'psicologa_senha_local_definida' => true,
+            'psicologa_autenticacao_versao' => 1, 'senha_prontuario' => Hash::make('teste-prontuario'),
         ]);
-        $this->actingAs($usuario)->withSession(['usuario_tipo' => 'psicologa']);
+        $this->actingAs($usuario)->withSession(['usuario_tipo' => 'psicologa', 'psicologa_autenticacao_versao' => 1]);
     }
 
     private function vaga(array $dados = []): Horario

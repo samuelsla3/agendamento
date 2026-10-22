@@ -13,11 +13,24 @@ use Illuminate\Validation\ValidationException;
 
 class AtendimentoEmergencial
 {
-    public function registrar(array $dados): string
+    public function registrar(array $dados, ?int $horarioId = null): string
     {
-        return DB::transaction(function () use ($dados) {
+        return DB::transaction(function () use ($dados, $horarioId) {
             $trava = DB::table('travas_operacoes')->where('nome', 'agenda')->lockForUpdate()->first();
             abort_unless($trava, 503, 'Execute as migrations antes de usar o sistema.');
+
+            if ($horarioId !== null) {
+                $vaga = Horario::whereKey($horarioId)->lockForUpdate()->firstOrFail();
+                abort_unless((int) $vaga->disponivel === 1 && (int) $vaga->confirmado === 0
+                    && !$vaga->temIndisponibilidade() && trim((string) $vaga->nome) === '' && trim((string) $vaga->matricula) === '',
+                    409, 'Este horário não está mais disponível. Atualize a agenda.');
+                if (Carbon::parse($vaga->data.' '.$vaga->hora, config('app.timezone'))->lte(now())) {
+                    throw ValidationException::withMessages(['data' => 'Para agendar um aluno, selecione um horário futuro. Para registrar atendimento passado, utilize Atendimento Emergencial.']);
+                }
+                // A reserva usa exclusivamente a vaga selecionada, nunca outra data enviada pelo navegador.
+                $dados['data'] = $vaga->data;
+                $dados['hora'] = substr($vaga->hora, 0, 5);
+            }
 
             $matricula = trim($dados['matricula']);
             $hora = $dados['hora'].':00';
@@ -34,8 +47,10 @@ class AtendimentoEmergencial
             }
             $vagas = Horario::where('data', $dados['data'])->where('hora', $hora)->lockForUpdate()->get();
             $horario = $vagas->first();
+            abort_if($horarioId !== null && (!$horario || (int) $horario->id !== $horarioId), 409,
+                'A vaga selecionada mudou. Atualize a agenda antes de continuar.');
             if ($vagas->count() > 1 || ($horario && ((int) $horario->disponivel !== 1
-                || (int) $horario->confirmado === 1 || trim((string) $horario->nome) !== ''
+                || $horario->temIndisponibilidade() || (int) $horario->confirmado === 1 || trim((string) $horario->nome) !== ''
                 || trim((string) $horario->matricula) !== ''))) {
                 throw ValidationException::withMessages(['hora' => 'Já existe um atendimento ou conflito nesse horário. Escolha outra data/hora ou confira a agenda.']);
             }

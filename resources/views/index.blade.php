@@ -35,6 +35,7 @@
     <link rel="stylesheet" href="{{ asset('css/apresentacao-publica.css') }}?v=20261021-cabecalho-mobile-1">
     <link rel="stylesheet" href="{{ asset('css/rodape-aluno.css') }}?v=20261021-1">
     <script src="{{ asset('js/apresentacao-publica.js') }}?v=20261013-1" defer></script>
+    <link rel="stylesheet" href="{{ asset('css/indisponibilidade-agenda.css') }}?v=20261021-1">
 </head>
 <body class="ui-sistema ui-aluno">
 
@@ -199,6 +200,14 @@
         </div>
     </div>
 
+<div id="indisponibilidade-aviso-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="indisponibilidade-aviso-titulo" aria-describedby="indisponibilidade-aviso-texto">
+    <div class="modal-content">
+        <button type="button" class="close-btn" id="indisponibilidade-aviso-fechar" aria-label="Fechar aviso">&times;</button>
+        <h3 id="indisponibilidade-aviso-titulo">Aviso da psicóloga</h3>
+        <p id="indisponibilidade-aviso-data"></p>
+        <p id="indisponibilidade-aviso-texto"></p>
+    </div>
+</div>
 <script>
     const LaravelConfig = {
         isLoggedIn: @json(auth()->check()),
@@ -215,7 +224,7 @@
 </script>
 
 <script src="{{ asset('js/antecedencia-agendamento.js') }}?v=20261008-1"></script>
-<script src="{{ asset('js/aluno.js') }}?v=20261008-faltas-1"></script>
+<script src="{{ asset('js/aluno.js') }}?v=20261021-indisponibilidade-1"></script>
 @include('partials.mensagens-modal')
 </body>
 </html>

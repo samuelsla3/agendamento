@@ -47,7 +47,8 @@ class CalendarioController extends Controller
             'start' => $horario->data . 'T' . $horario->hora,
             'extendedProps' => [
                 'inicio_agendamento' => Carbon::parse($horario->data . ' ' . $horario->hora, config('app.timezone'))->toIso8601String(),
-                'disponivel' => (int)$horario->disponivel,
+                'disponivel' => $horario->temIndisponibilidade() ? 0 : (int)$horario->disponivel,
+                'justificativa_indisponibilidade' => $horario->justificativa_indisponibilidade,
                 'versao' => ($horario->disponivel == 1 || $tipo === 'psicologa' || $ehMeuAgendamento) ? $horario->versao() : null,
                 'confirmado' => (int)($horario->confirmado ?? 0),
                 'situacao_atendimento' => ($tipo === 'psicologa' || $ehMeuAgendamento)
@@ -134,7 +135,7 @@ class CalendarioController extends Controller
             if ($inicio->lt($agora)) {
                 return response()->json(['status' => 'error', 'message' => 'Não é possível agendar um horário que já passou.']);
             }
-            if ((int) $horario->disponivel !== 1) {
+            if ((int) $horario->disponivel !== 1 || $horario->temIndisponibilidade()) {
                 return response()->json(['status' => 'error', 'message' => 'Este horário não está mais disponível.']);
             }
             if ($antecedencia['ativa'] && $inicio->lt($agora->copy()->addMinutes($antecedencia['minutos']))) {

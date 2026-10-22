@@ -1,0 +1,39 @@
+#indisponibilidade-painel[hidden], #indisponibilidade-painel [hidden] { display: none !important; }
+#form-disponivel .horario-acoes-principais { display: flex; flex-wrap: wrap; gap: 10px; }
+#form-disponivel .horario-acao-indisponibilidade { margin-top: 18px; text-align: left; }
+#modal .modal-content.horario-editavel #action-buttons { justify-content: flex-start; align-items: flex-start; margin: 18px 0 0; text-align: left; }
+#modal .modal-content.horario-editavel #deleteBtn { width: auto; margin: 0; align-self: flex-start; }
+#indisponibilidade-painel { margin-top: 20px; padding-top: 16px; border-top: 1px solid #dce7df; }
+#indisponibilidade-painel p { line-height: 1.5; }
+#indisponibilidade-painel textarea { width: 100%; box-sizing: border-box; resize: vertical; }
+.indisponibilidade-botoes { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+#indisponibilidade-retorno { color: #176334; }
+#indisponibilidade-retorno:empty { display: none; }
+#indisponibilidade-outros { margin-top: 20px; }
+#indisponibilidade-outros fieldset { min-width: 0; padding: 14px; border: 1px solid #dce7df; border-radius: 8px; }
+#indisponibilidade-outros legend { font-size: 1rem; font-weight: 600; padding: 0 5px; }
+#indisponibilidade-lista { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-height: 220px; overflow-y: auto; }
+#indisponibilidade-lista .indisponibilidade-opcao { display: flex; gap: 8px; align-items: center; margin: 0; padding: 10px; border: 1px solid #b5dcc3; border-radius: 6px; cursor: pointer; font-weight: 500; }
+#indisponibilidade-lista .indisponibilidade-opcao:has(input:checked) { background: #e5f4eb; border-color: #00833d; }
+#indisponibilidade-lista input { width: 18px; height: 18px; min-height: 0; padding: 0; margin: 0; accent-color: #00833d; flex-shrink: 0; }
+#indisponibilidade-lista-status, #indisponibilidade-selecao-resumo { font-size: .9rem; }
+.ui-sistema .fc .fc-event.evento-aviso-indisponibilidade { cursor: pointer !important; }
+#indisponibilidade-aviso-texto { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+#indisponibilidade-aviso-modal .modal-content { max-width: 480px; }
+@media (max-width: 480px) {
+    #indisponibilidade-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.ui-psicologa .fc .evento-sem-atendimento-psicologa {
+    background-color: #f1f3f2 !important;
+    color: #5e6862 !important;
+    border-color: #d6dcd8 !important;
+    cursor: default !important;
+    pointer-events: none;
+}
+.ui-psicologa .fc .evento-sem-atendimento-psicologa :is(.fc-event-main, .fc-event-title, .fc-list-event-title, .fc-list-event-title a, .fc-list-event-time) {
+    color: #5e6862 !important;
+}
+.ui-psicologa .fc .evento-sem-atendimento-psicologa :is(.fc-daygrid-event-dot, .fc-list-event-dot) {
+    border-color: #a4aea8 !important;
+}

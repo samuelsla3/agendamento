@@ -9,6 +9,8 @@
     const turma = campo('turma'), email = campo('email'), id = campo('aluno-id');
     const aviso = campo('aviso'), data = campo('data'), hora = campo('hora');
     const opcoes = Array.from(campo('alunos').options);
+    const titulo = document.getElementById('emergencial-titulo');
+    const enviar = form.querySelector('button[type="submit"]');
     let selecionado = null;
 
     function selecionar(opcao) {
@@ -43,6 +45,8 @@
     });
     matricula.addEventListener('input', function () {
         if (selecionado && matricula.value !== selecionado.dataset.matricula) limparSelecao(matricula);
+        const opcao = opcoes.find((o) => o.dataset.matricula === matricula.value.trim());
+        if (opcao) selecionar(opcao);
     });
     matricula.addEventListener('change', function () {
         const opcao = opcoes.find((o) => o.dataset.matricula === matricula.value.trim());
@@ -50,6 +54,13 @@
     });
 
     window.abrirModalEmergencial = function () {
+        if (form.dataset.action === 'agendar_aluno') { data.value = ''; hora.value = ''; }
+        form.dataset.action = 'atendimento_emergencial';
+        delete form.dataset.horarioId; delete form.dataset.versao;
+        data.readOnly = hora.readOnly = false;
+        titulo.textContent = 'Atendimento Emergencial';
+        document.getElementById('emergencial-vaga-info').hidden = true;
+        enviar.textContent = 'Registrar atendimento';
         // Usa o fuso do sistema, sem converter a data local para UTC.
         // Preserva o formulário ao fechar/reabrir, inclusive em uma tentativa de reenvio.
         const partes = new Intl.DateTimeFormat('en-CA', {
@@ -62,6 +73,20 @@
         modal.classList.add('is-visible');
         nome.focus();
     };
+    document.getElementById('agendarAlunoBtn')?.addEventListener('click', function () {
+        if (this.disabled || !this.dataset.horarioId || !this.dataset.versao) return;
+        form.dataset.action = 'agendar_aluno';
+        form.dataset.horarioId = this.dataset.horarioId;
+        form.dataset.versao = this.dataset.versao;
+        data.value = this.dataset.data; hora.value = this.dataset.hora;
+        data.readOnly = hora.readOnly = true;
+        titulo.textContent = 'Agendar aluno(a)';
+        document.getElementById('emergencial-vaga-info').hidden = false;
+        enviar.textContent = 'Confirmar agendamento';
+        window.closeModal();
+        modal.classList.add('is-visible');
+        nome.focus();
+    });
     form.addEventListener('submit', function (event) {
         event.preventDefault();
         // A matrícula digitada também reconhece um cadastro existente.
@@ -70,11 +95,15 @@
         const nomeFinal = selecionado ? selecionado.dataset.nome : nome.value.trim();
         nome.setCustomValidity(nomeFinal.length > 100 ? 'O nome deve ter até 100 caracteres.' : '');
         if (!form.reportValidity()) return;
-        sendAjaxRequest({
-            action: 'atendimento_emergencial', data: data.value, hora: hora.value,
+        const dados = {
+            action: form.dataset.action || 'atendimento_emergencial', data: data.value, hora: hora.value,
             aluno_id: id.value, nome: nomeFinal, matricula: matricula.value.trim(),
             turma_codigo: turma.value.trim(), email: email.value.trim()
-        });
+        };
+        if (dados.action === 'agendar_aluno') {
+            dados.id = form.dataset.horarioId; dados.versao = form.dataset.versao;
+        }
+        sendAjaxRequest(dados);
     });
     modal.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') window.closeModal();

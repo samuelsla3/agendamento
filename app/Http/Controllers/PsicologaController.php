@@ -30,7 +30,7 @@ public function index()
     ->join('horarios as h', 'ra.id_horario_original', '=', 'h.id')
     ->leftJoin('usuarios as u', 'ra.matricula', '=', 'u.matricula')
     ->where('ra.status', 'Cancelado pelo Aluno')
-    ->where('h.disponivel', 1)
+    ->where('h.disponivel', 1)->whereNull('h.justificativa_indisponibilidade')
     ->select('ra.*', 'u.turma_codigo as turma_codigo_aluno', 'u.id as aluno_id', 'u.tipo as tipo_aluno')
     ->orderBy('ra.data_registro', 'desc')
     ->take(10)
@@ -75,7 +75,7 @@ public function index()
             $alunoId = $row->usuario && in_array($row->usuario->tipo, ['aluno', 'estudante'], true) ? $row->usuario->id : null;
             $statusReal = $row->situacao_atendimento;
 
-            if ($row->disponivel == 1 && !empty($row->justificativa_cancelamento)) {
+            if ($row->disponivel == 1 && !$row->temIndisponibilidade() && !empty($row->justificativa_cancelamento)) {
                 $historico = DB::table('registros_atendimentos as ra')
                     ->leftJoin('usuarios as u', 'ra.matricula', '=', 'u.matricula')
                     ->select('ra.*', 'u.turma_codigo as turma_codigo_aluno', 'u.id as aluno_id', 'u.tipo as tipo_aluno')
@@ -113,7 +113,8 @@ if (
                     'id' => $row->id,
                     'id_horario' => $row->id,
                     'versao' => $row->versao(),
-                    'disponivel' => (int)$row->disponivel,
+                    'disponivel' => $row->temIndisponibilidade() ? 0 : (int)$row->disponivel,
+                    'justificativa_indisponibilidade' => $row->justificativa_indisponibilidade,
                     'nome' => $nome,
                     'matricula' => $matricula,
                     'aluno_id' => $alunoId,
@@ -137,12 +138,44 @@ if (
     {
         abort_unless(auth()->check() && auth()->user()->tipo === 'psicologa', 403);
         $action = $request->input('action');
-        if (in_array($action, ['confirmar', 'registrar_falta', 'corrigir_situacao', 'cancel_by_psicologa', 'delete', 'edit'])) {
+        if (in_array($action, ['confirmar', 'registrar_falta', 'corrigir_situacao', 'cancel_by_psicologa', 'delete', 'edit', 'agendar_aluno', 'liberar_indisponibilidade'])) {
             $request->validate(['id' => 'required|integer', 'versao' => 'required|string|size:64']);
             $horario = Horario::whereKey($request->input('id'))->lockForUpdate()->firstOrFail();
             $horario->conferirVersao($request->input('versao'));
         }
         switch ($action) {
+            case 'justificar_indisponibilidade':
+                $dados = $request->validate([
+                    'justificativa' => 'required|string|max:300',
+                    'horarios' => 'required|array|min:1|max:200',
+                    'horarios.*.id' => 'required|integer|min:1|distinct',
+                    'horarios.*.versao' => 'required|string|size:64',
+                ]);
+                $texto = trim($dados['justificativa']);
+                abort_if($texto === '', 422, 'Informe a justificativa da indisponibilidade.');
+                // Valida todos antes de alterar: uma seleção desatualizada não bloqueia parcialmente a agenda.
+                $selecionados = Horario::whereIn('id', array_column($dados['horarios'], 'id'))
+                    ->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+                foreach ($dados['horarios'] as $item) {
+                    $vaga = $selecionados->get($item['id']);
+                    abort_unless($vaga, 409, 'Um dos horários não existe mais. Atualize a agenda.');
+                    $vaga->conferirVersao($item['versao']);
+                    $this->exigirVagaSemReserva($vaga);
+                    abort_if(count($dados['horarios']) > 1 && $vaga->temIndisponibilidade(), 409,
+                        'Um dos horários já tem uma justificativa. Abra-o individualmente para editar.');
+                }
+                foreach ($selecionados as $vaga) $vaga->update(['justificativa_indisponibilidade' => $texto]);
+                $quantidade = $selecionados->count();
+                return response()->json(['status' => 'success', 'message' => $quantidade === 1
+                    ? 'Indisponibilidade registrada.' : "Indisponibilidade aplicada a {$quantidade} horários."]);
+
+            case 'liberar_indisponibilidade':
+                $this->exigirVagaSemReserva($horario);
+                abort_unless($horario->temIndisponibilidade(), 409, 'Este horário já está liberado. Atualize a agenda.');
+                $horario->update(['justificativa_indisponibilidade' => null]);
+                return response()->json(['status' => 'success', 'message' => 'Horário liberado para agendamento.']);
+
+            case 'agendar_aluno':
             case 'atendimento_emergencial':
                 $dados = $request->validate([
                     'data' => 'required|date_format:Y-m-d', 'hora' => 'required|date_format:H:i',
@@ -154,7 +187,9 @@ if (
                     'matricula.regex' => 'Informe a matrícula completa, somente com números.',
                     'matricula.required' => 'Informe a matrícula do aluno.',
                 ]);
-                $mensagem = app(\App\Services\AtendimentoEmergencial::class)->registrar($dados);
+                $mensagem = app(\App\Services\AtendimentoEmergencial::class)->registrar(
+                    $dados, $action === 'agendar_aluno' ? (int) $horario->id : null
+                );
                 return response()->json(['status' => 'success', 'message' => $mensagem]);
 
             case 'confirmar':
@@ -295,6 +330,8 @@ if (
                 return response()->json(['status' => 'success', 'message' => 'Horário avulso criado com sucesso.']);
 
             case 'edit':
+                $this->exigirVagaSemReserva($horario, false);
+                abort_if($horario->temIndisponibilidade(), 409, 'Libere a indisponibilidade antes de editar a data e a hora.');
                 $request->validate(['data' => 'required|date', 'hora' => 'required|date_format:H:i']);
                 $hora = $request->hora.':00';
                 if (Horario::where('id', '<>', $horario->id)->where('data', $request->data)->where('hora', $hora)->exists()) {
@@ -304,6 +341,15 @@ if (
                 return response()->json(['status' => 'success', 'message' => 'Horário atualizado com sucesso.']);
         }
         return response()->json(['status' => 'error', 'message' => 'Ação inválida.']);
+    }
+
+    private function exigirVagaSemReserva(Horario $horario, bool $exigirFuturo = true): void
+    {
+        abort_unless((int) $horario->disponivel === 1 && (int) $horario->confirmado === 0
+            && trim((string) $horario->nome) === '' && trim((string) $horario->matricula) === '',
+            409, 'Este horário possui uma reserva ou atendimento. Atualize a agenda.');
+        abort_if($exigirFuturo && Carbon::parse($horario->data.' '.$horario->hora, config('app.timezone'))->lte(now()),
+            422, 'Selecione um horário futuro para alterar a indisponibilidade.');
     }
 
     /** Chamado dentro da transação da agenda, antes de liberar ou excluir a vaga. */

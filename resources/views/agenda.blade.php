@@ -62,6 +62,7 @@
         }
         .ultimos-cancelamentos-detalhes[open] > summary { margin-bottom: 20px; }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/indisponibilidade-agenda.css') }}?v=20261021-sem-atendimento-1">
 </head>
 <body class="ui-sistema ui-psicologa">
 
@@ -338,9 +339,40 @@
                 <form id="form-disponivel" style="display:none;">
                     <div class="form-group"><label for="data">Data:</label><input type="date" id="data" name="data" required></div>
                     <div class="form-group"><label for="hora">Hora:</label><input type="time" id="hora" name="hora" required></div>
-                    <button type="submit" class="btn btn-primary">Salvar</button>
+                    <div class="horario-acoes-principais">
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                        <button type="button" id="agendarAlunoBtn" class="btn btn-info">Agendar aluno(a)</button>
+                    </div>
+                    <div class="horario-acao-indisponibilidade">
+                        <button type="button" id="justificarIndisponibilidadeBtn" class="btn btn-info" aria-expanded="false" aria-controls="indisponibilidade-painel">Justificar indisponibilidade</button>
+                    </div>
                 </form>
 
+                <div id="indisponibilidade-painel" hidden>
+                    <p><strong>Horário:</strong> <span id="indisponibilidade-data"></span></p>
+                    <form id="indisponibilidade-form">
+                        <label for="indisponibilidade-texto">Justificativa da indisponibilidade:</label>
+                        <textarea id="indisponibilidade-texto" rows="2" maxlength="300" required aria-describedby="indisponibilidade-ajuda" placeholder="Ex.: Reunião COTEP"></textarea>
+                        <p id="indisponibilidade-ajuda">Até 300 caracteres. Este aviso será visível aos alunos e visitantes. Aplica-se ao horário indicado acima.</p>
+                        <div class="indisponibilidade-botoes">
+                            <button type="submit" id="indisponibilidade-salvar" class="btn btn-primary">Salvar justificativa</button>
+                            <button type="button" id="indisponibilidade-liberar" class="btn btn-success" hidden>Liberar horário</button>
+                        </div>
+                    </form>
+                    <p id="indisponibilidade-retorno" role="status" aria-live="polite"></p>
+                    <div id="indisponibilidade-outros" hidden>
+                        <fieldset>
+                            <legend>Outros horários de <span id="indisponibilidade-outros-data"></span></legend>
+                            <p id="indisponibilidade-lista-status" role="status"></p>
+                            <div id="indisponibilidade-lista"></div>
+                        </fieldset>
+                        <p id="indisponibilidade-selecao-resumo" role="status" aria-live="polite"></p>
+                        <div class="indisponibilidade-botoes">
+                            <button type="button" id="indisponibilidade-aplicar" class="btn btn-primary" disabled>Aplicar aos selecionados</button>
+                            <button type="button" id="indisponibilidade-recarregar" class="btn btn-info" hidden>Recarregar horários</button>
+                        </div>
+                    </div>
+                </div>
                 <div id="action-buttons" class="action-buttons-group">
     <input type="hidden" id="eventId">
 
@@ -363,7 +395,8 @@
             <div class="modal-content" style="max-width: 560px;">
                 <button type="button" class="close-btn" onclick="closeModal()" aria-label="Fechar">&times;</button>
                 <h2 id="emergencial-titulo">Atendimento Emergencial</h2>
-                <form id="emergencial-form" data-fuso="{{ config('app.timezone') }}">
+                <p id="emergencial-vaga-info" hidden>Data e hora correspondem à vaga selecionada no calendário.</p>
+                <form id="emergencial-form" data-fuso="{{ config('app.timezone') }}" data-action="atendimento_emergencial">
                     <div class="form-row">
                         <div class="form-group">
                             <label for="emergencial-data">Data:</label>
@@ -398,7 +431,12 @@
                         <div class="form-group">
                             <label for="emergencial-matricula">Matrícula:</label>
                             <input type="text" id="emergencial-matricula" inputmode="numeric" pattern="[0-9]+"
-                                maxlength="20" autocomplete="off" required>
+                                maxlength="20" autocomplete="off" list="emergencial-matriculas" required>
+                            <datalist id="emergencial-matriculas">
+                                @foreach($alunos as $aluno)
+                                    <option value="{{ $aluno->matricula }}" label="{{ $aluno->nome }}"></option>
+                                @endforeach
+                            </datalist>
                         </div>
                     </div>
                     <div class="form-group">
@@ -406,7 +444,7 @@
                         <input type="email" id="emergencial-email" maxlength="100" autocomplete="off">
                     </div>
                     <p id="emergencial-aviso" role="status" aria-live="polite">
-                        Selecione um aluno cadastrado ou informe o nome completo e a matrícula de um aluno novo.
+                        Para aluno novo, informe nome completo e matrícula. O primeiro acesso será pelo SUAP, com essa mesma matrícula.
                     </p>
                     <p>Confira a matrícula: ela vincula este atendimento e o prontuário ao aluno.</p>
                     <div class="modal-buttons">
@@ -771,8 +809,9 @@
     </script>
 
     <script src="{{ asset('js/preferencias-calendario.js') }}?v=20261008-1"></script>
-    <script src="{{ asset('js/psicologa.js') }}?v=20261018-rotas-1"></script>
-    <script src="{{ asset('js/atendimento-emergencial.js') }}?v=20261004-emergencial-1"></script>
+    <script src="{{ asset('js/indisponibilidade-agenda.js') }}?v=20261021-modal-2"></script>
+    <script src="{{ asset('js/psicologa.js') }}?v=20261021-sem-atendimento-1"></script>
+    <script src="{{ asset('js/atendimento-emergencial.js') }}?v=20261021-agendar-aluno-1"></script>
 
 @include('partials.mensagens-modal')
     @include('partials.consulta-alunos')

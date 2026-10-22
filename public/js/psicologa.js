@@ -94,6 +94,13 @@ function horarioJaIniciou(inicio) {
     return Number.isFinite(instante) && instante < relogioAgenda();
 }
 
+function horarioLivreSemAtendimento(evento) {
+    const props = evento.extendedProps;
+    return Number(props.disponivel) === 1 && Number(props.confirmado) !== 1
+        && !props.justificativa_indisponibilidade
+        && horarioJaIniciou(props.inicio_agendamento || evento.start);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
     if (!calendarEl) return;
@@ -112,6 +119,12 @@ document.addEventListener('DOMContentLoaded', function() {
             failure: function() { alert('Houve um erro ao carregar os eventos!'); }
         },
         eventClick: function(info) { openModal(info.event); },
+        eventDidMount: function(info) {
+            if (!horarioLivreSemAtendimento(info.event)) return;
+            info.el.setAttribute('aria-disabled', 'true');
+            info.el.removeAttribute('tabindex');
+            info.el.removeAttribute('href');
+        },
         eventDataTransform: function(rawEventData) {
             const props = rawEventData.extendedProps;
             let className = 'evento-disponivel-psicologa';
@@ -127,12 +140,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Substitua o bloco de verificação de status no eventDataTransform por este:
-if (props.confirmado == 1) {
+if (props.justificativa_indisponibilidade) {
+    className = 'evento-indisponivel-psicologa';
+    const aviso = props.justificativa_indisponibilidade.replace(/\s+/g, ' ').trim();
+    statusTexto = [...aviso].length > 60 ? [...aviso].slice(0, 60).join('') + '…' : aviso;
+} else if (props.confirmado == 1) {
     className = 'evento-indisponivel-psicologa';
     statusTexto = (props.situacao_atendimento === 'Não compareceu' ? 'Não compareceu: ' : 'Realizado: ') + (props.nome || 'N/A');
 } else if (props.disponivel == 0) {
     className = 'evento-indisponivel-psicologa'; 
     statusTexto = 'Agendado: ' + (props.nome || 'N/A');
+} else if (horarioLivreSemAtendimento(rawEventData)) {
+    className = 'evento-sem-atendimento-psicologa';
+    statusTexto = '';
 } else if (props.justificativa_cancelamento || String(props.status_real || '').startsWith('Cancelado')) {
     className = 'evento-disponivel-psicologa';
     statusTexto = 'Disponível (cancelamento anterior)';
@@ -171,6 +191,7 @@ if (props.confirmado == 1) {
         });
     }
     if (telaPequena.matches) adaptarCalendario();
+    IndisponibilidadeAgenda.conectar(calendar);
     PreferenciasCalendario.conectar(calendar, preferencias);
     calendar.render();
     telaPequena.addEventListener('change', adaptarCalendario);
@@ -212,6 +233,7 @@ function copiarLinkAlunoDoAgendamento(destinoId) {
 }
 
 function openModal(event) {
+    if (horarioLivreSemAtendimento(event)) return;
     const props = event.extendedProps;
     const start = new Date(event.start);
     const isPast = horarioJaIniciou(props.inicio_agendamento || event.start);
@@ -238,6 +260,14 @@ function openModal(event) {
         const dia = String(start.getDate()).padStart(2, '0');
         $('#data').val(`${ano}-${mes}-${dia}`);
         $('#hora').val(start.toTimeString().slice(0, 5));
+
+        const botaoAgendarAluno = document.getElementById('agendarAlunoBtn');
+        botaoAgendarAluno.dataset.horarioId = String(event.id);
+        botaoAgendarAluno.dataset.versao = props.versao;
+        botaoAgendarAluno.dataset.data = `${ano}-${mes}-${dia}`;
+        botaoAgendarAluno.dataset.hora = start.toTimeString().slice(0, 5);
+        botaoAgendarAluno.disabled = isPast;
+        botaoAgendarAluno.title = isPast ? 'Selecione um horário futuro para agendar um aluno.' : '';
 
         if (teveCancelamento) {
             const nome = props.nome || props.aluno_nome;
@@ -290,11 +320,14 @@ if (props.justificativa_cancelamento) {
     }
 
     configurarLinksAluno(props.aluno_id || props.user_id, props.nome || props.aluno_nome);
+    IndisponibilidadeAgenda.configurarModal(event);
     $('#modal').addClass('is-visible');
 }
 
 // Ambos os modais compartilham as ações e a identificação da situação final.
 function configurarAcoesAtendimento(disponivel, confirmado, isPast = false, situacaoFinal = '') {
+    document.getElementById('indisponibilidade-painel').hidden = true;
+    document.querySelector('#modal .modal-content').classList.remove('horario-editavel');
     $('#confirmBtn, #cancelByPsicologaBtn, #deleteBtn, #faltaBtn, #corrigirSituacaoBtn').hide();
     const situacao = confirmado ? (situacaoFinal || 'Realizado') : 'Agendado';
     $('#eventId').data('situacao', situacao);
@@ -330,11 +363,11 @@ function sendAjaxRequest(data) {
         data.versao = $('#eventId').data('versao');
     }
     const textos = {registrar_falta: 'Registrando falta…', corrigir_situacao: 'Corrigindo situação…', confirmar: 'Concluindo…', cancel_by_psicologa: 'Cancelando…',
-        generate_default: 'Gerando horários…', generate_individual: 'Criando horário…', atendimento_emergencial: 'Registrando atendimento…',
+        generate_default: 'Gerando horários…', generate_individual: 'Criando horário…', atendimento_emergencial: 'Registrando atendimento…', agendar_aluno: 'Agendando aluno…',
         edit: 'Salvando…', delete: 'Excluindo…', delete_specific_default: 'Cancelando horários…'};
     return Operacoes.ajax({
         grupo: 'agenda', url: LaravelConfig.rotas.acao, data, navegar: true,
-        botoes: '#emergencial-form button[type="submit"], #generate-form button[type="submit"], #individual-form button[type="submit"], #delete-form button[type="submit"], #form-disponivel button[type="submit"], #cancel-by-psicologa-form button[type="submit"], #confirmBtn, #deleteBtn, #faltaBtn, #corrigirSituacaoBtn, #situacao-form button[type="submit"]',
+        botoes: '#emergencial-form button[type="submit"], #agendarAlunoBtn, #generate-form button[type="submit"], #individual-form button[type="submit"], #delete-form button[type="submit"], #form-disponivel button[type="submit"], #cancel-by-psicologa-form button[type="submit"], #confirmBtn, #deleteBtn, #faltaBtn, #corrigirSituacaoBtn, #situacao-form button[type="submit"]',
         texto: textos[data.action] || 'Processando…',
         sucesso(response) { alert(response.message); location.reload(); },
         erro(message) { alert(message); }

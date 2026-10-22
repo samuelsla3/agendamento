@@ -30,6 +30,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const ehMeuAgendamento = (LaravelConfig.userTipo === 'estudante' || LaravelConfig.userTipo === 'aluno') && 
                                     (props.matricula_agendada === LaravelConfig.matriculaUsuario || props.matricula === LaravelConfig.matriculaUsuario);
 
+            if (props.justificativa_indisponibilidade) {
+                info.el.title = props.justificativa_indisponibilidade + ' — Clique para expandir';
+                info.el.classList.add('evento-aviso-indisponibilidade');
+            }
             // Se o horário já passou OU se está ocupado por outro aluno, aplica visual de indisponível
             if (isPast || semAntecedencia || (props.disponivel != 1 && !ehMeuAgendamento && LaravelConfig.userTipo !== 'psicologa')) {
                 info.el.style.cursor = 'not-allowed';
@@ -44,7 +48,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             let horarioOriginal = eventData.title || ''; 
 
-            if (props.disponivel == 1) {
+            if (props.justificativa_indisponibilidade) {
+                className = 'evento-indisponivel-aluno';
+                const aviso = props.justificativa_indisponibilidade.replace(/\s+/g, ' ').trim();
+    statusTexto = [...aviso].length > 60 ? [...aviso].slice(0, 60).join('') + '…' : aviso;
+            } else if (props.disponivel == 1) {
                 const semAntecedencia = regraAntecedencia.bloqueia(props.inicio_agendamento || eventData.start);
                 className = semAntecedencia ? 'evento-indisponivel-aluno' : 'evento-disponivel-aluno';
                 statusTexto = semAntecedencia ? 'Prazo para agendar encerrado' : 'Disponível';
@@ -107,6 +115,13 @@ function openModal(event) {
     // Calcula se o horário do agendamento é anterior ao momento atual
     const isPast = regraAntecedencia.estaNoPassado(inicioAgendamento(event));
 
+    if (props.justificativa_indisponibilidade) {
+        document.getElementById('indisponibilidade-aviso-data').textContent = dataHora;
+        document.getElementById('indisponibilidade-aviso-texto').textContent = props.justificativa_indisponibilidade;
+        $('#indisponibilidade-aviso-modal').addClass('is-visible');
+        document.getElementById('indisponibilidade-aviso-fechar').focus();
+        return;
+    }
     if (!LaravelConfig.isLoggedIn) {
         showMessage('error', "É necessário estar logado.");
         return;
@@ -166,6 +181,13 @@ function openModal(event) {
 }
 
 function closeModal() { $('.modal').removeClass('is-visible'); }
+document.getElementById('indisponibilidade-aviso-fechar').addEventListener('click', closeModal);
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Tab' && document.getElementById('indisponibilidade-aviso-modal').classList.contains('is-visible')) {
+        e.preventDefault(); document.getElementById('indisponibilidade-aviso-fechar').focus();
+    }
+});
 $('.modal').on('click', function(e) { if ($(e.target).is(this)) { closeModal(); } });
 function showMessage(type, message) { $('#message-box').removeClass('success error').addClass(type).text(message).fadeIn().delay(4000).fadeOut(); }
 

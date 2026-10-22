@@ -247,21 +247,6 @@
                 </div>
             </form>
         </section>
-        <section class="content-section config-card" id="acompanhamento-emails">
-            <h2>Acompanhamento de e-mails</h2>
-            <p>Consulte os envios aos alunos e acompanhe falhas ou mensagens sem confirmação.</p>
-            @if($problemasEmail > 0)
-                <div class="config-aviso config-orientacao" role="status">
-                    <p><strong>{{ $problemasEmail }} {{ $problemasEmail === 1 ? 'aviso precisa de atenção' : 'avisos precisam de atenção' }}.</strong></p>
-                    <p>Há problemas no envio ou mensagens sem confirmação. Os agendamentos e cancelamentos registrados continuam válidos.</p>
-                </div>
-            @else
-                <p>Nenhum aviso precisa de atenção no momento.</p>
-            @endif
-            <div class="config-acoes">
-                <a href="{{ route('emails.index') }}" class="btn btn-primary">Acompanhar os envios</a>
-            </div>
-        </section>
         @include('partials.sugestoes-psicologa')
     </main>
 </body>
