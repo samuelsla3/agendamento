@@ -76,4 +76,4 @@ jobs:
           php artisan config:clear
           php artisan route:clear
           php artisan view:clear
-          php artisan migrate --no-interaction
+          php artisan migrate --force --no-interaction
