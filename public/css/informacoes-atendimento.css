@@ -38,3 +38,7 @@ body.login-com-informacoes { height: auto; min-height: 100vh; min-height: 100dvh
     .setor-info-cabecalho h2 { font-size: 18px; }
     .setor-info-conteudo { padding-inline: 16px; }
 }
+
+.setor-info-texto.setor-info-contato {
+    white-space: normal;
+}

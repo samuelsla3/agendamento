@@ -19,10 +19,40 @@
                     <details class="setor-info-secao" open>
                         <summary>{{ $rotulo }}</summary>
                         @if($chave === 'email')
-                            <p class="setor-info-texto"><a href="mailto:{{ $informacoesAtendimento[$chave] }}">{{ $informacoesAtendimento[$chave] }}</a></p>
-                        @else
-                            <p class="setor-info-texto">{{ $informacoesAtendimento[$chave] }}</p>
-                        @endif
+    <p class="setor-info-texto setor-info-contato">
+        <a href="mailto:{{ $informacoesAtendimento[$chave] }}">
+            {{ $informacoesAtendimento[$chave] }}
+        </a>
+    </p>
+@elseif($chave === 'telefone')
+    @php
+        $telefone = trim($informacoesAtendimento[$chave]);
+        $numeroWhatsapp = preg_replace('/[^0-9]/', '', $telefone);
+
+        // Número brasileiro com DDD, informado sem código do país.
+        if (in_array(strlen($numeroWhatsapp), [10, 11], true)) {
+            $numeroWhatsapp = '55' . $numeroWhatsapp;
+        }
+
+        $telefoneValido = preg_match('/\A\+?[0-9()\s.-]+\z/u', $telefone)
+            && preg_match('/\A55[1-9]{2}[2-9][0-9]{7,8}\z/', $numeroWhatsapp);
+    @endphp
+
+    <p class="setor-info-texto setor-info-contato">
+        @if($telefoneValido)
+            <a href="https://wa.me/{{ $numeroWhatsapp }}"
+               target="_blank"
+               rel="noopener noreferrer"
+               aria-label="Conversar pelo WhatsApp: {{ $telefone }}">
+                {{ $telefone }}
+            </a>
+        @else
+            {{ $telefone }}
+        @endif
+    </p>
+@else
+    <p class="setor-info-texto">{{ $informacoesAtendimento[$chave] }}</p>
+@endif
                     </details>
                 @endif
             @endforeach
