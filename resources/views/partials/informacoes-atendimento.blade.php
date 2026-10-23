@@ -19,7 +19,7 @@
                     <details class="setor-info-secao" open>
                         <summary>{{ $rotulo }}</summary>
                         @if($chave === 'email')
-    <p class="setor-info-texto setor-info-contato">
+    <p class="setor-info-texto setor-info-contato" style="white-space: normal;">
         <a href="mailto:{{ $informacoesAtendimento[$chave] }}">
             {{ $informacoesAtendimento[$chave] }}
         </a>
@@ -38,7 +38,7 @@
             && preg_match('/\A55[1-9]{2}[2-9][0-9]{7,8}\z/', $numeroWhatsapp);
     @endphp
 
-    <p class="setor-info-texto setor-info-contato">
+    <p class="setor-info-texto setor-info-contato" style="white-space: normal;">
         @if($telefoneValido)
             <a href="https://wa.me/{{ $numeroWhatsapp }}"
                target="_blank"
