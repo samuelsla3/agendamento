@@ -13,7 +13,7 @@ class PesquisaPrimeiroAgendamento
 {
     public const FUSO = 'America/Bahia';
     public const INICIO = '2026-10-22 00:00:00';
-    public const FIM = '2026-11-14 00:00:00'; // limite exclusivo: inclui todo o dia 13/11
+    public const FIM = '2026-11-21 00:00:00'; // limite exclusivo: inclui todo o dia 20/11
     public const AGRADECIMENTO = 'Obrigado por responder a esta pesquisa. Sua opinião anônima foi registrada!';
     public const PERGUNTAS = [
         'p1' => ['texto' => 'Você conseguiu realizar o que pretendia no site?', 'opcoes' => [

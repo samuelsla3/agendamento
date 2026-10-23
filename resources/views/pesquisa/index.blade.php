@@ -13,7 +13,7 @@
 <body class="ui-sistema">
 <header class="header"><h1>Pesquisa de uso do sistema</h1><a class="btn btn-secondary" href="{{ route(auth()->user()->tipo === 'psicologa' ? 'psicologa.index' : 'agenda.index') }}">Voltar ao site</a></header>
 <main class="container pesquisa-painel">
-    <p>Primeiro agendamento realizado entre 22/10/2026 e 13/11/2026. As respostas não possuem nome, matrícula, e-mail ou vínculo com o participante.</p>
+    <p>Primeiro agendamento realizado entre 22/10/2026 e 20/11/2026. As respostas não possuem nome, matrícula, e-mail ou vínculo com o participante.</p>
     <p>A identificação abaixo distingue as respostas e permite excluir testes; ela não identifica alunos. A exclusão não permite que a mesma pessoa responda novamente.</p>
     @if(session('sucesso'))<p role="status">{{ session('sucesso') }}</p>@endif
     <div class="pesquisa-totais"><p><strong>{{ $total }}</strong> respostas registradas</p><p>Avaliação média: <strong>{{ $media === null ? '—' : number_format($media, 2, ',', '.') }}</strong> / 5</p></div>

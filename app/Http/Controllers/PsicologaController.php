@@ -34,7 +34,9 @@ public function index()
     ->where('h.disponivel', 1)
     ->whereNull('h.justificativa_indisponibilidade')
     ->select('ra.*', 'u.turma_codigo as turma_codigo_aluno', 'u.id as aluno_id', 'u.tipo as tipo_aluno')
-    ->orderBy('ra.data_registro', 'desc')
+    ->orderBy('ra.data_atendimento', 'asc')
+    ->orderBy('ra.hora_atendimento', 'asc')
+    ->orderBy('ra.id', 'desc')
     ->take(10)
     ->get();
 

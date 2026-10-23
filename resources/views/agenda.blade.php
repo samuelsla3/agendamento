@@ -408,7 +408,7 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="emergencial-nome">Nome do aluno:</label>
+                        <label for="emergencial-nome">*Nome do aluno:</label>
                         <input type="text" id="emergencial-nome" list="emergencial-alunos" maxlength="125"
                             autocomplete="off" placeholder="Digite ou selecione um aluno" required>
                         <input type="hidden" id="emergencial-aluno-id">
@@ -429,7 +429,7 @@
                                 autocomplete="off" placeholder="Digite ou selecione a turma completa">
                         </div>
                         <div class="form-group">
-                            <label for="emergencial-matricula">Matrícula:</label>
+                            <label for="emergencial-matricula">*Matrícula:</label>
                             <input type="text" id="emergencial-matricula" inputmode="numeric" pattern="[0-9]+"
                                 maxlength="20" autocomplete="off" list="emergencial-matriculas" required>
                             <datalist id="emergencial-matriculas">

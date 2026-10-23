@@ -120,18 +120,27 @@ class PesquisaPrimeiroAgendamentoTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2026-10-22 03:00:00', 'UTC')); // início exato na Bahia
         $primeiro = $this->usuario('33333333333'); $this->actingAs($primeiro);
         $this->reservar($this->novaVaga('2026-12-02'))->assertJsonPath('pesquisa', true);
-        Carbon::setTestNow(Carbon::parse('2026-11-14 02:59:59', 'UTC')); // 13/11 23:59:59 na Bahia
+        Carbon::setTestNow(Carbon::parse('2026-11-21 02:59:59', 'UTC')); // 20/11 23:59:59 na Bahia
         $novo = $this->usuario('22222222222'); $this->actingAs($novo);
         $this->reservar($this->novaVaga('2026-12-01'))->assertJsonPath('pesquisa', true);
-        Carbon::setTestNow(Carbon::parse('2026-11-14 03:00:00', 'UTC')); // fim exato
+        Carbon::setTestNow(Carbon::parse('2026-11-21 03:00:00', 'UTC')); // fim exato
         $this->postJson('/pesquisa/convite')->assertJsonPath('exibir', false);
         $this->get('/')->assertOk()->assertDontSee('id="pesquisa-modal"', false);
         $this->postJson('/pesquisa/responder', $this->respostas())->assertStatus(410);
         $this->assertDatabaseCount('pesquisa_respostas', 0);
     }
+    public function test_resposta_e_periodo_no_painel_funcionam_no_ultimo_dia_prorrogado(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-11-20 23:59:59', 'America/Bahia'));
+        $this->convidar();
+        $this->postJson('/pesquisa/responder', $this->respostas())->assertOk();
+        $this->assertDatabaseCount('pesquisa_respostas', 1);
+        $this->pesquisador();
+        $this->get('/pesquisa')->assertOk()->assertSee('22/10/2026 e 20/11/2026');
+    }
     public function test_primeiro_agendamento_apos_fim_nao_convida(): void
     {
-        Carbon::setTestNow(Carbon::parse('2026-11-14 00:00:00', 'America/Bahia'));
+        Carbon::setTestNow(Carbon::parse('2026-11-21 00:00:00', 'America/Bahia'));
         $this->reservar()->assertOk()->assertJsonPath('pesquisa', false);
         $this->assertDatabaseCount('pesquisa_participacoes', 0);
     }
@@ -236,7 +245,7 @@ class PesquisaPrimeiroAgendamentoTest extends TestCase
     public function test_resultados_continuam_disponiveis_apos_campanha_encerrar(): void
     {
         $this->convidar(); $this->postJson('/pesquisa/responder', $this->respostas())->assertOk();
-        $this->pesquisador(); Carbon::setTestNow(Carbon::parse('2026-11-15', 'America/Bahia'));
+        $this->pesquisador(); Carbon::setTestNow(Carbon::parse('2026-11-22', 'America/Bahia'));
         $this->get('/pesquisa')->assertOk()->assertSee('Sugestão fictícia de teste.');
     }
 }
