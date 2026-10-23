@@ -195,7 +195,7 @@ if ($token && is_array($dadosSuap) && !empty($dadosSuap)) {
         // 3. FALHA TOTAL
         // ---------------------------------------------------------------------
         return back()->withErrors([
-            'matricula' => 'A matrícula/senha fornecida está incorreta (ou o SUAP está fora do ar e este é seu primeiro acesso).',
+            'matricula' => 'A matrícula/senha fornecida está incorreta (ou o SUAP está fora do ar e este é seu primeiro acesso). Se o problema persistir, procure a psicóloga na COTEP.',
         ])->withInput($request->only('matricula'));
     }
 
