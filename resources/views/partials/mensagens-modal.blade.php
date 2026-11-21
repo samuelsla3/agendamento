@@ -8,6 +8,7 @@ $mensagensDados = [
     'abrir' => route('mensagens.abrir'), 'contatos' => route('mensagens.contatos'), 'alunos' => route('mensagens.alunos'),
     'historico' => route('mensagens.historico', ['conversa' => '__ID__']),
     'enviar' => route('mensagens.enviar', ['conversa' => '__ID__']),
+    'apagar' => route('mensagens.apagar', ['conversa' => '__ID__', 'mensagem' => '__MENSAGEM__']),
     'emailEnviar' => route('mensagens.email.enviar', ['conversa' => '__ID__']),
     'emailStatus' => route('mensagens.email.status', ['conversa' => '__ID__', 'chave' => '__CHAVE__']),
     'emailAnexosMaximo' => config('comunicacao.email_anexos_maximo_bytes', 15728640),

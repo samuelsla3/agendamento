@@ -240,6 +240,7 @@
                 if (itens.has(Number(m.id))) return;
                 itens.set(Number(m.id), m);
                 const artigo = document.createElement('article'); artigo.className = 'mensagens-item' + (m.minha ? ' minha' : '');
+                artigo.dataset.mensagemId = String(m.id);
                 const balao = document.createElement('div'); balao.className = 'mensagens-balao';
                 if (m.texto) { const texto = document.createElement('p'); texto.className = 'mensagens-conteudo'; texto.textContent = m.texto; balao.append(texto); }
                 (m.anexos || []).forEach(a => {
@@ -261,12 +262,46 @@
                     }
                     balao.append(link);
                 });
-                const hora = document.createElement('span'); hora.className = 'mensagens-hora'; hora.textContent = m.hora; balao.append(hora);
+                const rodape = document.createElement('div'); rodape.className = 'mensagens-rodape';
+                const hora = document.createElement('span'); hora.className = 'mensagens-hora'; hora.textContent = m.hora; rodape.append(hora);
+                const opcoes = document.createElement('details'); opcoes.className = 'mensagens-opcoes';
+                const resumo = document.createElement('summary'); resumo.textContent = '⋮'; resumo.setAttribute('aria-label', 'Opções da mensagem');
+                opcoes.append(resumo);
+                const apagarVoce = document.createElement('button'); apagarVoce.type = 'button';
+                apagarVoce.textContent = 'Apagar para você'; apagarVoce.dataset.apagarModo = 'voce';
+                apagarVoce.dataset.mensagemId = String(m.id); opcoes.append(apagarVoce);
+                if (m.minha) {
+                    const apagarTodos = document.createElement('button'); apagarTodos.type = 'button';
+                    apagarTodos.textContent = 'Apagar para todos'; apagarTodos.dataset.apagarModo = 'todos';
+                    apagarTodos.dataset.mensagemId = String(m.id); opcoes.append(apagarTodos);
+                }
+                rodape.append(opcoes); balao.append(rodape);
                 artigo.append(balao); fragmento.append(artigo);
             });
             if (anteriores) { el('itens').prepend(fragmento); h.scrollTop = topo + h.scrollHeight - altura; }
             else { el('itens').append(fragmento); if (perto || enviando) h.scrollTop = h.scrollHeight; }
         }
+        el('itens').addEventListener('click', async event => {
+            const botao = event.target.closest('button[data-apagar-modo]');
+            if (!botao || !selecionada || enviando || bloqueado) return;
+            const modo = botao.dataset.apagarModo, mensagemId = Number(botao.dataset.mensagemId);
+            if (!Number.isSafeInteger(mensagemId) || !itens.has(mensagemId)) return;
+            const pergunta = modo === 'todos'
+                ? 'Apagar esta mensagem para você e para a outra pessoa?'
+                : 'Apagar esta mensagem somente da sua conversa?';
+            if (!window.confirm(pergunta)) return;
+            const id = selecionada.id, g = geracao;
+            botao.disabled = true;
+            try {
+                const url = dados.apagar.replace('__ID__', id).replace('__MENSAGEM__', mensagemId);
+                const resposta = await api(url, 'DELETE', {modo});
+                if (g === geracao && selecionada?.id === id) {
+                    el('itens').querySelector(`[data-mensagem-id="${mensagemId}"].mensagens-item`)?.remove();
+                    badge(resposta);
+                }
+            } catch (erro) { tratarErro(erro); }
+            finally { botao.disabled = false; }
+        });
         async function marcarLidas() {
             if (!selecionada || bloqueado || !modal.open || document.visibilityState !== 'visible' || aba !== 'interno' || !pertoDoFim() || marcando || !itens.size) return;
             const ate = Math.max(...itens.keys()); if (ate <= marcada) return;
@@ -281,12 +316,16 @@
             const leitura = {}; lendo = leitura;
             const url = new URL(dados.historico.replace('__ID__', id), window.location.href);
             if (itens.size && !inicial) url.searchParams.set(anteriores ? 'antes' : 'depois', anteriores ? Math.min(...itens.keys()) : Math.max(...itens.keys()));
+            if (!inicial && itens.size) url.searchParams.set('vistos', [...itens.keys()].slice(-80).join(','));
             try {
                 const resposta = await api(url.href);
                 if (g !== geracao || numero !== selecaoNumero || bloqueado || selecionada?.id !== id) return;
                 destino(resposta.conversa); prazo(resposta);
                 if (inicial) { itens.clear(); el('itens').replaceChildren(); }
                 adicionarMensagens(resposta.mensagens, anteriores);
+                (resposta.removidas || []).forEach(id => {
+                    el('itens').querySelector(`[data-mensagem-id="${id}"].mensagens-item`)?.remove();
+                });
                 if (inicial || anteriores) el('anteriores').hidden = !resposta.mais;
                 if (inicial) el('historico').scrollTop = el('historico').scrollHeight;
                 el('enviar').disabled = false;

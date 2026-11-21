@@ -72,6 +72,8 @@ class ComunicacaoPrivada
             ->where('m.origem', $psicologa ? 'aluno' : 'psicologa')
             ->whereColumn('m.id', '>', $psicologa ? 'c.lida_psicologa_ate' : 'c.lida_aluno_ate');
         if (!$psicologa) $query->where('c.aluno_id', $usuario->id);
+        $query->whereNull('m.apagada_todos_em')
+            ->whereNull($psicologa ? 'm.oculta_psicologa_em' : 'm.oculta_aluno_em');
         $liberado = !$psicologa || AcessoProntuario::valido($request, $usuario);
         return ['nao_lidas' => $query->count(), 'psicologa' => $psicologa, 'desbloqueado' => $liberado,
             'agora' => now()->timestamp, 'expira_em' => $psicologa && $liberado
@@ -121,13 +123,26 @@ class ComunicacaoPrivada
         $usuario = $this->usuario($request, true);
         $conversa = $this->conversa($usuario, $id);
         $depois = (int) $request->query('depois', 0); $antes = (int) $request->query('antes', 0);
-        $query = DB::table('mensagens_internas')->where('conversa_id', $id);
+        $query = DB::table('mensagens_internas')->where('conversa_id', $id)
+            ->whereNull('apagada_todos_em')
+            ->whereNull($usuario->tipo === 'psicologa' ? 'oculta_psicologa_em' : 'oculta_aluno_em');
+        // IDs ja mostrados permitem atualizar exclusoes feitas pela outra pessoa sem recarregar a conversa.
+        $vistos = array_filter(explode(',', (string) $request->query('vistos', '')), 'strlen');
+        $removidas = [];
+        if ($vistos) {
+            abort_unless(count($vistos) <= 80 && collect($vistos)->every(fn ($n) => ctype_digit($n) && (int) $n > 0), 422);
+            $removidas = DB::table('mensagens_internas')->where('conversa_id', $id)->whereIn('id', $vistos)
+                ->where(function ($q) use ($usuario) {
+                    $q->whereNotNull('apagada_todos_em')
+                        ->orWhereNotNull($usuario->tipo === 'psicologa' ? 'oculta_psicologa_em' : 'oculta_aluno_em');
+                })->pluck('id')->map(fn ($n) => (int) $n)->all();
+        }
         if ($depois) $query->where('id', '>', $depois)->orderBy('id');
         else { if ($antes) $query->where('id', '<', $antes); $query->orderByDesc('id'); }
         $itens = $query->limit(51)->get(); $mais = $itens->count() > 50;
         $itens = $itens->take(50); if (!$depois) $itens = $itens->reverse()->values();
         return ['conversa' => $this->detalhes($usuario, $conversa),
-            'mensagens' => $this->apresentar($usuario, $itens), 'mais' => $mais,
+            'mensagens' => $this->apresentar($usuario, $itens), 'mais' => $mais, 'removidas' => $removidas,
             'agora' => now()->timestamp, 'expira_em' => $usuario->tipo === 'psicologa'
                 ? (int) $request->session()->get('prontuario_ultimo_acesso') + 60 * config('psicologia.prontuario_inatividade_minutos', 30) : null];
     }
@@ -162,6 +177,8 @@ class ComunicacaoPrivada
                 $conversa = $this->conversa($usuario, $id, true);
                 $anterior = DB::table('mensagens_internas')->where('chave_envio', $chave)->first();
                 if ($anterior) {
+                    abort_if($anterior->apagada_todos_em || $anterior->{$usuario->tipo === 'psicologa' ? 'oculta_psicologa_em' : 'oculta_aluno_em'}, 409,
+                        'Essa mensagem foi apagada. Prepare um novo envio se desejar encaminhar outra mensagem.');
                     abort_unless((int) $anterior->conversa_id === $id && (int) $anterior->remetente_id === (int) $usuario->id
                         && hash_equals($anterior->resumo_hash, $hash), 409, 'A tentativa anterior usou outro conteúdo. Confira o resultado antes de iniciar outra mensagem.');
                     return (int) $anterior->id;
@@ -191,6 +208,29 @@ class ComunicacaoPrivada
         $this->anexos->limparNaoRegistrados($arquivos);
         $usuario = $this->usuario($request, true);
         return $this->apresentar($usuario, DB::table('mensagens_internas')->where('id', $mensagemId)->get())[0];
+    }
+
+    public function apagar(Request $request, int $conversaId, int $mensagemId, string $modo): void
+    {
+        abort_unless(in_array($modo, ['voce', 'todos'], true), 422);
+        DB::transaction(function () use ($request, $conversaId, $mensagemId, $modo) {
+            $this->travar();
+            $usuario = $this->usuario($request, true, true);
+            $this->conversa($usuario, $conversaId, true);
+            if ($usuario->tipo === 'psicologa') AcessoProntuario::exigir($request, $usuario);
+            $mensagem = DB::table('mensagens_internas')->where('conversa_id', $conversaId)
+                ->where('id', $mensagemId)->lockForUpdate()->first();
+            abort_unless($mensagem, 404);
+            $campo = $usuario->tipo === 'psicologa' ? 'oculta_psicologa_em' : 'oculta_aluno_em';
+            abort_if($mensagem->apagada_todos_em || $mensagem->{$campo}, 404);
+            if ($modo === 'todos') {
+                abort_unless((int) $mensagem->remetente_id === (int) $usuario->id, 403,
+                    'Somente quem enviou a mensagem pode apagá-la para todos.');
+            }
+            DB::table('mensagens_internas')->where('id', $mensagemId)->update([
+                $modo === 'todos' ? 'apagada_todos_em' : $campo => now(), 'updated_at' => now(),
+            ]);
+        }, 3);
     }
 
     public function marcarLidas(Request $request, int $id, int $ate): void
@@ -223,7 +263,8 @@ class ComunicacaoPrivada
         $query = DB::table('mensagens_conversas as c')->join('usuarios as u', 'u.id', '=', 'c.aluno_id')->whereNotNull('c.ultima_mensagem_em');
         $this->filtrar($query, $request, 'u.');
         $naoLidas = DB::table('mensagens_internas as m')->selectRaw('COUNT(*)')->whereColumn('m.conversa_id', 'c.id')
-            ->where('m.origem', 'aluno')->whereColumn('m.id', '>', 'c.lida_psicologa_ate');
+            ->where('m.origem', 'aluno')->whereColumn('m.id', '>', 'c.lida_psicologa_ate')
+            ->whereNull('m.apagada_todos_em')->whereNull('m.oculta_psicologa_em');
         $pagina = $query->select(['c.id', 'u.id as aluno_id', 'u.nome', 'u.turma_codigo', 'u.matricula'])
             ->selectSub($naoLidas, 'nao_lidas')->orderByDesc('c.ultima_mensagem_em')->orderByDesc('c.id')->paginate(30);
         return ['contatos' => $pagina->getCollection()->map(fn ($c) => ['id' => (int) $c->id, 'aluno_id' => (int) $c->aluno_id,
@@ -252,8 +293,9 @@ class ComunicacaoPrivada
     {
         $usuario = $this->usuario($request, true);
         $anexo = DB::table('mensagens_anexos as a')->join('mensagens_internas as m', 'm.id', '=', 'a.mensagem_id')
-            ->where('a.uuid', $uuid)->select(['a.*', 'm.conversa_id'])->first();
+            ->where('a.uuid', $uuid)->select(['a.*', 'm.conversa_id', 'm.apagada_todos_em', 'm.oculta_aluno_em', 'm.oculta_psicologa_em'])->first();
         abort_unless($anexo, 404); $this->conversa($usuario, (int) $anexo->conversa_id);
+        abort_if($anexo->apagada_todos_em || $anexo->{$usuario->tipo === 'psicologa' ? 'oculta_psicologa_em' : 'oculta_aluno_em'}, 404);
         if ($usuario->tipo === 'psicologa') AcessoProntuario::exigir($request, $usuario);
         return ['conteudo' => $this->anexos->ler($anexo), 'nome' => Crypt::decryptString($anexo->nome), 'mime' => $anexo->mime];
     }

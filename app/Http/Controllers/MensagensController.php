@@ -67,6 +67,13 @@ class MensagensController extends Controller
             ...$this->comunicacao->resumo($request)]);
     }
 
+    public function apagar(Request $request, int $conversa, int $mensagem)
+    {
+        $dados = $request->validate(['modo' => ['required', 'in:voce,todos']]);
+        $this->comunicacao->apagar($request, $conversa, $mensagem, $dados['modo']);
+        return $this->json(['status' => 'success', ...$this->comunicacao->resumo($request)]);
+    }
+
     public function lidas(Request $request, int $conversa)
     {
         $this->comunicacao->usuario($request, true);

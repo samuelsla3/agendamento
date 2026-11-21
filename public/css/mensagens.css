@@ -108,3 +108,14 @@
 .mensagens-visualizador > button { display:block; margin:0 0 12px auto; }
 .mensagens-visualizador > img { display:block; max-width:100%; max-height:75dvh; height:auto; width:auto; margin:auto; object-fit:contain; }
 .mensagens-visualizador > img[hidden] { display:none; }
+
+/* Acoes pontuais por mensagem, sem alterar os baloes nem o layout existente. */
+.mensagens-rodape { display:flex; justify-content:flex-end; align-items:center; gap:8px; margin-top:7px; }
+.mensagens-rodape .mensagens-hora { margin-top:0; }
+.mensagens-opcoes { position:relative; }
+.mensagens-opcoes summary { list-style:none; cursor:pointer; padding:3px 8px; border-radius:6px; font-weight:700; color:#536b5b; }
+.mensagens-opcoes summary::-webkit-details-marker { display:none; }
+.mensagens-opcoes[open] { z-index:3; }
+.mensagens-opcoes[open] summary { background:#d5e4d7; }
+.mensagens-opcoes button { display:block; min-width:145px; padding:9px 11px; text-align:left; border:1px solid #ccd9ce; background:white; color:#304f38; cursor:pointer; font:inherit; font-size:.82rem; }
+.mensagens-opcoes button:hover { background:#f0f5f1; }

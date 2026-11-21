@@ -60,6 +60,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/mensagens/conversas/abrir', [\App\Http\Controllers\MensagensController::class, 'abrir'])->name('mensagens.abrir')->middleware('throttle:30,1,mensagens-abrir:');
     Route::get('/mensagens/conversas/{conversa}', [\App\Http\Controllers\MensagensController::class, 'historico'])->whereNumber('conversa')->name('mensagens.historico')->middleware('throttle:120,1,mensagens-leitura:');
     Route::post('/mensagens/conversas/{conversa}/enviar', [\App\Http\Controllers\MensagensController::class, 'enviar'])->whereNumber('conversa')->name('mensagens.enviar');
+    Route::delete('/mensagens/conversas/{conversa}/mensagens/{mensagem}', [\App\Http\Controllers\MensagensController::class, 'apagar'])
+        ->whereNumber('conversa')->whereNumber('mensagem')->name('mensagens.apagar')->middleware('throttle:30,1,mensagens-apagar:');
     Route::post('/mensagens/conversas/{conversa}/email', [\App\Http\Controllers\EmailMensagemController::class, 'enviar'])->whereNumber('conversa')->name('mensagens.email.enviar')->middleware('throttle:20,1,mensagens-email:');
     Route::get('/mensagens/conversas/{conversa}/email/{chave}', [\App\Http\Controllers\EmailMensagemController::class, 'status'])->whereNumber('conversa')->whereUuid('chave')->name('mensagens.email.status')->middleware('throttle:60,1,mensagens-email-status:');
     Route::post('/mensagens/conversas/{conversa}/lidas', [\App\Http\Controllers\MensagensController::class, 'lidas'])->whereNumber('conversa')->name('mensagens.lidas')->middleware('throttle:120,1,mensagens-lidas:');

@@ -9,9 +9,9 @@
     @vite('resources/css/app.css')
 <script src="{{ asset('js/operacoes.js') }}?v=20260924-1"></script>
 <script src="{{ asset('js/protecao-prontuario.js') }}?v=20261013-2" defer></script>
-    <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261013-atalhos-1">
+    <link rel="stylesheet" href="{{ asset('css/mensagens.css') }}?v=20261121-exclusao-atalhos-1">
     <link rel="stylesheet" href="{{ asset('css/consulta-alunos.css') }}?v=20261013-5">
-    <script src="{{ asset('js/mensagens.js') }}?v=20261021-email-direto-1" defer></script>
+    <script src="{{ asset('js/mensagens.js') }}?v=20261121-exclusao-1" defer></script>
     <script src="{{ asset('js/consulta-alunos.js') }}?v=20261013-5" defer></script>
     <style>
         dialog.mensagens-modal { margin: auto; }
