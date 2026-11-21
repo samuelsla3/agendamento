@@ -104,6 +104,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (telaPequena.matches) adaptarCalendario();
     calendar.render();
+
+    // Apenas na abertura inicial do celular: se não restar nenhuma vaga
+    // agendável nesta semana, mostra a próxima (sem procurar além dela).
+    if (telaPequena.matches) {
+        const inicioSemana = calendar.view.activeStart.getTime();
+        const fimSemana = calendar.view.activeEnd.getTime();
+        const agora = regraAntecedencia.agora();
+        const existeVagaNestaSemana = calendar.getEvents().some(evento => {
+            const props = evento.extendedProps;
+            const inicio = inicioAgendamento(evento);
+            const instante = new Date(inicio).getTime();
+            return props.disponivel == 1
+                && !props.justificativa_indisponibilidade
+                && Number.isFinite(instante)
+                && instante >= inicioSemana
+                && instante < fimSemana
+                && instante >= agora
+                && !regraAntecedencia.bloqueia(inicio);
+        });
+        if (!existeVagaNestaSemana) calendar.next();
+    }
+
     telaPequena.addEventListener('change', adaptarCalendario);
     window.refreshCalendar = function() { location.reload(); }
 });

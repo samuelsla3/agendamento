@@ -226,7 +226,7 @@
 
 @include('partials.pesquisa-primeiro-agendamento')
 <script src="{{ asset('js/antecedencia-agendamento.js') }}?v=20261008-1"></script>
-<script src="{{ asset('js/aluno.js') }}?v=20261022-pesquisa-1"></script>
+<script src="{{ asset('js/aluno.js') }}?v=20261121-semana-1"></script>
 @include('partials.mensagens-modal')
 </body>
 </html>
